@@ -2,10 +2,15 @@
 Daily 5 AM IST scheduler for Odia Panchang tweets.
 Uses APScheduler. Posts via Tweepy if TWITTER_* keys are set in .env,
 otherwise writes generated tweets to logs/daily_tweets.log.
+
+When PUBLIC_API_URL is set, the scheduler fetches panchang data from the
+public Render API instead of computing locally — this keeps the free-tier
+server warm and prevents it spinning down due to inactivity.
 """
 
 import os
 import logging
+import httpx
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -93,38 +98,62 @@ async def run_daily_tweet():
     """
     Main scheduled job: fetch today's panchang + enrichment, generate tweet, post or log.
     Called at 5:00 AM IST every day.
-    """
-    # Import here to avoid circular imports at module load time
-    from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
-    from src.ai_layer2 import enrich_with_claude
-    from src.tweet_generator import generate_tweet_bundle
 
+    If PUBLIC_API_URL is set, fetches enriched data from the public API (keeps
+    the Render free-tier server warm). Falls back to local computation otherwise.
+    """
     today = datetime.now(IST).date()
     logger.info(f"[Scheduler] Running daily tweet job for {today}")
 
+    public_url = os.getenv("PUBLIC_API_URL", "").rstrip("/")
+
     try:
-        # Import app DB session
-        from main import SessionLocal, _get_day, _day_to_dict, _festival_to_dict
+        panchang = None
+        enrichment = {}
 
-        db = SessionLocal()
-        try:
-            day = _get_day(db, today.isoformat())
-            festivals = [_festival_to_dict(f) for f in day.festivals]
-            panchang = _day_to_dict(day, festivals)
-        finally:
-            db.close()
+        # ── Try public API first (warms up Render free tier) ──────────────
+        if public_url:
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    resp = await client.get(
+                        f"{public_url}/panchang/{today.isoformat()}",
+                        params={"enriched": "true"},
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                panchang = data
+                enrichment = {
+                    "astronomical": data.get("enrichment", {}).get("astronomical", {}),
+                    "cultural":     data.get("enrichment", {}).get("cultural", {}),
+                }
+                logger.info(f"[Scheduler] Fetched from public API: {public_url}")
+            except Exception as api_err:
+                logger.warning(f"[Scheduler] Public API call failed ({api_err}), falling back to local compute")
+                panchang = None
 
-        # Layer 1
-        weekday = today.weekday()
-        muhurtas = compute_muhurtas(today.isoformat(), panchang["sunrise"], panchang["sunset"], weekday)
-        yogas    = detect_special_yogas(weekday, panchang["nakshatra"]["en"], panchang["yoga"]["en"])
-        layer1   = validate_with_ai(panchang, muhurtas, yogas)
+        # ── Local fallback ─────────────────────────────────────────────────
+        if panchang is None:
+            from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
+            from src.ai_layer2 import enrich_with_claude
+            from main import SessionLocal, _get_day, _day_to_dict, _festival_to_dict
 
-        # Layer 2
-        layer2   = enrich_with_claude(panchang, layer1)
-        enrichment = {"astronomical": layer1, "cultural": layer2}
+            db = SessionLocal()
+            try:
+                day = _get_day(db, today.isoformat())
+                festivals = [_festival_to_dict(f) for f in day.festivals]
+                panchang = _day_to_dict(day, festivals)
+            finally:
+                db.close()
 
-        # Generate + post
+            weekday  = today.weekday()
+            muhurtas = compute_muhurtas(today.isoformat(), panchang["sunrise"], panchang["sunset"], weekday)
+            yogas    = detect_special_yogas(weekday, panchang["nakshatra"]["en"], panchang["yoga"]["en"])
+            layer1   = validate_with_ai(panchang, muhurtas, yogas)
+            layer2   = enrich_with_claude(panchang, layer1)
+            enrichment = {"astronomical": layer1, "cultural": layer2}
+
+        # ── Generate + post ────────────────────────────────────────────────
+        from src.tweet_generator import generate_tweet_bundle
         bundle = generate_tweet_bundle(panchang, enrichment)
         result = _post_tweet(bundle)
         logger.info(f"[Scheduler] Tweet job done: {result}")

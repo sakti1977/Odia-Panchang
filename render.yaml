@@ -17,6 +17,8 @@ services:
         value: "77.5946"
       - key: LOCATION_TZ
         value: "5.5"
+      - key: PUBLIC_API_URL
+        value: https://odia-panjika-api.onrender.com   # update if your service name differs
       - key: GROQ_API_KEY
         sync: false          # set manually in Render dashboard
       - key: ANTHROPIC_API_KEY
