@@ -3,10 +3,11 @@ Odia Panchang API — FastAPI application.
 """
 
 import os
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
@@ -19,16 +20,32 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/panchang.db")
 from src.models import PanchangDay, Festival, get_engine, get_session_factory, init_db
 from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
 from src.ai_layer2 import enrich_with_claude
+from src.scheduler import create_scheduler, run_daily_tweet
+from src.tweet_generator import generate_tweet_bundle
 
 engine = get_engine(DATABASE_URL)
 init_db(engine)
 SessionLocal = get_session_factory(engine)
 
+IST = timezone(timedelta(hours=5, minutes=30))
+
 # Startup: report AI layer availability
 _groq_ready    = bool(os.getenv("GROQ_API_KEY"))
 _claude_ready  = bool(os.getenv("ANTHROPIC_API_KEY"))
+_twitter_ready = all(os.getenv(k) for k in ("TWITTER_API_KEY","TWITTER_API_SECRET","TWITTER_ACCESS_TOKEN","TWITTER_ACCESS_SECRET"))
 print(f"[Panchang] Layer 1 (Groq/Llama):   {'✅ active — llama-3.3-70b-versatile' if _groq_ready else '⚠️  GROQ_API_KEY not set — using rule-based fallback'}")
 print(f"[Panchang] Layer 2 (Claude Haiku):  {'✅ active — claude-haiku-4-5' if _claude_ready else '⚠️  ANTHROPIC_API_KEY not set — using rule-based fallback'}")
+print(f"[Panchang] Twitter/X posting:       {'✅ active' if _twitter_ready else '⚠️  TWITTER_* keys not set — tweets will be logged to logs/daily_tweets.log'}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = create_scheduler()
+    scheduler.start()
+    print("[Panchang] Scheduler started — daily tweet at 05:00 IST")
+    yield
+    scheduler.shutdown()
+    print("[Panchang] Scheduler stopped")
 
 app = FastAPI(
     title="Odia Panchang API",
@@ -36,9 +53,10 @@ app = FastAPI(
         "Bilingual (Odia + English) Panchang API covering tithi, nakshatra, yoga, "
         "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions. "
         "Supports AI-powered two-layer enrichment: astronomical validation (Groq/Llama) + "
-        "Odia cultural insights (Claude)."
+        "Odia cultural insights (Claude). Daily tweet at 5 AM IST."
     ),
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -279,3 +297,66 @@ def get_festivals_by_year(
         ]
     finally:
         db.close()
+
+
+# ── Tweet endpoints ─────────────────────────────────────────────────────────
+
+@app.get("/tweet/today")
+def preview_tweet():
+    """
+    Preview today's scheduled tweet (without posting).
+    Returns main tweet + thread reply ready for Twitter/X.
+    """
+    today = datetime.now(tz=IST).date()
+    db = SessionLocal()
+    try:
+        day = _get_day(db, today.isoformat())
+        festivals = [_festival_to_dict(f) for f in day.festivals]
+        panchang = _day_to_dict(day, festivals)
+    finally:
+        db.close()
+
+    enrichment = _build_enrichment(panchang)
+    bundle = generate_tweet_bundle(panchang, enrichment)
+    twitter_active = _twitter_ready
+
+    return {
+        **bundle,
+        "twitter_configured": twitter_active,
+        "note": "POST /tweet/post to publish now, or it auto-posts at 05:00 IST" if twitter_active
+                else "Add TWITTER_* keys to .env to enable auto-posting. Tweets saved to logs/daily_tweets.log",
+    }
+
+
+@app.get("/tweet/{date_str}")
+def preview_tweet_for_date(date_str: str):
+    """Preview tweet for a specific date (YYYY-MM-DD). Does not post."""
+    try:
+        date.fromisoformat(date_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    db = SessionLocal()
+    try:
+        day = _get_day(db, date_str)
+        festivals = [_festival_to_dict(f) for f in day.festivals]
+        panchang = _day_to_dict(day, festivals)
+    finally:
+        db.close()
+
+    enrichment = _build_enrichment(panchang)
+    bundle = generate_tweet_bundle(panchang, enrichment)
+    return bundle
+
+
+@app.post("/tweet/post")
+async def post_tweet_now(background_tasks: BackgroundTasks):
+    """
+    Manually trigger today's tweet right now (same as the 5 AM job).
+    Runs in the background — returns immediately.
+    """
+    background_tasks.add_task(run_daily_tweet)
+    return {
+        "status": "triggered",
+        "message": "Tweet job running in background. Check logs/daily_tweets.log or Twitter.",
+    }

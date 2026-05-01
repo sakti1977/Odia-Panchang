@@ -5,3 +5,5 @@ sqlalchemy
 python-dotenv
 groq
 anthropic
+apscheduler
+tweepy
