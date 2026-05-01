@@ -12,7 +12,7 @@ TITHI_RULES = [
     # ── COMMON ODIA FESTIVALS ──────────────────────────────────────────────
     # Chaitra
     ("Chaitra",    "shukla",  9,  "common", "Rama Navami",         "ରାମ ନବମୀ",         "Birthday of Lord Rama"),
-    ("Chaitra",    "shukla", 15,  "common", "Dola Purnima (Holi)", "ଡୋଳ ପୂର୍ଣ୍ଣିମା",  "Festival of colours, Dola Jatra"),
+    ("Chaitra",    "shukla", 15,  "common", "Hanuman Jayanti",     "ହନୁମାନ ଜୟନ୍ତୀ",   "Birthday of Lord Hanuman; worshipped across Odisha"),
     # Vaishakha
     ("Vaishakha",  "shukla",  3,  "common", "Akshaya Tritiya",     "ଅକ୍ଷୟ ତୃତୀୟା",    "Most auspicious day; new beginnings"),
     ("Vaishakha",  "shukla", 15,  "common", "Buddha Purnima",      "ବୁଦ୍ଧ ପୂର୍ଣ୍ଣିମା", "Birth of Gautama Buddha"),
