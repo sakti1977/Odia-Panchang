@@ -3,3 +3,5 @@ uvicorn[standard]
 pyswisseph
 sqlalchemy
 python-dotenv
+groq
+anthropic

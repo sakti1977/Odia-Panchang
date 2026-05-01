@@ -1,6 +1,6 @@
 # Odia Panchang API (ଓଡ଼ିଆ ପଞ୍ଜିକା)
 
-A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Puri)** and **Biraja (Jajpur)** temple traditions.
+A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Puri)** and **Biraja (Jajpur)** temple traditions — now with **two-layer AI enrichment**.
 
 ## Features
 
@@ -12,6 +12,30 @@ A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Pu
   - 🎉 Common Odia festivals (Pana Sankranti, Kumar Purnima, Durga Puja, etc.)
 - **Pre-computed** database (SQLite) using Swiss Ephemeris with **Lahiri ayanamsa**
 - Bilingual responses — every field in **Odia script (ଓଡ଼ିଆ) + English**
+- **AI Enrichment** — two-layer reflection system (see below)
+
+---
+
+## 🤖 AI Enrichment Layers
+
+Add `?enriched=true` to any daily endpoint, or use `/panchang/{date}/insights` for always-enriched responses.
+
+### Layer 1 — Astronomical (Groq / Llama-3.1-70b — Free)
+- **Rahu Kalam**, **Gulika Kalam**, **Yamagandam** — inauspicious time slots
+- **Abhijit Muhurta** — most auspicious midday window
+- **Brahma Muhurta** — sacred pre-dawn period
+- **Special yogas**: Amrit Siddhi, Sarvartha Siddhi, Siddha Yoga detection
+- **Special day classification**: Ekadashi, Purnima, Amavasya, Pradosha, etc.
+- Falls back to rule-based calculation if Groq key not set
+
+### Layer 2 — Odia Cultural (Claude Haiku — ~$0.001/call)
+- **Jagannath temple significance** for the day (bilingual Odia+English)
+- **Biraja temple significance** for the day
+- **Fasting/Vrat guidance** specific to this tithi and day
+- **Auspicious activities** and what to avoid (Odia tradition)
+- **Odia proverb/saying** relevant to the day
+- **Seasonal context** — what's happening in Odisha right now
+- **Household guidance** in Odia script
 
 ---
 
@@ -21,7 +45,10 @@ A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Pu
 |--------|----------|-------------|
 | `GET` | `/api` | Health check |
 | `GET` | `/today` | Full Panchang for today |
+| `GET` | `/today?enriched=true` | Today's Panchang + AI enrichment |
 | `GET` | `/panchang/{date}` | Full Panchang for a date (`YYYY-MM-DD`) |
+| `GET` | `/panchang/{date}?enriched=true` | Panchang + AI enrichment |
+| `GET` | `/panchang/{date}/insights` | Always-enriched Panchang with full insights |
 | `GET` | `/panchang/{year}/{month}` | Full month's Panchang |
 | `GET` | `/festivals/{year}` | All festivals for a year |
 | `GET` | `/festivals/{year}?tradition=jagannath` | Filter by tradition (`jagannath`, `biraja`, `common`, `all`) |
@@ -36,13 +63,27 @@ A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Pu
 pip install -r requirements.txt
 ```
 
-### 2. Seed the database (run once)
+### 2. Configure API keys (`.env`)
+
+```env
+DATABASE_URL=sqlite:///./data/panchang.db
+
+# Layer 1: Groq (free) — https://console.groq.com/keys
+GROQ_API_KEY=your_groq_key_here
+
+# Layer 2: Claude (Anthropic) — https://console.anthropic.com/
+ANTHROPIC_API_KEY=your_anthropic_key_here
+```
+
+> **Note:** Both keys are optional. Without them, the enrichment falls back to the built-in rule-based engine (muhurtas, special yogas, day significance).
+
+### 3. Seed the database (run once)
 
 ```bash
 python3 seed.py --start 2020 --end 2030
 ```
 
-### 3. Run the API
+### 4. Run the API
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8001

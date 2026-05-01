@@ -3,7 +3,7 @@ Odia Panchang API — FastAPI application.
 """
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
 
 from fastapi import FastAPI, HTTPException, Query
@@ -17,6 +17,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/panchang.db")
 
 from src.models import PanchangDay, Festival, get_engine, get_session_factory, init_db
+from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
+from src.ai_layer2 import enrich_with_claude
 
 engine = get_engine(DATABASE_URL)
 init_db(engine)
@@ -26,9 +28,11 @@ app = FastAPI(
     title="Odia Panchang API",
     description=(
         "Bilingual (Odia + English) Panchang API covering tithi, nakshatra, yoga, "
-        "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions."
+        "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions. "
+        "Supports AI-powered two-layer enrichment: astronomical validation (Groq/Llama) + "
+        "Odia cultural insights (Claude)."
     ),
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -76,6 +80,28 @@ def _get_day(db: OrmSession, date_str: str) -> PanchangDay:
     return day
 
 
+def _build_enrichment(base: dict) -> dict:
+    """Run both AI enrichment layers and attach results to the panchang dict."""
+    # Determine weekday (Mon=0, Sun=6)
+    d = date.fromisoformat(base["date"])
+    weekday = d.weekday()  # Mon=0, Sun=6
+
+    # Layer 1: muhurtas + special yogas + Groq validation
+    muhurtas = compute_muhurtas(
+        base["date"],
+        base.get("sunrise", ""),
+        base.get("sunset", ""),
+        weekday,
+    )
+    yogas = detect_special_yogas(weekday, base["nakshatra"]["en"], base["yoga"]["en"])
+    layer1 = validate_with_ai(base, muhurtas, yogas)
+
+    # Layer 2: Claude cultural enrichment
+    layer2 = enrich_with_claude(base, layer1)
+
+    return {"astronomical": layer1, "cultural": layer2}
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 @app.get("/api")
@@ -84,22 +110,26 @@ def health_check():
 
 
 @app.get("/today")
-def get_today():
+def get_today(enriched: bool = Query(default=False, description="Include AI enrichment layers")):
     """Return full Panchang for today (IST)."""
-    today = datetime.now().date()
+    today = datetime.now(tz=timezone(timedelta(hours=5, minutes=30))).date()
     db = SessionLocal()
     try:
         day = _get_day(db, today.isoformat())
         festivals = [_festival_to_dict(f) for f in day.festivals]
-        return _day_to_dict(day, festivals)
+        result = _day_to_dict(day, festivals)
+        if enriched:
+            result["enrichment"] = _build_enrichment(result)
+        return result
     finally:
         db.close()
 
 
-@app.get("/panchang/{date_str}")
-def get_panchang_by_date(date_str: str):
+@app.get("/panchang/{date_str}/insights")
+def get_panchang_insights(date_str: str):
     """
-    Return full Panchang for a specific date.
+    Return full AI-enriched Panchang insights for a specific date.
+    Always runs both enrichment layers (Groq validation + Claude cultural context).
     Date format: YYYY-MM-DD
     """
     try:
@@ -111,7 +141,36 @@ def get_panchang_by_date(date_str: str):
     try:
         day = _get_day(db, date_str)
         festivals = [_festival_to_dict(f) for f in day.festivals]
-        return _day_to_dict(day, festivals)
+        result = _day_to_dict(day, festivals)
+        result["enrichment"] = _build_enrichment(result)
+        return result
+    finally:
+        db.close()
+
+
+@app.get("/panchang/{date_str}")
+def get_panchang_by_date(
+    date_str: str,
+    enriched: bool = Query(default=False, description="Include AI enrichment layers"),
+):
+    """
+    Return full Panchang for a specific date.
+    Date format: YYYY-MM-DD
+    Add ?enriched=true for AI-powered astronomical validation + Odia cultural insights.
+    """
+    try:
+        date.fromisoformat(date_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    db = SessionLocal()
+    try:
+        day = _get_day(db, date_str)
+        festivals = [_festival_to_dict(f) for f in day.festivals]
+        result = _day_to_dict(day, festivals)
+        if enriched:
+            result["enrichment"] = _build_enrichment(result)
+        return result
     finally:
         db.close()
 
