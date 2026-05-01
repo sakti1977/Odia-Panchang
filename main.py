@@ -7,9 +7,12 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
 
-from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session as OrmSession
 
@@ -48,20 +51,27 @@ async def lifespan(app: FastAPI):
     print("[Panchang] Scheduler stopped")
 
 app = FastAPI(
-    title="Odia Panchang API",
+    title="Odia Panjika API (ଓଡ଼ିଆ ପଞ୍ଜିକା)",
     description=(
-        "Bilingual (Odia + English) Panchang API covering tithi, nakshatra, yoga, "
+        "Free public bilingual (Odia + English) Panjika API covering tithi, nakshatra, yoga, "
         "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions. "
-        "Supports AI-powered two-layer enrichment: astronomical validation (Groq/Llama) + "
-        "Odia cultural insights (Claude). Daily tweet at 5 AM IST."
+        "AI-powered enrichment: muhurtas, cultural significance, fasting guidance. "
+        "Daily tweet at 5 AM IST. No API key required for basic endpoints."
     ),
     version="2.0.0",
     lifespan=lifespan,
+    contact={"name": "Odia Panjika", "url": "https://github.com/sakti1977/Odia-Panchang"},
+    license_info={"name": "MIT"},
 )
+
+# Rate limiting — 60 req/min for basic, 10/min for AI-enriched endpoints
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"],
 )
 
 
@@ -176,7 +186,8 @@ def get_today(enriched: bool = Query(default=False, description="Include AI enri
 
 
 @app.get("/panchang/{date_str}/insights")
-def get_panchang_insights(date_str: str):
+@limiter.limit("10/minute")
+def get_panchang_insights(date_str: str, request: Request):
     """
     Return full AI-enriched Panchang insights for a specific date.
     Always runs both enrichment layers (Groq validation + Claude cultural context).
@@ -302,7 +313,8 @@ def get_festivals_by_year(
 # ── Tweet endpoints ─────────────────────────────────────────────────────────
 
 @app.get("/tweet/today")
-def preview_tweet():
+@limiter.limit("10/minute")
+def preview_tweet(request: Request):
     """
     Preview today's scheduled tweet (without posting).
     Returns main tweet + thread reply ready for Twitter/X.

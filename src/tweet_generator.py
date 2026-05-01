@@ -1,6 +1,6 @@
 """
-Tweet generator for Odia Panchang daily posts.
-Formats panchang data into Twitter/X-ready content (≤280 chars main tweet + thread).
+Tweet generator for Odia Panjika daily posts.
+Formats panjika data into Twitter/X-ready content (≤280 chars main tweet + thread).
 """
 
 from datetime import date
@@ -8,8 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Hashtags
-_BASE_TAGS = "#OdiaPanchang #Jagannath #Odisha"
+# Hashtags — using Panjika (ପଞ୍ଜିକା), not Panchang
+_BASE_TAGS = "#OdiaPanjika #Jagannath #Odisha"
 _FESTIVAL_TAG_MAP = {
     "Rath Yatra":       "#RathYatra",
     "Snana Yatra":      "#SnanaYatra",
@@ -48,26 +48,27 @@ def _festival_hashtags(festivals: list) -> str:
 
 def generate_main_tweet(panchang: dict, enrichment: dict | None = None) -> str:
     """
-    Generate the main tweet (≤280 characters).
+    Generate the main tweet (≤280 characters) — in Odia script, starting with Jai Jagannath.
     Format:
-        {emoji} Odia Panchang | {date}
-        📅 {chandra_masa} {paksha} {tithi} ({tithi_or})
-        ⭐ {nakshatra}
-        🎉 {festivals}   ← only if any
-        ⏰ Rahu Kalam: {rahu_kalam}
-        ✨ Abhijit: {abhijit}
-        🙏 ଜୟ ଜଗନ୍ନାଥ
+        🙏 ଜୟ ଜଗନ୍ନାଥ 🙏
+        {emoji} ଓଡ଼ିଆ ପଞ୍ଜିକା | {date_or}
+        📅 {chandra_or} {paksha_or} {tithi_or}
+        ⭐ {nakshatra_or} ନକ୍ଷତ୍ର | {vara_or}
+        🎉 {festivals_or}   ← only if any
+        ⏰ ରାହୁ କାଳ: {rahu_kalam}
         #tags
     """
     d = date.fromisoformat(panchang["date"])
-    date_str = d.strftime("%-d %b %Y")  # e.g. "1 May 2026"
+    # Odia date format
+    _OR_MONTHS = ["ଜାନୁଆରୀ","ଫେବ୍ରୁଆରୀ","ମାର୍ଚ୍ଚ","ଏପ୍ରିଲ","ମଇ","ଜୁନ","ଜୁଲାଇ","ଅଗଷ୍ଟ","ସେପ୍ଟେମ୍ବର","ଅକ୍ଟୋବର","ନଭେମ୍ବର","ଡିସେମ୍ବର"]
+    date_or = f"{d.day} {_OR_MONTHS[d.month-1]} {d.year}"
 
-    tithi_en = panchang["tithi"]["en"]
-    tithi_or = panchang["tithi"]["or"]
-    nakshatra = panchang["nakshatra"]["en"]
-    chandra = panchang["chandra_masa"]["en"]
-    paksha = panchang["paksha"]["en"]
-    vara = panchang["vara"]["en"]
+    tithi_or    = panchang["tithi"]["or"]
+    nakshatra_or= panchang["nakshatra"]["or"]
+    chandra_or  = panchang["chandra_masa"]["or"]
+    paksha_or   = panchang["paksha"]["or"]
+    vara_or     = panchang["vara"]["or"]
+    yoga_or     = panchang["yoga"]["or"]
 
     astro = enrichment.get("astronomical", {}) if enrichment else {}
     special_day = astro.get("special_day_type", "normal")
@@ -77,22 +78,26 @@ def generate_main_tweet(panchang: dict, enrichment: dict | None = None) -> str:
 
     emoji = _SPECIAL_EMOJIS.get(special_day, "🌸")
     festivals = panchang.get("festivals", [])
-    fest_names = [f["name"]["en"] for f in festivals]
-    fest_str = " | ".join(fest_names) if fest_names else ""
+    fest_or = " | ".join(f["name"]["or"] for f in festivals) if festivals else ""
     fest_tags = _festival_hashtags(festivals)
 
     lines = [
-        f"{emoji} Odia Panchang | {date_str}",
-        f"📅 {chandra} {paksha} {tithi_en} ({tithi_or})",
-        f"⭐ {nakshatra} Nakshatra | {vara}",
+        "🙏 ଜୟ ଜଗନ୍ନାଥ 🙏",
+        f"{emoji} ଓଡ଼ିଆ ପଞ୍ଜିକା | {date_or}",
+        f"📅 {chandra_or} {paksha_or} {tithi_or}",
+        f"⭐ {nakshatra_or} | {vara_or} | {yoga_or} ଯୋଗ",
     ]
-    if fest_str:
-        lines.append(f"🎉 {fest_str}")
+    if fest_or:
+        lines.append(f"🎉 {fest_or}")
+    # Sunrise / Sunset
+    sunrise = panchang.get("sunrise", "")
+    sunset  = panchang.get("sunset", "")
+    if sunrise and sunset:
+        lines.append(f"🌅 ସୂର୍ଯ୍ୟୋଦୟ {sunrise} | 🌇 ଅସ୍ତ {sunset}")
     if rahu:
-        lines.append(f"⏰ Rahu Kalam: {rahu}")
+        lines.append(f"⏰ ରାହୁ କାଳ: {rahu}")
     if abhijit:
-        lines.append(f"✨ Abhijit: {abhijit}")
-    lines.append("🙏 ଜୟ ଜଗନ୍ନାଥ")
+        lines.append(f"✨ ଅଭିଜିତ: {abhijit}")
 
     # Build hashtags
     all_tags = _BASE_TAGS
@@ -101,14 +106,18 @@ def generate_main_tweet(panchang: dict, enrichment: dict | None = None) -> str:
 
     tweet = "\n".join(lines) + "\n" + all_tags
 
-    # Trim to 280 chars if needed
+    # Trim to 280 chars if needed (drop least important lines first)
     if len(tweet) > 280:
-        # Drop Abhijit line first
-        lines = [l for l in lines if "Abhijit" not in l]
+        lines = [l for l in lines if "ଅଭିଜିତ" not in l]
         tweet = "\n".join(lines) + "\n" + all_tags
     if len(tweet) > 280:
-        # Drop Rahu line
-        lines = [l for l in lines if "Rahu" not in l]
+        lines = [l for l in lines if "ରାହୁ" not in l]
+        tweet = "\n".join(lines) + "\n" + all_tags
+    if len(tweet) > 280:
+        lines = [l for l in lines if "ସୂର୍ଯ୍ୟୋଦୟ" not in l]
+        tweet = "\n".join(lines) + "\n" + all_tags
+    if len(tweet) > 280:
+        lines = [l for l in lines if "ଯୋଗ" not in l]
         tweet = "\n".join(lines) + "\n" + all_tags
     if len(tweet) > 280:
         tweet = tweet[:277] + "..."
@@ -128,33 +137,32 @@ def generate_thread_tweet(panchang: dict, enrichment: dict | None = None) -> str
 
     parts = []
 
-    # Jagannath significance
-    jagannath = cultural.get("jagannath_significance", {}).get("en", "")
-    if jagannath:
-        parts.append(f"🛕 {jagannath}")
+    # Jagannath significance in Odia
+    jagannath_or = cultural.get("jagannath_significance", {}).get("or", "")
+    jagannath_en = cultural.get("jagannath_significance", {}).get("en", "")
+    if jagannath_or:
+        parts.append(f"🛕 {jagannath_or}")
+    elif jagannath_en:
+        parts.append(f"🛕 {jagannath_en}")
 
-    # Fasting
+    # Fasting in Odia
     fasting = cultural.get("fasting_guidance", {})
     if fasting.get("recommended"):
-        desc = fasting.get("description", "")
+        desc_or = fasting.get("description_or", "")
+        desc_en = fasting.get("description", "")
+        desc = desc_or or desc_en
         if desc:
             parts.append(f"🍃 {desc}")
 
-    # Day energy from Groq
-    energy = astro.get("day_energy", "")
-    if energy:
-        parts.append(f"🌟 {energy}")
-
-    # Special yogas
-    yogas = astro.get("special_yogas", [])
-    if yogas:
-        yoga_names = " | ".join(y["name"] for y in yogas[:2])
-        parts.append(f"✅ {yoga_names}")
-
-    # Proverb
+    # Odia proverb
     proverb_or = cultural.get("odia_proverb", {}).get("text_or", "")
     if proverb_or:
         parts.append(f"📜 {proverb_or}")
+
+    # Household guidance in Odia
+    guidance_or = cultural.get("household_guidance", {}).get("or", "")
+    if guidance_or and not proverb_or:
+        parts.append(f"🙏 {guidance_or}")
 
     thread = "\n\n".join(parts)
     if len(thread) > 280:

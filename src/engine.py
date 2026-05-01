@@ -1,19 +1,27 @@
 """
 Astronomical Panchang calculation engine using Swiss Ephemeris (pyswisseph).
-Default location: Puri, Odisha (lat=19.8135, lon=85.8312, tz=+5.5)
+Default location: Bangalore, Karnataka (lat=12.9716, lon=77.5946, tz=+5.5)
+Location is configurable via LOCATION_* env vars.
 """
 
 from datetime import date, datetime, timezone, timedelta
+import os
 import swisseph as swe
 
 from src.translations import (
     TITHIS, NAKSHATRAS, YOGAS, KARANAS, SOURA_MASA, CHANDRA_MASA, VARAS, PAKSHA,
 )
 
-# Puri, Odisha coordinates
-PURI_LAT = 19.8135
-PURI_LON = 85.8312
-PURI_TZ  = 5.5  # UTC+5:30
+# Location — configurable via environment variables
+_LOCATION_NAME = os.getenv("LOCATION_NAME", "Bangalore")
+_LOC_LAT = float(os.getenv("LOCATION_LAT", "12.9716"))
+_LOC_LON = float(os.getenv("LOCATION_LON", "77.5946"))
+_LOC_TZ  = float(os.getenv("LOCATION_TZ",  "5.5"))
+
+# Keep old names as aliases for backward compatibility
+PURI_LAT = _LOC_LAT
+PURI_LON = _LOC_LON
+PURI_TZ  = _LOC_TZ
 
 swe.set_ephe_path(None)  # use built-in ephemeris
 swe.set_sid_mode(swe.SIDM_LAHIRI)  # Lahiri ayanamsa for Indian panchang

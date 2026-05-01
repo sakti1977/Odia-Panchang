@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: odia-panjika-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    healthCheckPath: /api
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./data/panchang.db
+      - key: LOCATION_NAME
+        value: Bangalore
+      - key: LOCATION_LAT
+        value: "12.9716"
+      - key: LOCATION_LON
+        value: "77.5946"
+      - key: LOCATION_TZ
+        value: "5.5"
+      - key: GROQ_API_KEY
+        sync: false          # set manually in Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false          # set manually in Render dashboard
+      - key: TWITTER_API_KEY
+        sync: false
+      - key: TWITTER_API_SECRET
+        sync: false
+      - key: TWITTER_ACCESS_TOKEN
+        sync: false
+      - key: TWITTER_ACCESS_SECRET
+        sync: false
