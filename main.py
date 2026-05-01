@@ -24,6 +24,12 @@ engine = get_engine(DATABASE_URL)
 init_db(engine)
 SessionLocal = get_session_factory(engine)
 
+# Startup: report AI layer availability
+_groq_ready    = bool(os.getenv("GROQ_API_KEY"))
+_claude_ready  = bool(os.getenv("ANTHROPIC_API_KEY"))
+print(f"[Panchang] Layer 1 (Groq/Llama):   {'✅ active — llama-3.3-70b-versatile' if _groq_ready else '⚠️  GROQ_API_KEY not set — using rule-based fallback'}")
+print(f"[Panchang] Layer 2 (Claude Haiku):  {'✅ active — claude-haiku-4-5' if _claude_ready else '⚠️  ANTHROPIC_API_KEY not set — using rule-based fallback'}")
+
 app = FastAPI(
     title="Odia Panchang API",
     description=(
@@ -107,6 +113,32 @@ def _build_enrichment(base: dict) -> dict:
 @app.get("/api")
 def health_check():
     return {"status": "ok", "service": "Odia Panchang API"}
+
+
+@app.get("/api/status")
+def ai_status():
+    """Show which AI enrichment layers are configured and active."""
+    return {
+        "layer1_groq": {
+            "active": _groq_ready,
+            "model": "llama-3.3-70b-versatile",
+            "description": "Astronomical validation: muhurtas, special yogas",
+            "cost": "free",
+            "setup": "Set GROQ_API_KEY in .env — https://console.groq.com/keys",
+        },
+        "layer2_claude": {
+            "active": _claude_ready,
+            "model": "claude-haiku-4-5",
+            "description": "Odia cultural enrichment: Jagannath/Biraja significance, fasting, proverbs",
+            "cost": "~$0.001/request",
+            "setup": "Set ANTHROPIC_API_KEY in .env — https://console.anthropic.com/",
+        },
+        "enrichment_endpoints": [
+            "/today?enriched=true",
+            "/panchang/{date}?enriched=true",
+            "/panchang/{date}/insights",
+        ],
+    }
 
 
 @app.get("/today")

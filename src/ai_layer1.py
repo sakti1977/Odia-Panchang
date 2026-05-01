@@ -177,6 +177,9 @@ def _get_groq_client():
         return None
 
 
+_GROQ_MODEL = "llama-3.3-70b-versatile"  # Best free model on Groq as of 2026
+
+
 _VALIDATION_PROMPT = """You are an expert Vedic astrologer and Odia Panchang scholar.
 Validate and enrich the following panchang data for {date}.
 
@@ -237,7 +240,7 @@ def validate_with_ai(panchang: dict, muhurtas: dict, yogas: list) -> dict:
             yogas_json=json.dumps(yogas, ensure_ascii=False, indent=2),
         )
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model=_GROQ_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             max_tokens=600,
