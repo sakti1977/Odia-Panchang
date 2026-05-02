@@ -45,7 +45,7 @@ print(f"[Panchang] Twitter/X posting:       {'✅ active' if _twitter_ready else
 async def lifespan(app: FastAPI):
     scheduler = create_scheduler()
     scheduler.start()
-    print("[Panchang] Scheduler started — daily tweet at 05:00 IST")
+    print("[Panchang] Scheduler started — daily tweet at 05:00 IST | self-ping every 10 min")
     yield
     scheduler.shutdown()
     print("[Panchang] Scheduler stopped")

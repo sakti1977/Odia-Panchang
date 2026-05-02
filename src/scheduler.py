@@ -16,6 +16,7 @@ from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +165,22 @@ async def run_daily_tweet():
         return {"error": str(e)}
 
 
+async def self_ping():
+    """
+    Ping own /api endpoint every 10 minutes to prevent Render free-tier spin-down.
+    Only runs when PUBLIC_API_URL is set (i.e. deployed on Render).
+    """
+    public_url = os.getenv("PUBLIC_API_URL", "").rstrip("/")
+    if not public_url:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{public_url}/api")
+            logger.debug(f"[Self-ping] {resp.status_code} — service warm")
+    except Exception as e:
+        logger.warning(f"[Self-ping] Failed: {e}")
+
+
 def create_scheduler() -> AsyncIOScheduler:
     """Create and configure the APScheduler instance."""
     scheduler = AsyncIOScheduler(timezone=IST)
@@ -174,5 +191,12 @@ def create_scheduler() -> AsyncIOScheduler:
         name="Daily 5 AM Odia Panchang Tweet",
         replace_existing=True,
         misfire_grace_time=300,  # allow 5 min late start
+    )
+    scheduler.add_job(
+        self_ping,
+        trigger=IntervalTrigger(minutes=10),
+        id="self_ping",
+        name="Self-ping to keep Render free tier warm",
+        replace_existing=True,
     )
     return scheduler
