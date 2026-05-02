@@ -151,9 +151,12 @@ def _build_enrichment(base: dict) -> dict:
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-def home_page(request: Request):
+async def home_page(request: Request):
     """Serve the main web interface."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html"
+    )
 
 
 @app.get("/api")
