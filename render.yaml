@@ -1,4 +1,15 @@
 services:
+  - type: cron
+    name: daily-tweet-cron
+    runtime: python
+    # 5:00 AM IST = 23:30 UTC (previous day)
+    schedule: "30 23 * * *"
+    buildCommand: pip install httpx
+    startCommand: python trigger_tweet.py
+    envVars:
+      - key: PUBLIC_API_URL
+        value: https://odia-panjika-api.onrender.com
+
   - type: web
     name: odia-panjika-api
     runtime: python
