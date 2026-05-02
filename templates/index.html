@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="or">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ଓଡ଼ିଆ ପଞ୍ଜିକା - Free Odia Panchang for all of Odisha">
+    <title>ଓଡ଼ିଆ ପଞ୍ଜିକା - Odia Panchang</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛕 ଓଡ଼ିଆ ପଞ୍ଜିକା</h1>
+            <p class="subtitle">Odia Panchang - ଜଗନ୍ନାଥ ଓ ବିରଜା ପଞ୍ଜିକା</p>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="card today-card">
+                    <h2>ଆଜିର ପଞ୍ଜିକା - Today's Panchang</h2>
+                    <div id="today-panchang" class="loading">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="location-selector">
+                <h3>ଆପଣଙ୍କ ସହର ବାଛନ୍ତୁ - Select Your City</h3>
+                <div class="city-grid" id="city-grid">
+                    <!-- Cities will be loaded here -->
+                </div>
+            </section>
+
+            <section class="features">
+                <div class="feature-card">
+                    <h3>📅 ମାସିକ ପଞ୍ଜିକା</h3>
+                    <p>Download monthly calendar</p>
+                    <button onclick="downloadMonthly()" class="btn">Download This Month</button>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🎉 ପର୍ବ ପର୍ବାଣି</h3>
+                    <p>Festivals & Special Days</p>
+                    <button onclick="showFestivals()" class="btn">View Festivals</button>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🌅 ମୁହୂର୍ତ୍ତ</h3>
+                    <p>Auspicious timings</p>
+                    <button onclick="showMuhurta()" class="btn">Check Muhurta</button>
+                </div>
+            </section>
+
+            <section class="about">
+                <h3>About ଓଡ଼ିଆ ପଞ୍ଜିକା</h3>
+                <p>
+                    Free, accurate, bilingual Panchang for all Odia people worldwide.
+                    Covers Jagannath Temple (Puri) and Biraja Temple (Jajpur) traditions.
+                </p>
+                <p>
+                    ମାଗଣା, ସଠିକ୍, ଦ୍ୱିଭାଷିକ ପଞ୍ଜିକା ସମସ୍ତ ଓଡ଼ିଆଙ୍କ ପାଇଁ।
+                    ଜଗନ୍ନାଥ ମନ୍ଦିର (ପୁରୀ) ଏବଂ ବିରଜା ମନ୍ଦିର (ଯାଜପୁର) ପରମ୍ପରା ଅନ୍ତର୍ଭୁକ୍ତ।
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            <p>Made with ❤️ for Odisha | ଓଡ଼ିଶା ପାଇଁ ସ୍ନେହରେ ନିର୍ମିତ</p>
+            <p><a href="/docs">API Documentation</a> | <a href="https://github.com/sakti1977/Odia-Panchang">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

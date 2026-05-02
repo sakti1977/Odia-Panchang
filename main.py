@@ -9,7 +9,9 @@ from typing import Optional, Literal
 
 from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -25,10 +27,17 @@ from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_
 from src.ai_layer2 import enrich_with_claude
 from src.scheduler import create_scheduler, run_daily_tweet
 from src.tweet_generator import generate_tweet_bundle
+from src.locations import get_city_info, list_all_cities
+from src.engine import compute_panchang
+from src.pdf_generator import generate_monthly_text, generate_calendar_view
+from src.festivals import match_festivals, get_sankranti_festivals
 
 engine = get_engine(DATABASE_URL)
 init_db(engine)
 SessionLocal = get_session_factory(engine)
+
+# Templates and static files
+templates = Jinja2Templates(directory="templates")
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -73,6 +82,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"],
 )
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 def _day_to_dict(day: PanchangDay, festivals: list) -> dict:
@@ -137,6 +149,12 @@ def _build_enrichment(base: dict) -> dict:
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+def home_page(request: Request):
+    """Serve the main web interface."""
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.get("/api")
 def health_check():
@@ -308,6 +326,158 @@ def get_festivals_by_year(
         ]
     finally:
         db.close()
+
+
+# ── City-based & Location Endpoints ────────────────────────────────────────
+
+@app.get("/api/cities")
+def get_cities():
+    """
+    Return list of all supported Odisha cities with their coordinates.
+    """
+    return list_all_cities()
+
+
+@app.get("/api/panchang/today/{city}")
+def get_panchang_for_city_today(city: str):
+    """
+    Get today's Panchang for a specific city in Odisha.
+    City can be: puri, bhubaneswar, cuttack, jajpur, berhampur, sambalpur, etc.
+    """
+    city_info = get_city_info(city)
+    if not city_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"City '{city}' not found. Use /api/cities to see available cities."
+        )
+
+    # Get today's date in IST
+    today = datetime.now(tz=IST).date()
+
+    # Compute panchang with city-specific coordinates
+    import os
+    # Temporarily set environment variables for this computation
+    old_lat = os.getenv("LOCATION_LAT")
+    old_lon = os.getenv("LOCATION_LON")
+    old_name = os.getenv("LOCATION_NAME")
+
+    os.environ["LOCATION_LAT"] = str(city_info["lat"])
+    os.environ["LOCATION_LON"] = str(city_info["lon"])
+    os.environ["LOCATION_NAME"] = city_info["name"]
+
+    try:
+        # Compute panchang for this city
+        p = compute_panchang(today)
+
+        # Get festivals for this date from database
+        db = SessionLocal()
+        try:
+            day = db.get(PanchangDay, today.isoformat())
+            if day:
+                festivals = [_festival_to_dict(f) for f in day.festivals]
+            else:
+                # If not in DB, match festivals from computed panchang
+                festivals_data = match_festivals(p)
+                festivals = [
+                    {
+                        "name": {"en": f["name_en"], "or": f["name_or"]},
+                        "tradition": f["tradition"],
+                        "description": f["description"]
+                    }
+                    for f in festivals_data
+                ]
+        finally:
+            db.close()
+
+        # Build response
+        result = {
+            "city": city_info["name"],
+            "city_or": city_info["name_or"],
+            "date": p["date"],
+            "vara": {"en": p["vara_en"], "or": p["vara_or"]},
+            "soura_masa": {"en": p["soura_masa_en"], "or": p["soura_masa_or"]},
+            "chandra_masa": {"en": p["chandra_masa_en"], "or": p["chandra_masa_or"]},
+            "paksha": {"en": p["paksha_en"], "or": p["paksha_or"]},
+            "tithi": {
+                "num": p["tithi_num"],
+                "en": p["tithi_en"],
+                "or": p["tithi_or"],
+            },
+            "nakshatra": {"en": p["nakshatra_en"], "or": p["nakshatra_or"]},
+            "yoga": {"en": p["yoga_en"], "or": p["yoga_or"]},
+            "karana": {"en": p["karana_en"], "or": p["karana_or"]},
+            "sunrise": p["sunrise"],
+            "sunset": p["sunset"],
+            "festivals": festivals,
+        }
+
+        return result
+
+    finally:
+        # Restore original environment variables
+        if old_lat:
+            os.environ["LOCATION_LAT"] = old_lat
+        if old_lon:
+            os.environ["LOCATION_LON"] = old_lon
+        if old_name:
+            os.environ["LOCATION_NAME"] = old_name
+
+
+@app.get("/api/panchang/monthly/{year}/{month}/download")
+def download_monthly_panchang(
+    year: int,
+    month: int,
+    city: str = Query(default="puri", description="City name"),
+    format: str = Query(default="text", description="Format: text or calendar")
+):
+    """
+    Download monthly Panchang as text file for printing or offline use.
+    """
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
+
+    # Get month data from database
+    prefix = f"{year:04d}-{month:02d}-"
+    db = SessionLocal()
+    try:
+        days = (
+            db.query(PanchangDay)
+            .filter(PanchangDay.date.like(f"{prefix}%"))
+            .order_by(PanchangDay.date)
+            .all()
+        )
+        if not days:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data for {year}-{month:02d}. Run seed.py to populate."
+            )
+
+        # Convert to dictionaries
+        panchang_data = [
+            _day_to_dict(d, [_festival_to_dict(f) for f in d.festivals])
+            for d in days
+        ]
+
+    finally:
+        db.close()
+
+    # Generate text based on format
+    if format == "calendar":
+        content = generate_calendar_view(year, month, panchang_data)
+    else:
+        content = generate_monthly_text(year, month, panchang_data)
+
+    # Return as downloadable text file
+    from fastapi.responses import Response
+
+    filename = f"Odia_Panchang_{year}_{month:02d}_{city}.txt"
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
 
 
 # ── Tweet endpoints ─────────────────────────────────────────────────────────

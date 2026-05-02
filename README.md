@@ -1,11 +1,14 @@
 # Odia Panchang API (ଓଡ଼ିଆ ପଞ୍ଜିକା)
 
-A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Puri)** and **Biraja (Jajpur)** temple traditions — now with **two-layer AI enrichment**.
+A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Puri)** and **Biraja (Jajpur)** temple traditions — now with **two-layer AI enrichment** and **web interface**.
 
 ## Features
 
+- **Web Interface** — Simple, mobile-responsive web UI for easy access
+- **Multi-City Support** — Location-based Panchang for 12+ Odisha cities
+- **Downloadable Calendars** — Monthly Panchang in text format for offline/print use
 - **Tithi, Nakshatra, Yoga, Karana, Soura Masa, Chandra Masa, Vara** for any date (2020–2030)
-- **Sunrise & Sunset** times for Puri, Odisha
+- **Sunrise & Sunset** times for all major Odisha cities
 - **Festival calendars** for:
   - 🛕 Jagannath Temple, Puri (Rath Yatra, Snana Yatra, Chandan Yatra, Niladri Bije, etc.)
   - 🛕 Biraja Temple, Jajpur (Maa Biraja Ashtami, Nuakhai, Shivaratri, etc.)
@@ -13,6 +16,33 @@ A trusted, bilingual (Odia + English) Panchang REST API covering **Jagannath (Pu
 - **Pre-computed** database (SQLite) using Swiss Ephemeris with **Lahiri ayanamsa**
 - Bilingual responses — every field in **Odia script (ଓଡ଼ିଆ) + English**
 - **AI Enrichment** — two-layer reflection system (see below)
+
+---
+
+## 🌐 Web Interface
+
+Visit the root URL (`/`) to access the mobile-friendly web interface featuring:
+- Today's Panchang at a glance
+- City selector for 12+ Odisha cities
+- Downloadable monthly calendars
+- Festival information
+- Responsive design for mobile and desktop
+
+## 📍 Supported Cities
+
+The API now supports location-based Panchang for major cities across Odisha:
+- **Puri** (ପୁରୀ) — Holy city of Lord Jagannath
+- **Bhubaneswar** (ଭୁବନେଶ୍ୱର) — Capital city
+- **Cuttack** (କଟକ) — Cultural capital
+- **Jajpur** (ଯାଜପୁର) — Home of Maa Biraja
+- **Berhampur** (ବ୍ରହ୍ମପୁର) — Silk city
+- **Sambalpur** (ସମ୍ବଲପୁର) — Western Odisha hub
+- **Rourkela** (ରାଉରକେଲା) — Steel city
+- **Balasore** (ବାଲେଶ୍ୱର) — Northern coastal
+- **Konark** (କୋଣାର୍କ) — Sun Temple
+- And more...
+
+Each city gets accurate sunrise/sunset times based on its coordinates.
 
 ---
 
@@ -43,13 +73,17 @@ Add `?enriched=true` to any daily endpoint, or use `/panchang/{date}/insights` f
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/` | Web interface (HTML) |
 | `GET` | `/api` | Health check |
+| `GET` | `/api/cities` | List all supported Odisha cities |
+| `GET` | `/api/panchang/today/{city}` | Today's Panchang for specific city |
 | `GET` | `/today` | Full Panchang for today |
 | `GET` | `/today?enriched=true` | Today's Panchang + AI enrichment |
 | `GET` | `/panchang/{date}` | Full Panchang for a date (`YYYY-MM-DD`) |
 | `GET` | `/panchang/{date}?enriched=true` | Panchang + AI enrichment |
 | `GET` | `/panchang/{date}/insights` | Always-enriched Panchang with full insights |
 | `GET` | `/panchang/{year}/{month}` | Full month's Panchang |
+| `GET` | `/api/panchang/monthly/{year}/{month}/download` | Download monthly Panchang as text file |
 | `GET` | `/festivals/{year}` | All festivals for a year |
 | `GET` | `/festivals/{year}?tradition=jagannath` | Filter by tradition (`jagannath`, `biraja`, `common`, `all`) |
 
