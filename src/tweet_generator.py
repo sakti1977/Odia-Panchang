@@ -164,9 +164,15 @@ def generate_thread_tweet(panchang: dict, enrichment: dict | None = None) -> str
     if guidance_or and not proverb_or:
         parts.append(f"🙏 {guidance_or}")
 
-    thread = "\n\n".join(parts)
-    if len(thread) > 280:
-        thread = thread[:277] + "..."
+    # Build thread by adding parts one-by-one; stop before exceeding 280 chars
+    # so the tweet never ends mid-sentence.
+    thread = ""
+    for part in parts:
+        candidate = (thread + "\n\n" + part).lstrip("\n") if thread else part
+        if len(candidate) <= 280:
+            thread = candidate
+        else:
+            break
     return thread
 
 
