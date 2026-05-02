@@ -9,3 +9,4 @@ apscheduler
 tweepy
 slowapi
 httpx
+jinja2
