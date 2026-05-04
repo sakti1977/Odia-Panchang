@@ -3,6 +3,7 @@ Odia Panchang API — FastAPI application.
 """
 
 import os
+import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
@@ -550,6 +551,9 @@ def preview_tweet_for_date(date_str: str):
     return bundle
 
 
+_log = logging.getLogger(__name__)
+
+
 @app.post("/tweet/post")
 async def post_tweet_now():
     """
@@ -557,22 +561,24 @@ async def post_tweet_now():
     Waits for completion and returns the full result so callers can see
     whether the tweet was posted to Twitter or saved to the log file.
     """
-    import logging as _logging
-    _log = _logging.getLogger(__name__)
     try:
         data = await run_daily_tweet()
-        # Sanitize error messages to avoid exposing internal exception details.
+        # Sanitize: replace raw exception messages with a generic string so
+        # internal details are not exposed in the HTTP response.
         if "error" in data:
             _log.error("[tweet/post] Tweet job error (details in app logs)")
             return {"result": {"status": "error", "message": "Tweet job failed. Check application logs."}}
         result = data.get("result", {})
-        if result.get("status") == "error":
+        result_status = result.get("status", "unknown")
+        if result_status == "error":
             _log.error("[tweet/post] Tweet post error: %s", result.get("message", ""))
-            data = {**data, "result": {"status": "error", "message": "Tweet post failed. Check application logs."}}
-        return data
+            result_out = {"status": "error", "message": "Tweet post failed. Check application logs."}
+        else:
+            result_out = {"status": result_status, "message": result.get("message", "")}
+        return {"date": data.get("date"), "bundle": data.get("bundle"), "result": result_out}
     except Exception as exc:
         _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
-        return {"result": {"status": "error", "message": "Tweet job encountered an unexpected error. Check application logs."}}
+        raise HTTPException(status_code=500, detail="Tweet job encountered an unexpected error. Check application logs.")
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────
