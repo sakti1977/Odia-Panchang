@@ -1,294 +1,797 @@
-/* Odia Panchang - Mobile-first responsive design */
+/* ─── Odia Panchang — full-fledged responsive stylesheet ─────────────────── */
 
+/* ── Custom properties ──────────────────────────────────────────────────── */
 :root {
-    --primary-color: #FF6B35;
-    --secondary-color: #F7931E;
-    --accent-color: #C1121F;
-    --bg-color: #FFF8F0;
-    --card-bg: #FFFFFF;
-    --text-color: #2B2D42;
-    --border-color: #FFD6A5;
+    --primary:       #E05A00;   /* deep saffron */
+    --primary-dark:  #B84500;
+    --primary-light: #FF8C42;
+    --accent:        #C1121F;   /* deep red */
+    --gold:          #F5A623;
+    --bg:            #FFF8F0;
+    --surface:       #FFFFFF;
+    --surface-alt:   #FFF3E0;
+    --border:        #FFD6A5;
+    --text:          #2B2D42;
+    --text-muted:    #666;
+    --text-light:    #999;
+    --green:         #2E7D32;
+    --radius:        10px;
+    --radius-sm:     6px;
+    --shadow-sm:     0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md:     0 4px 16px rgba(0,0,0,0.12);
+    --transition:    0.25s ease;
+    --header-h:      72px;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Noto Sans Oriya';
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    line-height: 1.6;
-    padding: 0;
-    margin: 0;
+    font-family: 'Noto Sans Oriya', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
+img { max-width: 100%; display: block; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { cursor: pointer; font-family: inherit; }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 10px;
-}
-
-header {
-    text-align: center;
-    padding: 20px 10px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
     color: white;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
 }
-
-header h1 {
-    font-size: 2rem;
-    margin-bottom: 5px;
+.header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
-
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.brand-icon { font-size: 2.4rem; line-height: 1; }
+.header-brand h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: white;
+}
 .subtitle {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    color: white;
+}
+
+/* ── Tab navigation ─────────────────────────────────────────────────────── */
+.tab-nav {
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.15);
+    border-radius: var(--radius);
+    padding: 4px;
+}
+.tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 7px 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+.tab-btn .tab-icon { font-size: 1.1rem; }
+.tab-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+.tab-btn.active { background: white; color: var(--primary); }
+
+/* ── Main content area ──────────────────────────────────────────────────── */
+.site-main {
+    flex: 1;
+    max-width: 1100px;
+    width: 100%;
+    margin: 24px auto;
+    padding: 0 16px;
+}
+
+/* ── Tab panels ─────────────────────────────────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Section blocks ─────────────────────────────────────────────────────── */
+.section-block { margin-bottom: 28px; }
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.section-title-en {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+.today-card {
+    border-top: 4px solid var(--accent);
+}
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.card-title {
+    font-size: 1.15rem;
+    color: var(--accent);
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.card-title-en { font-size: 0.85rem; font-weight: 400; color: var(--text-muted); }
+.city-badge {
+    background: var(--primary);
+    color: white;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* ── Panchang data grid ─────────────────────────────────────────────────── */
+.panchang-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.panchang-item {
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    border: 1px solid var(--border);
+}
+.panchang-item .label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+.panchang-item .value-or {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text);
+}
+.panchang-item .value-en {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.panchang-date-hero {
+    text-align: center;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
+    color: white;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+}
+.panchang-date-hero .date-or { font-size: 1.5rem; font-weight: 700; }
+.panchang-date-hero .date-en { font-size: 0.9rem; opacity: 0.9; margin-top: 2px; }
+.panchang-date-hero .vara-or { font-size: 1.1rem; font-weight: 600; margin-top: 6px; }
+
+/* ── Festival strip inside panchang ────────────────────────────────────── */
+.festival-strip {
+    background: linear-gradient(90deg, #fff3e0 0%, var(--surface) 100%);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-top: 12px;
+}
+.festival-strip h4 {
+    font-size: 0.85rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.festival-strip-item { font-size: 0.95rem; margin-bottom: 4px; }
+.festival-strip-item .fest-or { font-weight: 700; color: var(--accent); }
+.festival-strip-item .fest-en { color: var(--text-muted); font-size: 0.85rem; margin-left: 6px; }
+.festival-strip-item .fest-desc { font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 2px; }
+
+/* ── City grid ──────────────────────────────────────────────────────────── */
+.city-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+}
+.city-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 8px;
+    transition: var(--transition);
+    text-align: center;
+}
+.city-btn:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+.city-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+.city-btn .city-name-or {
+    display: block;
     font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.city-btn .city-name-en {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.city-btn.active .city-name-en { color: rgba(255,255,255,0.85); }
+
+/* ── Skeleton placeholder ───────────────────────────────────────────────── */
+.skeleton-row {
+    height: 44px;
+    background: linear-gradient(90deg, #f0e6d3 25%, #f8f0e6 50%, #f0e6d3 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+    width: 100%;
+}
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ── Spinner ────────────────────────────────────────────────────────────── */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+.spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn {
+    background: var(--primary);
+    color: white;
+    border: 2px solid var(--primary);
+    padding: 10px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+}
+.btn-outline:hover { background: var(--primary); color: white; }
+.actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── Date lookup form ───────────────────────────────────────────────────── */
+.date-lookup-form { padding: 20px; margin-bottom: 16px; }
+.form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.date-lookup-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+.date-input, .select-input {
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color var(--transition);
+}
+.date-input:focus, .select-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+.date-input { min-width: 180px; }
+
+/* ── Festival filter row ─────────────────────────────────────────────────── */
+.festivals-filter { padding: 16px 20px; margin-bottom: 16px; }
+.filter-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+.filter-row .form-label { margin-bottom: 4px; }
+
+/* ── Festival list ──────────────────────────────────────────────────────── */
+.festival-month-group { margin-bottom: 24px; }
+.festival-month-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+}
+.festival-card {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--gold);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+.festival-date-col { text-align: center; }
+.festival-date-day {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--primary);
+}
+.festival-date-mon {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.festival-date-weekday {
+    font-size: 0.78rem;
+    color: var(--text-light);
+}
+.festival-info-col {}
+.festival-name-or { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.festival-name-en { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+.festival-tradition-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    margin-top: 4px;
+}
+.badge-jagannath { background: #FFF3E0; color: var(--primary); border: 1px solid var(--gold); }
+.badge-biraja    { background: #FCE4EC; color: var(--accent);  border: 1px solid var(--accent); }
+.badge-common    { background: #E8F5E9; color: var(--green);   border: 1px solid var(--green); }
+.festival-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Muhurta cards ──────────────────────────────────────────────────────── */
+.muhurta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.muhurta-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+}
+.muhurta-card .muhurta-icon { font-size: 1.6rem; margin-bottom: 4px; }
+.muhurta-card .muhurta-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+.muhurta-card .muhurta-name-or {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.muhurta-card .muhurta-time {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.muhurta-auspicious  { border-top: 3px solid var(--green); }
+.muhurta-inauspicious{ border-top: 3px solid var(--accent); }
+.muhurta-neutral     { border-top: 3px solid var(--gold); }
+.special-day-banner {
+    background: linear-gradient(90deg, #FFF3E0, var(--surface));
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+.yoga-banner {
+    background: #E8F5E9;
+    border-left: 4px solid var(--green);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: var(--green);
+}
+
+/* ── Error / info states ────────────────────────────────────────────────── */
+.error-box {
+    background: #FFF0F0;
+    border: 1px solid #FFCDD2;
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    color: var(--accent);
+    font-size: 0.9rem;
+}
+.info-box {
+    background: #FFF8E1;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    color: #795548;
+    font-size: 0.85rem;
+}
+
+/* ── About strip ────────────────────────────────────────────────────────── */
+.about-strip {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
+    color: white;
+    padding: 24px 16px;
+    margin-top: auto;
+}
+.about-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    font-size: 0.9rem;
     opacity: 0.95;
 }
 
-.card {
-    background: var(--card-bg);
-    border-radius: 10px;
-    padding: 20px;
-    margin: 15px 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border-left: 4px solid var(--primary-color);
-}
-
-.today-card {
-    border-left: 4px solid var(--accent-color);
-}
-
-.today-card h2 {
-    color: var(--accent-color);
-    margin-bottom: 15px;
-}
-
-.panchang-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.panchang-item {
-    padding: 10px;
-    background: var(--bg-color);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.panchang-item strong {
-    display: block;
-    color: var(--primary-color);
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.panchang-item .odia {
-    font-size: 1.2rem;
-    font-weight: 600;
-    display: block;
-}
-
-.panchang-item .english {
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.location-selector {
-    margin: 30px 0;
-}
-
-.location-selector h3 {
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.site-footer {
     text-align: center;
-    margin-bottom: 20px;
-    color: var(--primary-color);
-}
-
-.city-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.city-btn {
-    background: var(--card-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-}
-
-.city-btn:hover {
-    border-color: var(--primary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.city-btn.active {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-}
-
-.city-btn .city-name-or {
-    display: block;
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 3px;
-}
-
-.city-btn .city-name-en {
-    display: block;
+    padding: 20px 16px;
+    border-top: 2px solid var(--border);
     font-size: 0.85rem;
-    color: #666;
+    color: var(--text-muted);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
+.site-footer a { color: var(--primary); }
+.site-footer a:hover { color: var(--primary-dark); }
 
-.city-btn.active .city-name-en {
-    color: rgba(255,255,255,0.9);
+/* ── Temple sub-tabs ────────────────────────────────────────────────────── */
+.temple-tabs, .heritage-subtabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
-
-.features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin: 30px 0;
-}
-
-.feature-card {
-    background: var(--card-bg);
-    padding: 25px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-}
-
-.feature-card h3 {
-    color: var(--primary-color);
-    margin-bottom: 10px;
-    font-size: 1.3rem;
-}
-
-.btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    margin-top: 10px;
-    transition: background 0.3s ease;
-}
-
-.btn:hover {
-    background: var(--accent-color);
-}
-
-.about {
-    background: var(--card-bg);
-    padding: 30px;
-    border-radius: 10px;
-    margin: 30px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.about h3 {
-    color: var(--primary-color);
-    margin-bottom: 15px;
-}
-
-.about p {
-    margin-bottom: 10px;
-}
-
-.festival-list {
-    margin-top: 15px;
-}
-
-.festival-item {
-    padding: 10px;
-    margin: 8px 0;
-    background: var(--bg-color);
-    border-left: 3px solid var(--secondary-color);
-    border-radius: 4px;
-}
-
-.festival-item .festival-name {
+.temple-tab-btn, .heritage-tab-btn {
+    padding: 9px 18px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
     font-weight: 600;
-    color: var(--accent-color);
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.temple-tab-btn:hover, .heritage-tab-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.temple-tab-btn.active, .heritage-tab-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
 
-footer {
-    text-align: center;
-    padding: 30px 10px;
-    margin-top: 40px;
-    border-top: 2px solid var(--border-color);
+/* ── Niti timeline ──────────────────────────────────────────────────────── */
+.niti-timeline { position: relative; padding-left: 20px; }
+.niti-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+}
+.niti-item {
+    position: relative;
+    margin-bottom: 16px;
+    padding-left: 16px;
+}
+.niti-item::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 6px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.niti-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.niti-name-en { font-size: 1rem; font-weight: 700; color: var(--text); }
+.niti-name-or { font-size: 0.9rem; color: var(--primary); font-weight: 600; }
+.niti-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+/* ── Besha cards ────────────────────────────────────────────────────────── */
+.besha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+.besha-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-top: 3px solid var(--gold);
+}
+.besha-name-or { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); }
+.besha-name-en { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+.besha-trigger {
+    font-size: 0.78rem;
+    background: #FFF8E1;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: #6D4C41;
+    margin-bottom: 8px;
+    display: inline-block;
+}
+.besha-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Special occasions cards ────────────────────────────────────────────── */
+.special-occasions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.special-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-left: 4px solid var(--accent);
+}
+.special-name-or { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.special-name-en { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+.special-time {
+    font-size: 0.75rem;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+}
+.special-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Temple info header ─────────────────────────────────────────────────── */
+.temple-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
+    color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.temple-header .temple-name { font-size: 1.4rem; font-weight: 700; }
+.temple-header .temple-name-or { font-size: 1rem; opacity: 0.9; margin-bottom: 4px; }
+.temple-header .temple-location { font-size: 0.85rem; opacity: 0.85; margin-bottom: 8px; }
+.temple-header .temple-desc { font-size: 0.85rem; opacity: 0.9; line-height: 1.5; }
+
+/* ── Sankranti cards ────────────────────────────────────────────────────── */
+.sankranti-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+}
+.sankranti-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+.sankranti-card.sig-most_important { border-top: 4px solid var(--accent); }
+.sankranti-card.sig-important      { border-top: 4px solid var(--primary); }
+.sankranti-card.sig-moderate       { border-top: 4px solid var(--gold); }
+.sankranti-importance {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+.imp-most_important { background: #FFEBEE; color: var(--accent); border: 1px solid var(--accent); }
+.imp-important      { background: #FFF3E0; color: var(--primary); border: 1px solid var(--primary); }
+.imp-moderate       { background: #FFFDE7; color: #827717; border: 1px solid var(--gold); }
+.sankranti-masa-or  { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.sankranti-name-or  { font-size: 1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 2px; }
+.sankranti-name-en  { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+.sankranti-date     { font-size: 0.78rem; color: var(--primary); font-weight: 600; margin-bottom: 8px; display: block; }
+.sankranti-desc     { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+.sankranti-customs  { list-style: none; }
+.sankranti-customs li {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 3px 0 3px 16px;
+    position: relative;
+}
+.sankranti-customs li::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    color: var(--primary);
 }
 
-footer a {
-    color: var(--primary-color);
-    text-decoration: none;
+/* ── Heritage cards ─────────────────────────────────────────────────────── */
+.personality-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+.personality-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    border-left: 4px solid var(--primary);
+}
+.personality-name    { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.personality-name-or { font-size: 0.9rem; color: var(--primary); font-weight: 600; margin-bottom: 2px; }
+.personality-period  { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.personality-category {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 8px;
+    background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-muted);
+}
+.personality-sig { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
+
+.history-timeline { position: relative; padding-left: 24px; }
+.history-timeline::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(to bottom, var(--primary), var(--gold));
+}
+.history-item {
+    position: relative;
+    margin-bottom: 20px;
+    padding-left: 16px;
+}
+.history-item::before {
+    content: ''; position: absolute; left: -16px; top: 4px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--primary); border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.history-period { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
+.history-event-or { font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); }
+.history-event-en { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+.history-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; }
+
+/* ── Responsive additions ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .temple-tabs, .heritage-subtabs { flex-direction: column; }
+    .temple-tab-btn, .heritage-tab-btn { width: 100%; text-align: left; }
+    .sankranti-grid, .besha-grid, .special-occasions-grid, .personality-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .header-inner { gap: 8px; }
+    .header-brand h1 { font-size: 1.2rem; }
+    .tab-btn { padding: 6px 10px; font-size: 0.72rem; }
+    .tab-btn .tab-icon { font-size: 1rem; }
+    .panchang-grid { grid-template-columns: repeat(2, 1fr); }
+    .festival-card { grid-template-columns: 70px 1fr; }
+    .festival-date-day { font-size: 1.5rem; }
+    .muhurta-grid { grid-template-columns: repeat(2, 1fr); }
+    .city-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    .date-lookup-row { flex-direction: column; }
+    .date-input { width: 100%; }
+}
+@media (max-width: 400px) {
+    .tab-label { display: none; }
+    .tab-btn { padding: 8px 12px; }
+    .tab-btn .tab-icon { font-size: 1.3rem; }
 }
 
-footer a:hover {
-    text-decoration: underline;
-}
-
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-    header h1 {
-        font-size: 1.5rem;
-    }
-
-    .subtitle {
-        font-size: 0.9rem;
-    }
-
-    .panchang-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .city-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    }
-
-    .features {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Print styles for PDF */
+/* ── Print ──────────────────────────────────────────────────────────────── */
 @media print {
-    body {
-        background: white;
-    }
-
-    .btn, footer {
-        display: none;
-    }
-
-    .card {
-        break-inside: avoid;
-    }
+    .site-header, .tab-nav, .actions-row, .city-grid, .festivals-filter,
+    .site-footer, .about-strip { display: none !important; }
+    .tab-panel { display: block !important; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
 }

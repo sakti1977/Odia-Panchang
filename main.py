@@ -31,6 +31,13 @@ from src.locations import get_city_info, list_all_cities
 from src.engine import compute_panchang
 from src.pdf_generator import generate_monthly_text, generate_calendar_view
 from src.festivals import match_festivals, get_sankranti_festivals
+from src.temple_data import (
+    JAGANNATH_NITIS, JAGANNATH_BESHAS,
+    BIRAJA_NITIS, BIRAJA_SPECIAL,
+    LINGARAJ_NITIS, LINGARAJ_SPECIAL,
+    SANKRANTI_INFO,
+    ODIA_PERSONALITIES, ODIA_HISTORY,
+)
 
 engine = get_engine(DATABASE_URL)
 init_db(engine)
@@ -554,3 +561,108 @@ async def post_tweet_now(background_tasks: BackgroundTasks):
         "status": "triggered",
         "message": "Tweet job running in background. Check logs/daily_tweets.log or Twitter.",
     }
+
+
+# ── Temple & Heritage endpoints ─────────────────────────────────────────────
+
+@app.get("/api/temple-nitis")
+def get_temple_nitis():
+    """
+    Return daily niti (ritual) schedules for Jagannath (Puri), Biraja (Jajpur),
+    and Lingaraj (Bhubaneswar) temples.
+    """
+    return {
+        "jagannath": {
+            "temple": "Jagannath Temple",
+            "temple_or": "ଜଗନ୍ନାଥ ମନ୍ଦିର",
+            "location": "Puri, Odisha",
+            "location_or": "ପୁରୀ, ଓଡ଼ିଶା",
+            "description": "One of the four sacred Dhamas of Hinduism. Built by King Anantavarman "
+                           "Chodaganga Deva (~1135 CE). The 65-metre tall Vimana tower is visible "
+                           "from the sea. Serves 100,000 pilgrims daily from its Ananda Bazar kitchen.",
+            "nitis": JAGANNATH_NITIS,
+        },
+        "biraja": {
+            "temple": "Biraja Temple",
+            "temple_or": "ବିରଜା ମନ୍ଦିର",
+            "location": "Jajpur, Odisha",
+            "location_or": "ଯାଜପୁର, ଓଡ଼ିଶା",
+            "description": "One of the 51 Shakti Peethas of India. Maa Biraja is worshipped as a "
+                           "64-Yogini Devi. The Dashaswamedha Ghat on the Baitarani river is considered "
+                           "as sacred as the Ganges at Varanasi.",
+            "nitis": BIRAJA_NITIS,
+        },
+        "lingaraj": {
+            "temple": "Lingaraj Temple",
+            "temple_or": "ଲିଙ୍ଗରାଜ ମନ୍ଦିର",
+            "location": "Bhubaneswar, Odisha",
+            "location_or": "ଭୁବନେଶ୍ୱର, ଓଡ଼ିଶା",
+            "description": "The largest temple of Bhubaneswar and the oldest continuously worshipped "
+                           "Shiva temple in Odisha (~11th century CE). The deity Harihara is a "
+                           "unique fusion of Shiva and Vishnu. The 55-metre tower dominates the city's skyline.",
+            "nitis": LINGARAJ_NITIS,
+        },
+    }
+
+
+@app.get("/api/temple-specials")
+def get_temple_specials():
+    """
+    Return special annual festivals and occasions for all three major temples.
+    """
+    return {
+        "jagannath_beshas": JAGANNATH_BESHAS,
+        "biraja_specials":  BIRAJA_SPECIAL,
+        "lingaraj_specials": LINGARAJ_SPECIAL,
+    }
+
+
+@app.get("/api/beshas")
+def get_jagannath_beshas():
+    """
+    Return the complete annual Besha (divine attire) calendar for Lord Jagannath.
+    Each Besha is a special ceremonial dress worn by the deities on particular occasions.
+    """
+    return {
+        "total": len(JAGANNATH_BESHAS),
+        "description": "Lord Jagannath wears different ceremonial attires (Besha) on special occasions "
+                       "throughout the year. Each Besha has its own significance and timing.",
+        "beshas": JAGANNATH_BESHAS,
+    }
+
+
+@app.get("/api/sankrantis")
+def get_sankranti_info():
+    """
+    Return information about all 12 Sankrantis (solar month transitions) with their
+    significance for Odisha, customs, and approximate dates.
+    """
+    return {
+        "total": len(SANKRANTI_INFO),
+        "description": "Sankranti marks the Sun's transition into a new zodiac sign (Rashi). "
+                       "All 12 Sankrantis are observed in Odisha, with Pana Sankranti (Mesha) and "
+                       "Makar Sankranti being the most important.",
+        "most_important": ["Pana Sankranti (Mesha — April)", "Makar Sankranti (January)"],
+        "sankrantis": SANKRANTI_INFO,
+    }
+
+
+@app.get("/api/heritage")
+def get_heritage(
+    category: Optional[str] = Query(
+        default=None,
+        description="Filter personalities by category: Ruler, Poet / Saint, Freedom Fighter, Writer, Statesman / Lawyer, Statesman / Pilot"
+    )
+):
+    """
+    Return Odia heritage data: important historical personalities and key events in Odia history.
+    """
+    personalities = ODIA_PERSONALITIES
+    if category:
+        personalities = [p for p in personalities if p.get("category", "").lower() == category.lower()]
+
+    return {
+        "personalities": personalities,
+        "history": ODIA_HISTORY,
+    }
+

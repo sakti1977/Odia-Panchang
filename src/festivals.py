@@ -52,6 +52,7 @@ TITHI_RULES = [
     ("Magha",      "shukla",  5,  "common", "Vasanta Panchami",    "ବସନ୍ତ ପଞ୍ଚମୀ",    "Spring festival; Saraswati Puja"),
     ("Magha",      "shukla", 15,  "common", "Magha Purnima",       "ମାଘ ପୂର୍ଣ୍ଣିମା",  "Sacred bathing on full moon"),
     # Phalguna
+    ("Phalguna",   "krishna", 14, "lingaraj", "Lingaraj Maha Shivaratri",     "ଲିଙ୍ଗରାଜ ମହା ଶିବରାତ୍ରି",   "Grand Shivaratri night vigil at Lingaraj Temple, Bhubaneswar"),
     ("Phalguna",   "krishna", 14, "common", "Maha Shivaratri",     "ମହା ଶିବରାତ୍ରି",   "Night vigil for Lord Shiva"),
     ("Phalguna",   "shukla", 15,  "common", "Dola Purnima",        "ଡୋଳ ପୂର୍ଣ୍ଣିମା",  "Holi / Dola Jatra celebrated in Odisha"),
 
@@ -67,6 +68,7 @@ TITHI_RULES = [
     ("Kartika",    "shukla", 11,  "jagannath", "Utthana Ekadashi",        "ଉତ୍ଥାନ ଏକାଦଶୀ",      "End of Chaturmasya; temple rituals resume fully"),
     ("Margashira", "shukla",  5,  "jagannath", "Pancha Uka Osha",         "ପଞ୍ଚ ଉକ ଓଷା",         "Odia vrat observed for Lakshmi"),
     ("Phalguna",   "shukla",  5,  "jagannath", "Dola Yatra (Jagannath)",  "ଡୋଳ ଯାତ୍ରା",          "Swing festival of Lord Jagannath"),
+    ("Chaitra",    "shukla",  8,  "lingaraj", "Ashokastami (Lingaraj Rukuna Rath)",  "ଅଶୋକାଷ୍ଟମୀ — ଲିଙ୍ଗରାଜ ରୁକୁନ ରଥ",  "Lingaraj's grand chariot procession through Bhubaneswar"),
     ("Chaitra",    "shukla",  8,  "jagannath", "Ashokastami",             "ଅଶୋକାଷ୍ଟମୀ",          "Ram Navami eve; important at Lingaraj temple"),
 
     # ── BIRAJA TRADITION (Jajpur) ─────────────────────────────────────────
@@ -84,13 +86,23 @@ TITHI_RULES = [
 
 # Sankranti rules — triggered on first day of solar month
 SANKRANTI_RULES = [
-    ("Mesha",    "common",    "Pana Sankranti (Odia New Year)", "ପଣ ସଂକ୍ରାନ୍ତି (ଓଡ଼ିଆ ନବ ବର୍ଷ)", "Odia New Year; celebrated with Pana (sweet drink)"),
-    ("Mesha",    "jagannath", "Pana Sankranti at Jagannath",    "ଜଗନ୍ନାଥ ପଣ ସଂକ୍ରାନ୍ତି",         "Special rituals at Jagannath Temple on Odia New Year"),
-    ("Mesha",    "biraja",    "Pana Sankranti at Biraja",       "ବିରଜା ପଣ ସଂକ୍ରାନ୍ତି",            "Special rituals at Biraja Temple on Odia New Year"),
-    ("Makara",   "common",    "Makar Sankranti",                "ମକର ସଂକ୍ରାନ୍ତି",                "Winter solstice festival; sesame sweets, kite flying"),
-    ("Dhanu",    "common",    "Dhanu Sankranti",                "ଧନୁ ସଂକ୍ରାନ୍ତି",                "Sun enters Dhanu; chant of Dhanu at pre-dawn"),
-    ("Karka",    "common",    "Karka Sankranti",                "କର୍କ ସଂକ୍ରାନ୍ତି",               "Sun enters Cancer; Dakshinayana begins"),
-    ("Simha",    "jagannath", "Jhulana Yatra Begins",           "ଝୁଲଣ ଯାତ୍ରା ଆରମ୍ଭ",              "Swing festival of Lord Jagannath; starts on Shravana Shukla 11"),
+    ("Mesha",      "common",    "Pana Sankranti (Odia New Year)",   "ପଣ ସଂକ୍ରାନ୍ତି (ଓଡ଼ିଆ ନବ ବର୍ଷ)",    "Odia New Year; celebrated with Pana (sweet drink)"),
+    ("Mesha",      "jagannath", "Pana Sankranti at Jagannath",      "ଜଗନ୍ନାଥ ପଣ ସଂକ୍ରାନ୍ତି",              "Special rituals at Jagannath Temple on Odia New Year"),
+    ("Mesha",      "biraja",    "Pana Sankranti at Biraja",         "ବିରଜା ପଣ ସଂକ୍ରାନ୍ତି",                "Special rituals at Biraja Temple on Odia New Year"),
+    ("Mesha",      "lingaraj",  "Pana Sankranti at Lingaraj",       "ଲିଙ୍ଗରାଜ ପଣ ସଂକ୍ରାନ୍ତି",             "Special puja at Lingaraj Temple, Bhubaneswar on Odia New Year"),
+    ("Vrishabha",  "common",    "Vrishabha Sankranti",              "ବୃଷଭ ସଂକ୍ରାନ୍ତି",                    "Sun enters Taurus; planting season begins in Odisha"),
+    ("Mithuna",    "common",    "Mithuna Sankranti (Raja Parba)",   "ମିଥୁନ ସଂକ୍ରାନ୍ତି (ରଜ ପର୍ବ)",         "Start of Raja Parba — three-day Odia festival of womanhood"),
+    ("Karka",      "common",    "Karka Sankranti (Dakshinayana)",   "କର୍କ ସଂକ୍ରାନ୍ତି — ଦକ୍ଷିଣାୟନ",        "Sun enters Cancer; Dakshinayana begins"),
+    ("Simha",      "common",    "Simha Sankranti",                  "ସିଂହ ସଂକ୍ରାନ୍ତି",                    "Sun enters Leo; Jhulana Yatra period at Jagannath Temple"),
+    ("Simha",      "jagannath", "Jhulana Yatra Begins",             "ଝୁଲଣ ଯାତ୍ରା ଆରମ୍ଭ",                  "Swing festival of Lord Jagannath; starts on Shravana Shukla 11"),
+    ("Kanya",      "common",    "Kanya Sankranti",                  "କନ୍ୟା ସଂକ୍ରାନ୍ତି",                   "Sun enters Virgo; Navratri season begins"),
+    ("Tula",       "common",    "Tula Sankranti",                   "ତୁଳା ସଂକ୍ରାନ୍ତି",                    "Sun enters Libra; start of Kartika month observances"),
+    ("Vrischika",  "common",    "Vrischika Sankranti",              "ବୃଶ୍ଚିକ ସଂକ୍ରାନ୍ତି",                 "Sun enters Scorpio; Manabasa Gurubara season"),
+    ("Dhanu",      "common",    "Dhanu Sankranti",                  "ଧନୁ ସଂକ୍ରାନ୍ତି",                     "Sun enters Sagittarius; month of pre-dawn Dhanu hymns and Poda Pitha"),
+    ("Makara",     "common",    "Makar Sankranti",                  "ମକର ସଂକ୍ରାନ୍ତି",                     "Winter solstice festival; sesame sweets, kite flying, holy bath"),
+    ("Makara",     "biraja",    "Makar Sankranti Snanam at Biraja", "ବିରଜା ମକର ସ୍ନାନ",                    "Lakhs take holy dip at Dashaswamedha Ghat, Baitarani river, Jajpur"),
+    ("Kumbha",     "common",    "Kumbha Sankranti",                 "କୁମ୍ଭ ସଂକ୍ରାନ୍ତି",                    "Sun enters Aquarius; Shivaratri season"),
+    ("Meena",      "common",    "Meena Sankranti",                  "ମୀନ ସଂକ୍ରାନ୍ତି",                     "Last solar month; Holi season and Pana Sankranti preparations"),
 ]
 
 
