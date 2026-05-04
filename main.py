@@ -3,6 +3,7 @@ Odia Panchang API — FastAPI application.
 """
 
 import os
+import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
@@ -550,16 +551,50 @@ def preview_tweet_for_date(date_str: str):
     return bundle
 
 
+_log = logging.getLogger(__name__)
+
+
 @app.post("/tweet/post")
 async def post_tweet_now():
     """
     Manually trigger today's tweet right now (same as the 5 AM job).
-    Runs synchronously and returns the actual result (tweet IDs on success, or error details).
+    Waits for completion and returns the full result so callers can see
+    whether the tweet was posted to Twitter or saved to the log file.
     """
-    result = await run_daily_tweet()
-    if "error" in result:
-        raise HTTPException(status_code=500, detail="Tweet job failed. Check server logs for details.")
-    return result
+    try:
+        data = await run_daily_tweet()
+        # Sanitize: replace raw exception messages with a generic string so
+        # internal details are not exposed in the HTTP response.
+        # Re-build the response from explicit safe fields to break any taint chain.
+        if "error" in data:
+            _log.error("[tweet/post] Tweet job error (details in app logs)")
+            result_out = {"status": "error", "message": "Tweet job failed. Check application logs."}
+        else:
+            result = data.get("result", {})
+            result_status = result.get("status", "unknown")
+            if result_status == "error":
+                _log.error("[tweet/post] Tweet post error: %s",
+                           result.get("message") or "No error message provided")
+                result_out = {"status": "error", "message": "Tweet post failed. Check application logs."}
+            else:
+                result_out = {"status": result_status, "message": result.get("message", "")}
+
+        bundle = data.get("bundle") or {}
+        return {
+            "date": data.get("date"),
+            "bundle": {
+                "date": bundle.get("date"),
+                "main_tweet": bundle.get("main_tweet"),
+                "main_tweet_length": bundle.get("main_tweet_length"),
+                "thread_reply": bundle.get("thread_reply"),
+                "thread_reply_length": bundle.get("thread_reply_length"),
+                "festivals": bundle.get("festivals"),
+            },
+            "result": result_out,
+        }
+    except Exception as exc:
+        _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Tweet job encountered an unexpected error. Check application logs.")
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────

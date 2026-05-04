@@ -22,44 +22,37 @@ jobs:
           API_URL: ${{ github.event.inputs.api_url }}
         run: |
           python - <<'EOF'
-          import httpx, sys, json, os, time
+          import httpx, sys, json, os
 
           api_url = os.environ["API_URL"].rstrip("/")
           endpoint = f"{api_url}/tweet/post"
           max_retries = 5
           initial_wait = 30  # seconds — allow free-tier spin-up
+          request_timeout = 120  # seconds — enough for tweet generation + posting
+
+          import time
 
           print(f"Triggering tweet: {endpoint}")
           for attempt in range(1, max_retries + 1):
               try:
-                  # Timeout is 180s: allows free-tier spin-up (~30s) + AI enrichment + Twitter API
-                  resp = httpx.post(endpoint, timeout=180)
+                  resp = httpx.post(endpoint, timeout=request_timeout)
                   resp.raise_for_status()
                   data = resp.json()
                   result = data.get("result", {})
                   status = result.get("status", "unknown")
+                  print(json.dumps(data, indent=2, ensure_ascii=False))
                   if status == "posted":
-                      print(f"✅ Tweet posted successfully (attempt {attempt})!")
-                      print(f"   Main tweet ID : {result.get('main_tweet_id')}")
-                      if result.get("thread_tweet_id"):
-                          print(f"   Thread ID     : {result.get('thread_tweet_id')}")
+                      print(f"✅ Tweet posted to Twitter! (attempt {attempt})")
                   elif status == "logged":
-                      print(f"⚠️  Twitter not configured — tweet saved to logs/daily_tweets.log")
-                      print(f"   (Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,")
-                      print(f"    TWITTER_ACCESS_SECRET in your deployment environment variables)")
+                      print(
+                          "⚠️  Tweet NOT posted — Twitter credentials not configured.\n"
+                          "   Tweets are being saved to logs/daily_tweets.log.\n"
+                          "   Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,\n"
+                          "   TWITTER_ACCESS_SECRET in the Render dashboard to enable posting."
+                      )
                   elif status == "error":
-                      print(f"❌ Twitter API error: {result.get('message')}")
-                      sys.exit(1)
-                  else:
-                      print(f"ℹ️  Result (attempt {attempt}):")
-                      print(json.dumps(data, indent=2, ensure_ascii=False))
+                      print(f"❌ Tweet post failed: {result.get('message')}")
                   sys.exit(0)
-              except httpx.HTTPStatusError as e:
-                  print(f"⚠️  Attempt {attempt}/{max_retries} HTTP error {e.response.status_code}: {e.response.text}")
-                  if attempt < max_retries:
-                      wait = initial_wait * attempt
-                      print(f"Retrying in {wait}s...")
-                      time.sleep(wait)
               except Exception as e:
                   print(f"⚠️  Attempt {attempt}/{max_retries} failed: {e}")
                   if attempt < max_retries:
