@@ -8,7 +8,7 @@ services:
     startCommand: python trigger_tweet.py
     envVars:
       - key: PUBLIC_API_URL
-        value: https://odia-panjika-api.onrender.com
+        value: https://odia-panchang.onrender.com
 
   - type: web
     name: odia-panjika-api
@@ -29,7 +29,7 @@ services:
       - key: LOCATION_TZ
         value: "5.5"
       - key: PUBLIC_API_URL
-        value: https://odia-panjika-api.onrender.com   # update if your service name differs
+        value: https://odia-panchang.onrender.com
       - key: GROQ_API_KEY
         sync: false          # set manually in Render dashboard
       - key: ANTHROPIC_API_KEY

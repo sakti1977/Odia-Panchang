@@ -8,7 +8,7 @@ import time
 import sys
 import os
 
-API_URL = os.getenv("PUBLIC_API_URL", "https://odia-panjika-api.onrender.com").rstrip("/")
+API_URL = os.getenv("PUBLIC_API_URL", "https://odia-panchang.onrender.com").rstrip("/")
 ENDPOINT = f"{API_URL}/tweet/post"
 MAX_RETRIES = 5
 INITIAL_WAIT = 30  # seconds — allow time for free-tier spin-up
