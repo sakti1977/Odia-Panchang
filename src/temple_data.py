@@ -702,7 +702,6 @@ ODIA_PERSONALITIES = [
         "name": "Jayee Rajguru (Jaykrushna Rajguru)",
         "name_or": "ଜୟ ରାଜଗୁରୁ",
         "period": "1739–1806 CE",
-        "birth_date": "1739",
         "category": "Freedom Fighter",
         "significance": "The first martyr of Odisha's resistance to British rule. "
                         "He was the royal teacher (Rajguru) of the Khurda kingdom and a devout Jagannath devotee. "
@@ -845,7 +844,7 @@ ODIA_HISTORY = [
     {
         "period": "1568 CE",
         "event_en": "Fall of the Gajapati Empire",
-        "event_or": "ଗଜପତି ରାଜ୍ୟ ପ୍ରତ",
+        "event_or": "ଗଜପତି ରାଜ୍ୟ ପତନ",
         "description": "The Afghan general Suleiman Karrani invaded and defeated Mukundadeva, "
                        "the last Gajapati king. Odisha came under Afghan (and later Mughal) control. "
                        "However, the Khurda kings maintained the tradition of Jagannath worship and "

@@ -3,6 +3,11 @@
 
 'use strict';
 
+// ── Constants ──────────────────────────────────────────────────────────────
+const DB_START_DATE = '2020-01-01';
+const OR_MONTHS = ['ଜାନୁଆରୀ','ଫେବ୍ରୁଆରୀ','ମାର୍ଚ୍ଚ','ଏପ୍ରିଲ','ମଇ','ଜୁନ',
+                   'ଜୁଲାଇ','ଅଗଷ୍ଟ','ସେପ୍ଟେମ୍ବର','ଅକ୍ଟୋବର','ନଭେମ୍ବର','ଡିସେମ୍ବର'];
+
 let selectedCity = 'puri';
 let currentTemple = 'jagannath';
 let currentHeritage = 'personalities';
@@ -73,7 +78,7 @@ function initDateInput() {
     if (el) {
         el.value = `${y}-${m}-${d}`;
         el.max = `${y + 1}-12-31`;
-        el.min = '2020-01-01';
+        el.min = DB_START_DATE;
     }
     // Set festival year default
     const fy = document.getElementById('festival-year');
@@ -129,8 +134,6 @@ async function loadTodayPanchang() {
 // ── Panchang rendering ──────────────────────────────────────────────────────
 function renderPanchang(data) {
     const d = new Date(data.date + 'T00:00:00');
-    const OR_MONTHS = ['ଜାନୁଆରୀ','ଫେବ୍ରୁଆରୀ','ମାର୍ଚ୍ଚ','ଏପ୍ରିଲ','ମଇ','ଜୁନ',
-                       'ଜୁଲାଇ','ଅଗଷ୍ଟ','ସେପ୍ଟେମ୍ବର','ଅକ୍ଟୋବର','ନଭେମ୍ବର','ଡିସେମ୍ବର'];
     const dateOr = `${d.getDate()} ${OR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
     const dateEn = d.toLocaleDateString('en-IN', { year:'numeric', month:'long', day:'numeric' });
 
