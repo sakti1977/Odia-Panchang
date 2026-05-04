@@ -175,15 +175,25 @@ button { cursor: pointer; font-family: inherit; }
 /* ── Panchang data grid ─────────────────────────────────────────────────── */
 .panchang-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-bottom: 16px;
 }
 .panchang-item {
     background: var(--surface-alt);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 14px;
     border: 1px solid var(--border);
+    transition: var(--transition);
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.panchang-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--primary);
 }
 .panchang-item .label {
     display: block;
@@ -764,17 +774,20 @@ button { cursor: pointer; font-family: inherit; }
 .history-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; }
 
 /* ── Responsive additions ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .panchang-grid { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 640px) {
     .temple-tabs, .heritage-subtabs { flex-direction: column; }
     .temple-tab-btn, .heritage-tab-btn { width: 100%; text-align: left; }
     .sankranti-grid, .besha-grid, .special-occasions-grid, .personality-grid { grid-template-columns: 1fr; }
+    .panchang-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
     .header-inner { gap: 8px; }
     .header-brand h1 { font-size: 1.2rem; }
     .tab-btn { padding: 6px 10px; font-size: 0.72rem; }
     .tab-btn .tab-icon { font-size: 1rem; }
-    .panchang-grid { grid-template-columns: repeat(2, 1fr); }
     .festival-card { grid-template-columns: 70px 1fr; }
     .festival-date-day { font-size: 1.5rem; }
     .muhurta-grid { grid-template-columns: repeat(2, 1fr); }
