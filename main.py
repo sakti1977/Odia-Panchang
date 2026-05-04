@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
 
-from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -551,16 +551,15 @@ def preview_tweet_for_date(date_str: str):
 
 
 @app.post("/tweet/post")
-async def post_tweet_now(background_tasks: BackgroundTasks):
+async def post_tweet_now():
     """
     Manually trigger today's tweet right now (same as the 5 AM job).
-    Runs in the background — returns immediately.
+    Runs synchronously and returns the actual result (tweet IDs on success, or error details).
     """
-    background_tasks.add_task(run_daily_tweet)
-    return {
-        "status": "triggered",
-        "message": "Tweet job running in background. Check logs/daily_tweets.log or Twitter.",
-    }
+    result = await run_daily_tweet()
+    if "error" in result:
+        raise HTTPException(status_code=500, detail="Tweet job failed. Check server logs for details.")
+    return result
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────
