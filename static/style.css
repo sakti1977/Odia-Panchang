@@ -795,3 +795,36 @@ button { cursor: pointer; font-family: inherit; }
     .tab-panel { display: block !important; }
     .card { box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* ── Hero banner ────────────────────────────────────────────────────────── */
+.hero-banner {
+    background: linear-gradient(120deg, #fff3e0 0%, #ffffff 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1.5fr auto;
+    gap: 20px;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+}
+.hero-kicker { color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.hero-content h2 { font-size: 1.7rem; line-height: 1.2; margin-bottom: 8px; color: var(--text); }
+.hero-sub { color: var(--text-muted); max-width: 65ch; }
+.hero-chips { margin-top: 12px; display:flex; flex-wrap:wrap; gap:8px; }
+.hero-chips span {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.hero-actions { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+
+@media (max-width: 840px) {
+    .hero-banner { grid-template-columns: 1fr; }
+    .hero-content h2 { font-size: 1.35rem; }
+    .hero-actions { min-width: 0; }
+}
