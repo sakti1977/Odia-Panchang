@@ -15,6 +15,13 @@ let templeData = null;   // cached
 let heritageData = null; // cached
 let sankrantiData = null; // cached
 
+const API_BASE = (window.PANCHANG_API_BASE || '').replace(/\/$/, '');
+function apiUrl(path) {
+    if (!path.startsWith('/')) path = '/' + path;
+    return `${API_BASE}${path}`;
+}
+
+
 // ── Initialisation ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
@@ -88,7 +95,7 @@ function initDateInput() {
 // ── City selector ───────────────────────────────────────────────────────────
 async function loadCities() {
     try {
-        const resp = await fetch('/api/cities');
+        const resp = await fetch(apiUrl('/api/cities'));
         const cities = await resp.json();
         const grid = document.getElementById('city-grid');
         grid.innerHTML = '';
@@ -122,7 +129,7 @@ async function loadTodayPanchang() {
         const url = selectedCity === 'puri'
             ? '/today?enriched=false'
             : `/api/panchang/today/${selectedCity}`;
-        const resp = await fetch(url);
+        const resp = await fetch(apiUrl(url));
         if (!resp.ok) throw new Error(resp.statusText);
         const data = await resp.json();
         el.innerHTML = renderPanchang(data);
@@ -187,7 +194,7 @@ async function lookupDate() {
     const el = document.getElementById('lookup-result');
     el.innerHTML = `<div class="card" style="margin-top:12px;">${spinner()}</div>`;
     try {
-        const resp = await fetch(`/panchang/${dateVal}`);
+        const resp = await fetch(apiUrl(`/panchang/${dateVal}`));
         if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
         const data = await resp.json();
         el.innerHTML = `<div class="card" style="margin-top:12px;">${renderPanchang(data)}</div>`;
@@ -207,7 +214,7 @@ async function loadFestivals() {
         const url = tradition === 'all'
             ? `/festivals/${year}`
             : `/festivals/${year}?tradition=${tradition}`;
-        const resp = await fetch(url);
+        const resp = await fetch(apiUrl(url));
         if (!resp.ok) throw new Error(resp.statusText);
         const festivals = await resp.json();
         el.innerHTML = renderFestivalList(festivals);
@@ -266,7 +273,7 @@ async function loadMuhurta() {
     if (el.dataset.loaded) return;
     el.innerHTML = spinner();
     try {
-        const resp = await fetch('/today?enriched=true');
+        const resp = await fetch(apiUrl('/today?enriched=true'));
         if (!resp.ok) throw new Error(resp.statusText);
         const data = await resp.json();
         el.innerHTML = renderMuhurta(data);
@@ -332,7 +339,7 @@ async function loadSankranti() {
     el.innerHTML = spinner();
     try {
         if (!sankrantiData) {
-            const resp = await fetch('/api/sankrantis');
+            const resp = await fetch(apiUrl('/api/sankrantis'));
             if (!resp.ok) throw new Error(resp.statusText);
             sankrantiData = await resp.json();
         }
@@ -371,9 +378,9 @@ async function loadMandira() {
         el.innerHTML = spinner();
         try {
             const [nitisResp, specialsResp, beshasResp] = await Promise.all([
-                fetch('/api/temple-nitis'),
-                fetch('/api/temple-specials'),
-                fetch('/api/beshas'),
+                fetch(apiUrl('/api/temple-nitis')),
+                fetch(apiUrl('/api/temple-specials')),
+                fetch(apiUrl('/api/beshas')),
             ]);
             if (!nitisResp.ok) throw new Error('temple-nitis: ' + nitisResp.statusText);
             templeData = {
@@ -452,7 +459,7 @@ async function loadVirasat() {
     if (!heritageData) {
         el.innerHTML = spinner();
         try {
-            const resp = await fetch('/api/heritage');
+            const resp = await fetch(apiUrl('/api/heritage'));
             if (!resp.ok) throw new Error(resp.statusText);
             heritageData = await resp.json();
         } catch (e) {
