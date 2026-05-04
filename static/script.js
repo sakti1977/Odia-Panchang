@@ -8,7 +8,7 @@ const DB_START_DATE = '2020-01-01';
 const OR_MONTHS = ['ଜାନୁଆରୀ','ଫେବ୍ରୁଆରୀ','ମାର୍ଚ୍ଚ','ଏପ୍ରିଲ','ମଇ','ଜୁନ',
                    'ଜୁଲାଇ','ଅଗଷ୍ଟ','ସେପ୍ଟେମ୍ବର','ଅକ୍ଟୋବର','ନଭେମ୍ବର','ଡିସେମ୍ବର'];
 
-let selectedCity = 'puri';
+let selectedCity = 'bhubaneswar';
 let currentTemple = 'jagannath';
 let currentHeritage = 'personalities';
 let templeData = null;   // cached
@@ -95,6 +95,19 @@ function initDateInput() {
 // ── City selector ───────────────────────────────────────────────────────────
 async function loadCities() {
     try {
+        // First, try to detect user's city from IP
+        try {
+            const detectResp = await fetch(apiUrl('/api/detect-city'));
+            if (detectResp.ok) {
+                const detectData = await detectResp.json();
+                if (detectData.detected_city) {
+                    selectedCity = detectData.detected_city;
+                }
+            }
+        } catch (e) {
+            console.log('City detection not available, using default');
+        }
+
         const resp = await fetch(apiUrl('/api/cities'));
         const cities = await resp.json();
         const grid = document.getElementById('city-grid');
@@ -107,6 +120,13 @@ async function loadCities() {
             btn.onclick = () => selectCity(city.key, city.name_or, btn);
             grid.appendChild(btn);
         });
+
+        // Update the badge with detected city
+        const detectedCityInfo = cities.find(c => c.key === selectedCity);
+        if (detectedCityInfo) {
+            const badge = document.getElementById('today-city-badge');
+            if (badge) badge.textContent = detectedCityInfo.name_or;
+        }
     } catch (e) {
         console.error('Cities load error:', e);
     }
@@ -126,9 +146,7 @@ async function loadTodayPanchang() {
     const el = document.getElementById('today-panchang');
     el.innerHTML = spinner();
     try {
-        const url = selectedCity === 'puri'
-            ? '/today?enriched=false'
-            : `/api/panchang/today/${selectedCity}`;
+        const url = `/api/panchang/today/${selectedCity}`;
         const resp = await fetch(apiUrl(url));
         if (!resp.ok) throw new Error(resp.statusText);
         const data = await resp.json();

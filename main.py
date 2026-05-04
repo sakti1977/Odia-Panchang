@@ -28,7 +28,7 @@ from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_
 from src.ai_layer2 import enrich_with_claude
 from src.scheduler import create_scheduler, run_daily_tweet
 from src.tweet_generator import generate_tweet_bundle
-from src.locations import get_city_info, list_all_cities
+from src.locations import get_city_info, list_all_cities, detect_city_from_ip
 from src.engine import compute_panchang
 from src.pdf_generator import generate_monthly_text, generate_calendar_view
 from src.festivals import match_festivals, get_sankranti_festivals
@@ -355,16 +355,38 @@ def get_festivals_by_year(
 @app.get("/api/cities")
 def get_cities():
     """
-    Return list of all supported Odisha cities with their coordinates.
+    Return list of all supported cities with their coordinates.
     """
     return list_all_cities()
+
+
+@app.get("/api/detect-city")
+def detect_city(request: Request):
+    """
+    Detect the user's nearest city based on their IP address.
+    """
+    client_ip = request.client.host if request.client else None
+
+    # Check for forwarded IP (for proxies/load balancers)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+
+    detected_city = detect_city_from_ip(client_ip or "")
+    city_info = get_city_info(detected_city)
+
+    return {
+        "detected_city": detected_city,
+        "city_info": city_info,
+        "client_ip": client_ip
+    }
 
 
 @app.get("/api/panchang/today/{city}")
 def get_panchang_for_city_today(city: str):
     """
-    Get today's Panchang for a specific city in Odisha.
-    City can be: puri, bhubaneswar, cuttack, jajpur, berhampur, sambalpur, etc.
+    Get today's Panchang for a specific city.
+    City can be: bhubaneswar, delhi, mumbai, bangalore, hyderabad, etc.
     """
     city_info = get_city_info(city)
     if not city_info:
