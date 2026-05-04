@@ -34,16 +34,27 @@ def _get_twitter_client():
             "access_token":        os.getenv("TWITTER_ACCESS_TOKEN"),
             "access_token_secret": os.getenv("TWITTER_ACCESS_SECRET"),
         }
-        if not all(keys.values()):
+
+        # Check which keys are missing
+        missing_keys = [k for k, v in keys.items() if not v]
+        if missing_keys:
+            logger.warning(f"[Twitter] Missing credentials: {', '.join(missing_keys)}")
             return None
+
+        logger.info("[Twitter] All credentials found, creating client...")
         client = tweepy.Client(
             consumer_key=keys["consumer_key"],
             consumer_secret=keys["consumer_secret"],
             access_token=keys["access_token"],
             access_token_secret=keys["access_token_secret"],
         )
+        logger.info(f"[Twitter] Client created successfully (tweepy v{tweepy.__version__})")
         return client
-    except ImportError:
+    except ImportError as e:
+        logger.error(f"[Twitter] Failed to import tweepy: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"[Twitter] Failed to create client: {e}", exc_info=True)
         return None
 
 
@@ -68,31 +79,38 @@ def _log_tweet(bundle: dict):
 
 def _post_tweet(bundle: dict) -> dict:
     """Post to Twitter/X. Returns result dict."""
+    logger.info(f"[Twitter] Attempting to post tweet for {bundle.get('date')}")
+
     client = _get_twitter_client()
     if not client:
+        logger.warning("[Twitter] Client not available, falling back to log file")
         _log_tweet(bundle)
         return {"status": "logged", "message": "Twitter not configured — tweet saved to logs/daily_tweets.log"}
 
     try:
+        logger.info(f"[Twitter] Posting main tweet ({bundle['main_tweet_length']} chars)")
         # Post main tweet
         resp = client.create_tweet(text=bundle["main_tweet"])
         main_id = resp.data["id"]
         result = {"status": "posted", "main_tweet_id": main_id}
+        logger.info(f"[Twitter] ✅ Main tweet posted successfully: {main_id}")
 
         # Post thread reply if available
         if bundle.get("thread_reply"):
+            logger.info(f"[Twitter] Posting thread reply ({bundle['thread_reply_length']} chars)")
             reply = client.create_tweet(
                 text=bundle["thread_reply"],
                 in_reply_to_tweet_id=main_id,
             )
             result["thread_tweet_id"] = reply.data["id"]
+            logger.info(f"[Twitter] ✅ Thread reply posted: {reply.data['id']}")
 
-        logger.info(f"Tweet posted: {main_id}")
+        logger.info(f"[Twitter] Tweet job complete: {result}")
         return result
     except Exception as e:
-        logger.error(f"Twitter post failed: {e}")
+        logger.error(f"[Twitter] ❌ Post failed: {type(e).__name__}: {e}", exc_info=True)
         _log_tweet(bundle)  # fallback to log
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"{type(e).__name__}: {str(e)}"}
 
 
 async def run_daily_tweet():

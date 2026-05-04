@@ -49,6 +49,15 @@ print(f"[Panchang] Layer 1 (Groq/Llama):   {'✅ active — llama-3.3-70b-versat
 print(f"[Panchang] Layer 2 (Claude Haiku):  {'✅ active — claude-haiku-4-5' if _claude_ready else '⚠️  ANTHROPIC_API_KEY not set — using rule-based fallback'}")
 print(f"[Panchang] Twitter/X posting:       {'✅ active' if _twitter_ready else '⚠️  TWITTER_* keys not set — tweets will be logged to logs/daily_tweets.log'}")
 
+# Additional Twitter diagnostic
+if _twitter_ready:
+    try:
+        import tweepy
+        print(f"[Panchang] Tweepy library:          ✅ v{tweepy.__version__} installed")
+    except ImportError:
+        print("[Panchang] Tweepy library:          ❌ NOT INSTALLED — Twitter posting will fail!")
+        _twitter_ready = False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

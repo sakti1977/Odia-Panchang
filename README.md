@@ -191,4 +191,73 @@ Maa Biraja Ashtami (Durga Puja), Nuakhai Juhar, Biraja Shivaratri, Pana Sankrant
 ### 🎉 Common Odia Festivals
 Pana Sankranti (Odia New Year), Kumar Purnima, Prathamastami, Gamha Purnima, Boita Bandana, Makar Sankranti, Manabasa Gurubara, and all major Hindu festivals.
 
+---
+
+## 🐦 Twitter Auto-Posting
+
+The API includes automatic daily Twitter posting at 5:00 AM IST with bilingual Odia+English tweets.
+
+### Setup Twitter Integration
+
+1. **Create Twitter API credentials** at [developer.twitter.com](https://developer.twitter.com)
+   - Apply for **Elevated access** or **Basic tier** (required for posting tweets)
+   - Note: Free tier typically only allows read operations
+
+2. **Add credentials to `.env` or Render dashboard**:
+   ```env
+   TWITTER_API_KEY=your_api_key
+   TWITTER_API_SECRET=your_api_secret
+   TWITTER_ACCESS_TOKEN=your_access_token
+   TWITTER_ACCESS_SECRET=your_access_secret
+   ```
+
+3. **Verify setup** — Check startup logs for:
+   ```
+   [Panchang] Twitter/X posting: ✅ active
+   [Panchang] Tweepy library: ✅ v4.x.x installed
+   ```
+
+### Troubleshooting Twitter Posts
+
+If tweets aren't posting:
+
+1. **Check the startup logs** — Look for warning messages:
+   - `⚠️ TWITTER_* keys not set` → Credentials missing
+   - `❌ NOT INSTALLED` → Tweepy not installed
+   - `✅ active` → Credentials found
+
+2. **Check application logs** for detailed errors:
+   ```
+   [Twitter] Missing credentials: consumer_key, access_token
+   [Twitter] ❌ Post failed: Forbidden: 403 Forbidden
+   ```
+
+3. **Common issues**:
+   - **403 Forbidden** → Twitter API access level insufficient (need Elevated/Basic tier)
+   - **401 Unauthorized** → Incorrect credentials or expired tokens
+   - **"Client not available"** → Credentials not set or tweepy import failed
+   - **Tweets logged but not posted** → Check `logs/daily_tweets.log` — means fallback mode active
+
+4. **Manual trigger** to test:
+   ```bash
+   curl -X POST https://your-api.onrender.com/tweet/post
+   ```
+
+5. **Preview without posting**:
+   ```bash
+   curl https://your-api.onrender.com/tweet/today
+   ```
+
+### Twitter API Access Levels
+
+| Tier | Can Post? | Cost | Notes |
+|------|-----------|------|-------|
+| Free | ❌ No | $0 | Read-only access |
+| Basic | ✅ Yes | $100/mo | Required for posting |
+| Elevated | ✅ Yes | Free (limited) | Need to apply |
+
+If posting fails with 403 errors, verify your Twitter developer account has write permissions.
+
+---
+
 A trusted odia panchang API based on Jagannath and Biraja panjika
