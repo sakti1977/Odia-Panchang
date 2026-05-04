@@ -3,72 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ଓଡ଼ିଆ ପଞ୍ଜିକା - Free Odia Panchang for all of Odisha">
-    <title>ଓଡ଼ିଆ ପଞ୍ଜିକା - Odia Panchang</title>
+    <meta name="description" content="ଓଡ଼ିଆ ପଞ୍ଜିକା — Free bilingual Odia Panchang for Jagannath (Puri) &amp; Biraja (Jajpur) traditions. Tithi, Nakshatra, Yoga, Festivals, Muhurta.">
+    <meta property="og:title" content="ଓଡ଼ିଆ ପଞ୍ଜିକା — Odia Panchang">
+    <meta property="og:description" content="Free accurate bilingual Panchang for all of Odisha. Tithi, Nakshatra, Yoga, Muhurta, Festivals.">
+    <meta property="og:type" content="website">
+    <title>ଓଡ଼ିଆ ପଞ୍ଜିକା — Odia Panchang</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Oriya:wght@400;600;700&display=swap">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🛕 ଓଡ଼ିଆ ପଞ୍ଜିକା</h1>
-            <p class="subtitle">Odia Panchang - ଜଗନ୍ନାଥ ଓ ବିରଜା ପଞ୍ଜିକା</p>
-        </header>
 
-        <main>
-            <section class="hero">
-                <div class="card today-card">
-                    <h2>ଆଜିର ପଞ୍ଜିକା - Today's Panchang</h2>
-                    <div id="today-panchang" class="loading">
-                        <p>Loading...</p>
+    <!-- ─── Header ─────────────────────────────────────────── -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="header-brand">
+                <span class="brand-icon">🛕</span>
+                <div>
+                    <h1>ଓଡ଼ିଆ ପଞ୍ଜିକା</h1>
+                    <p class="subtitle">Odia Panchang · ଜଗନ୍ନାଥ &amp; ବିରଜା ପରମ୍ପରା</p>
+                </div>
+            </div>
+            <nav class="tab-nav" role="tablist" aria-label="Sections">
+                <button class="tab-btn active" data-tab="today" role="tab" aria-selected="true">
+                    <span class="tab-icon">📅</span><span class="tab-label">ଆଜି</span>
+                </button>
+                <button class="tab-btn" data-tab="datelookup" role="tab" aria-selected="false">
+                    <span class="tab-icon">🔍</span><span class="tab-label">ତାରିଖ</span>
+                </button>
+                <button class="tab-btn" data-tab="festivals" role="tab" aria-selected="false">
+                    <span class="tab-icon">🎉</span><span class="tab-label">ପର୍ବ</span>
+                </button>
+                <button class="tab-btn" data-tab="muhurta" role="tab" aria-selected="false">
+                    <span class="tab-icon">🌅</span><span class="tab-label">ମୁହୂର୍ତ୍ତ</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="site-main">
+
+        <!-- ─── TAB: Today ──────────────────────────────────── -->
+        <section id="tab-today" class="tab-panel active" role="tabpanel">
+
+            <!-- City selector -->
+            <div class="section-block">
+                <h2 class="section-title">ଆପଣଙ୍କ ସହର ବାଛନ୍ତୁ <span class="section-title-en">Select Your City</span></h2>
+                <div class="city-grid" id="city-grid">
+                    <div class="skeleton-row"></div>
+                </div>
+            </div>
+
+            <!-- Today's panchang card -->
+            <div class="section-block">
+                <div class="card today-card" id="today-card">
+                    <div class="card-header">
+                        <h2 class="card-title">ଆଜିର ପଞ୍ଜିକା <span class="card-title-en">Today's Panchang</span></h2>
+                        <span id="today-city-badge" class="city-badge">ପୁରୀ</span>
+                    </div>
+                    <div id="today-panchang" class="loading-spinner">
+                        <div class="spinner"></div><p>Loading…</p>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <section class="location-selector">
-                <h3>ଆପଣଙ୍କ ସହର ବାଛନ୍ତୁ - Select Your City</h3>
-                <div class="city-grid" id="city-grid">
-                    <!-- Cities will be loaded here -->
+            <!-- Download -->
+            <div class="section-block actions-row">
+                <button onclick="downloadMonthly()" class="btn btn-outline">
+                    📥 Download This Month's Panchang
+                </button>
+            </div>
+        </section>
+
+        <!-- ─── TAB: Date Lookup ────────────────────────────── -->
+        <section id="tab-datelookup" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ଯେକୌଣସି ତାରିଖ ଦେଖନ୍ତୁ <span class="section-title-en">Look Up Any Date</span></h2>
+                <div class="date-lookup-form card">
+                    <label class="form-label" for="lookup-date">ତାରିଖ ଚୟନ କରନ୍ତୁ / Choose a date</label>
+                    <div class="date-lookup-row">
+                        <input type="date" id="lookup-date" class="date-input" />
+                        <button onclick="lookupDate()" class="btn">ଦେଖନ୍ତୁ / View</button>
+                    </div>
                 </div>
-            </section>
+                <div id="lookup-result"></div>
+            </div>
+        </section>
 
-            <section class="features">
-                <div class="feature-card">
-                    <h3>📅 ମାସିକ ପଞ୍ଜିକା</h3>
-                    <p>Download monthly calendar</p>
-                    <button onclick="downloadMonthly()" class="btn">Download This Month</button>
+        <!-- ─── TAB: Festivals ──────────────────────────────── -->
+        <section id="tab-festivals" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ପର୍ବ ପର୍ବାଣି <span class="section-title-en">Festivals &amp; Special Days</span></h2>
+
+                <div class="festivals-filter card">
+                    <div class="filter-row">
+                        <label class="form-label" for="festival-year">ବର୍ଷ / Year</label>
+                        <select id="festival-year" class="select-input" onchange="loadFestivals()">
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                        <label class="form-label" for="festival-tradition">ପରମ୍ପରା / Tradition</label>
+                        <select id="festival-tradition" class="select-input" onchange="loadFestivals()">
+                            <option value="all">All</option>
+                            <option value="jagannath">Jagannath (ଜଗନ୍ନାଥ)</option>
+                            <option value="biraja">Biraja (ବିରଜା)</option>
+                            <option value="common">Common</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="feature-card">
-                    <h3>🎉 ପର୍ବ ପର୍ବାଣି</h3>
-                    <p>Festivals & Special Days</p>
-                    <button onclick="showFestivals()" class="btn">View Festivals</button>
+                <div id="festivals-result" class="loading-spinner">
+                    <div class="spinner"></div><p>Loading…</p>
                 </div>
+            </div>
+        </section>
 
-                <div class="feature-card">
-                    <h3>🌅 ମୁହୂର୍ତ୍ତ</h3>
-                    <p>Auspicious timings</p>
-                    <button onclick="showMuhurta()" class="btn">Check Muhurta</button>
+        <!-- ─── TAB: Muhurta ────────────────────────────────── -->
+        <section id="tab-muhurta" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ଆଜିର ମୁହୂର୍ତ୍ତ <span class="section-title-en">Today's Auspicious Timings</span></h2>
+                <div id="muhurta-result" class="loading-spinner">
+                    <div class="spinner"></div><p>Loading…</p>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section class="about">
-                <h3>About ଓଡ଼ିଆ ପଞ୍ଜିକା</h3>
-                <p>
-                    Free, accurate, bilingual Panchang for all Odia people worldwide.
-                    Covers Jagannath Temple (Puri) and Biraja Temple (Jajpur) traditions.
-                </p>
-                <p>
-                    ମାଗଣା, ସଠିକ୍, ଦ୍ୱିଭାଷିକ ପଞ୍ଜିକା ସମସ୍ତ ଓଡ଼ିଆଙ୍କ ପାଇଁ।
-                    ଜଗନ୍ନାଥ ମନ୍ଦିର (ପୁରୀ) ଏବଂ ବିରଜା ମନ୍ଦିର (ଯାଜପୁର) ପରମ୍ପରା ଅନ୍ତର୍ଭୁକ୍ତ।
-                </p>
-            </section>
-        </main>
+    </main>
 
-        <footer>
-            <p>Made with ❤️ for Odisha | ଓଡ଼ିଶା ପାଇଁ ସ୍ନେହରେ ନିର୍ମିତ</p>
-            <p><a href="/docs">API Documentation</a> | <a href="https://github.com/sakti1977/Odia-Panchang">GitHub</a></p>
-        </footer>
-    </div>
+    <!-- ─── About strip ─────────────────────────────────────── -->
+    <aside class="about-strip">
+        <div class="about-inner">
+            <p>🛕 ମାଗଣା ଦ୍ୱିଭାଷିକ ପଞ୍ଜିକା — ଜଗନ୍ନାଥ (ପୁରୀ) ଓ ବିରଜା (ଯାଜପୁର) ପରମ୍ପରା</p>
+            <p>Free bilingual Panchang covering Jagannath (Puri) &amp; Biraja (Jajpur) temple traditions for all Odia people worldwide.</p>
+        </div>
+    </aside>
+
+    <!-- ─── Footer ───────────────────────────────────────────── -->
+    <footer class="site-footer">
+        <p>Made with ❤️ for Odisha · ଓଡ଼ିଶା ପାଇଁ ସ୍ନେହରେ ନିର୍ମିତ</p>
+        <p>
+            <a href="/docs" target="_blank" rel="noopener">API Docs</a> ·
+            <a href="https://github.com/sakti1977/Odia-Panchang" target="_blank" rel="noopener">GitHub</a> ·
+            <a href="/tweet/today" target="_blank" rel="noopener">Today's Tweet Preview</a>
+        </p>
+    </footer>
 
     <script src="/static/script.js"></script>
 </body>
