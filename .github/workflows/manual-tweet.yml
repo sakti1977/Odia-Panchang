@@ -28,17 +28,30 @@ jobs:
           endpoint = f"{api_url}/tweet/post"
           max_retries = 5
           initial_wait = 30  # seconds — allow free-tier spin-up
+          request_timeout = 120  # seconds — enough for tweet generation + posting
 
           import time
 
           print(f"Triggering tweet: {endpoint}")
           for attempt in range(1, max_retries + 1):
               try:
-                  resp = httpx.post(endpoint, timeout=60)
+                  resp = httpx.post(endpoint, timeout=request_timeout)
                   resp.raise_for_status()
                   data = resp.json()
-                  print(f"✅ Success (attempt {attempt}):")
+                  result = data.get("result", {})
+                  status = result.get("status", "unknown")
                   print(json.dumps(data, indent=2, ensure_ascii=False))
+                  if status == "posted":
+                      print(f"✅ Tweet posted to Twitter! (attempt {attempt})")
+                  elif status == "logged":
+                      print(
+                          "⚠️  Tweet NOT posted — Twitter credentials not configured.\n"
+                          "   Tweets are being saved to logs/daily_tweets.log.\n"
+                          "   Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,\n"
+                          "   TWITTER_ACCESS_SECRET in the Render dashboard to enable posting."
+                      )
+                  elif status == "error":
+                      print(f"❌ Tweet post failed: {result.get('message')}")
                   sys.exit(0)
               except Exception as e:
                   print(f"⚠️  Attempt {attempt}/{max_retries} failed: {e}")
