@@ -557,7 +557,13 @@ async def post_tweet_now():
     Waits for completion and returns the full result so callers can see
     whether the tweet was posted to Twitter or saved to the log file.
     """
-    return await run_daily_tweet()
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+    try:
+        return await run_daily_tweet()
+    except Exception as exc:
+        _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
+        return {"status": "error", "message": "Tweet job encountered an unexpected error. Check application logs."}
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────
