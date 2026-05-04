@@ -44,10 +44,12 @@ jobs:
                   if status == "posted":
                       print(f"✅ Tweet posted to Twitter! (attempt {attempt})")
                   elif status == "logged":
-                      print(f"⚠️  Tweet NOT posted — Twitter credentials not configured.")
-                      print(f"   Tweets are being saved to logs/daily_tweets.log.")
-                      print(f"   Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,")
-                      print(f"   TWITTER_ACCESS_SECRET in the Render dashboard to enable posting.")
+                      print(
+                          "⚠️  Tweet NOT posted — Twitter credentials not configured.\n"
+                          "   Tweets are being saved to logs/daily_tweets.log.\n"
+                          "   Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,\n"
+                          "   TWITTER_ACCESS_SECRET in the Render dashboard to enable posting."
+                      )
                   elif status == "error":
                       print(f"❌ Tweet post failed: {result.get('message')}")
                   sys.exit(0)

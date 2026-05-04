@@ -561,11 +561,14 @@ async def post_tweet_now():
     _log = _logging.getLogger(__name__)
     try:
         data = await run_daily_tweet()
-        # Sanitize: if run_daily_tweet returned a top-level "error" key
-        # (exception path), replace the raw message to avoid exposing internals.
+        # Sanitize error messages to avoid exposing internal exception details.
         if "error" in data:
             _log.error("[tweet/post] Tweet job error (details in app logs)")
             return {"result": {"status": "error", "message": "Tweet job failed. Check application logs."}}
+        result = data.get("result", {})
+        if result.get("status") == "error":
+            _log.error("[tweet/post] Tweet post error: %s", result.get("message", ""))
+            data = {**data, "result": {"status": "error", "message": "Tweet post failed. Check application logs."}}
         return data
     except Exception as exc:
         _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
