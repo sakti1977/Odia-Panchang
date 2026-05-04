@@ -560,10 +560,16 @@ async def post_tweet_now():
     import logging as _logging
     _log = _logging.getLogger(__name__)
     try:
-        return await run_daily_tweet()
+        data = await run_daily_tweet()
+        # Sanitize: if run_daily_tweet returned a top-level "error" key
+        # (exception path), replace the raw message to avoid exposing internals.
+        if "error" in data:
+            _log.error("[tweet/post] Tweet job error (details in app logs)")
+            return {"result": {"status": "error", "message": "Tweet job failed. Check application logs."}}
+        return data
     except Exception as exc:
         _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
-        return {"status": "error", "message": "Tweet job encountered an unexpected error. Check application logs."}
+        return {"result": {"status": "error", "message": "Tweet job encountered an unexpected error. Check application logs."}}
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────

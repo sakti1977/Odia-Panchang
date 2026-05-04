@@ -12,7 +12,7 @@ import os
 API_URL = os.getenv("PUBLIC_API_URL", "https://odia-panchang.onrender.com").rstrip("/")
 ENDPOINT = f"{API_URL}/tweet/post"
 MAX_RETRIES = 5
-INITIAL_WAIT = 30   # seconds — allow time for free-tier spin-up
+INITIAL_WAIT = 30  # seconds — allow time for free-tier spin-up
 REQUEST_TIMEOUT = 120  # seconds — enough for tweet generation + posting
 
 
