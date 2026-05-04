@@ -34,8 +34,17 @@
                 <button class="tab-btn" data-tab="festivals" role="tab" aria-selected="false">
                     <span class="tab-icon">🎉</span><span class="tab-label">ପର୍ବ</span>
                 </button>
+                <button class="tab-btn" data-tab="sankranti" role="tab" aria-selected="false">
+                    <span class="tab-icon">☀️</span><span class="tab-label">ସଂକ୍ରାନ୍ତି</span>
+                </button>
+                <button class="tab-btn" data-tab="mandira" role="tab" aria-selected="false">
+                    <span class="tab-icon">🛕</span><span class="tab-label">ମନ୍ଦିର</span>
+                </button>
                 <button class="tab-btn" data-tab="muhurta" role="tab" aria-selected="false">
                     <span class="tab-icon">🌅</span><span class="tab-label">ମୁହୂର୍ତ୍ତ</span>
+                </button>
+                <button class="tab-btn" data-tab="virasat" role="tab" aria-selected="false">
+                    <span class="tab-icon">🏛️</span><span class="tab-label">ବିରାସତ</span>
                 </button>
             </nav>
         </div>
@@ -99,9 +108,6 @@
                     <div class="filter-row">
                         <label class="form-label" for="festival-year">ବର୍ଷ / Year</label>
                         <select id="festival-year" class="select-input" onchange="loadFestivals()">
-                            <option value="2025">2025</option>
-                            <option value="2026" selected>2026</option>
-                            <option value="2027">2027</option>
                         </select>
                         <label class="form-label" for="festival-tradition">ପରମ୍ପରା / Tradition</label>
                         <select id="festival-tradition" class="select-input" onchange="loadFestivals()">
@@ -114,6 +120,54 @@
                 </div>
 
                 <div id="festivals-result" class="loading-spinner">
+                    <div class="spinner"></div><p>Loading…</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── TAB: Sankranti ──────────────────────────────── -->
+        <section id="tab-sankranti" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ସୂର୍ଯ୍ୟ ସଂକ୍ରାନ୍ତି ଚକ୍ର <span class="section-title-en">The 12 Sankrantis of Odisha</span></h2>
+                <div class="info-box" style="margin-bottom:16px;">
+                    ☀️ <strong>Sankranti</strong> marks the Sun's entry into each of the 12 zodiac signs (Rashi).
+                    All 12 are observed in Odisha — <strong>Pana Sankranti</strong> (April) and <strong>Makar Sankranti</strong> (January) are the most important.
+                </div>
+                <div id="sankranti-result" class="loading-spinner">
+                    <div class="spinner"></div><p>Loading…</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── TAB: Mandira (Temples) ──────────────────────── -->
+        <section id="tab-mandira" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ମନ୍ଦିର ନୀତି <span class="section-title-en">Temple Rituals &amp; Beshas</span></h2>
+
+                <!-- Temple selector -->
+                <div class="temple-tabs">
+                    <button class="temple-tab-btn active" data-temple="jagannath">🛕 ଜଗନ୍ନାଥ (ପୁରୀ)</button>
+                    <button class="temple-tab-btn" data-temple="biraja">🙏 ବିରଜା (ଯାଜପୁର)</button>
+                    <button class="temple-tab-btn" data-temple="lingaraj">🕉️ ଲିଙ୍ଗରାଜ (ଭୁବନେଶ୍ୱର)</button>
+                </div>
+
+                <div id="mandira-result" class="loading-spinner">
+                    <div class="spinner"></div><p>Loading…</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── TAB: Virasat (Heritage) ─────────────────────── -->
+        <section id="tab-virasat" class="tab-panel" role="tabpanel" hidden>
+            <div class="section-block">
+                <h2 class="section-title">ଓଡ଼ିଆ ବିରାସତ <span class="section-title-en">Odia Heritage</span></h2>
+
+                <div class="heritage-subtabs">
+                    <button class="heritage-tab-btn active" data-heritage="personalities">👤 ମହାନ ବ୍ୟକ୍ତିତ୍ୱ</button>
+                    <button class="heritage-tab-btn" data-heritage="history">📜 ଇତିହାସ</button>
+                </div>
+
+                <div id="virasat-result" class="loading-spinner">
                     <div class="spinner"></div><p>Loading…</p>
                 </div>
             </div>

@@ -541,7 +541,234 @@ button { cursor: pointer; font-family: inherit; }
 .site-footer a { color: var(--primary); }
 .site-footer a:hover { color: var(--primary-dark); }
 
-/* ── Responsive ─────────────────────────────────────────────────────────── */
+/* ── Temple sub-tabs ────────────────────────────────────────────────────── */
+.temple-tabs, .heritage-subtabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.temple-tab-btn, .heritage-tab-btn {
+    padding: 9px 18px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.temple-tab-btn:hover, .heritage-tab-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.temple-tab-btn.active, .heritage-tab-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* ── Niti timeline ──────────────────────────────────────────────────────── */
+.niti-timeline { position: relative; padding-left: 20px; }
+.niti-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+}
+.niti-item {
+    position: relative;
+    margin-bottom: 16px;
+    padding-left: 16px;
+}
+.niti-item::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 6px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.niti-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.niti-name-en { font-size: 1rem; font-weight: 700; color: var(--text); }
+.niti-name-or { font-size: 0.9rem; color: var(--primary); font-weight: 600; }
+.niti-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+/* ── Besha cards ────────────────────────────────────────────────────────── */
+.besha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+.besha-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-top: 3px solid var(--gold);
+}
+.besha-name-or { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); }
+.besha-name-en { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+.besha-trigger {
+    font-size: 0.78rem;
+    background: #FFF8E1;
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: #6D4C41;
+    margin-bottom: 8px;
+    display: inline-block;
+}
+.besha-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Special occasions cards ────────────────────────────────────────────── */
+.special-occasions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.special-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    border-left: 4px solid var(--accent);
+}
+.special-name-or { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.special-name-en { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+.special-time {
+    font-size: 0.75rem;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+}
+.special-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Temple info header ─────────────────────────────────────────────────── */
+.temple-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--gold) 100%);
+    color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.temple-header .temple-name { font-size: 1.4rem; font-weight: 700; }
+.temple-header .temple-name-or { font-size: 1rem; opacity: 0.9; margin-bottom: 4px; }
+.temple-header .temple-location { font-size: 0.85rem; opacity: 0.85; margin-bottom: 8px; }
+.temple-header .temple-desc { font-size: 0.85rem; opacity: 0.9; line-height: 1.5; }
+
+/* ── Sankranti cards ────────────────────────────────────────────────────── */
+.sankranti-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+}
+.sankranti-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+.sankranti-card.sig-most_important { border-top: 4px solid var(--accent); }
+.sankranti-card.sig-important      { border-top: 4px solid var(--primary); }
+.sankranti-card.sig-moderate       { border-top: 4px solid var(--gold); }
+.sankranti-importance {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+.imp-most_important { background: #FFEBEE; color: var(--accent); border: 1px solid var(--accent); }
+.imp-important      { background: #FFF3E0; color: var(--primary); border: 1px solid var(--primary); }
+.imp-moderate       { background: #FFFDE7; color: #827717; border: 1px solid var(--gold); }
+.sankranti-masa-or  { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.sankranti-name-or  { font-size: 1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 2px; }
+.sankranti-name-en  { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+.sankranti-date     { font-size: 0.78rem; color: var(--primary); font-weight: 600; margin-bottom: 8px; display: block; }
+.sankranti-desc     { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+.sankranti-customs  { list-style: none; }
+.sankranti-customs li {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 3px 0 3px 16px;
+    position: relative;
+}
+.sankranti-customs li::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    color: var(--primary);
+}
+
+/* ── Heritage cards ─────────────────────────────────────────────────────── */
+.personality-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+.personality-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    border-left: 4px solid var(--primary);
+}
+.personality-name    { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.personality-name-or { font-size: 0.9rem; color: var(--primary); font-weight: 600; margin-bottom: 2px; }
+.personality-period  { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.personality-category {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 2px 8px; border-radius: 20px; display: inline-block; margin-bottom: 8px;
+    background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-muted);
+}
+.personality-sig { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
+
+.history-timeline { position: relative; padding-left: 24px; }
+.history-timeline::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(to bottom, var(--primary), var(--gold));
+}
+.history-item {
+    position: relative;
+    margin-bottom: 20px;
+    padding-left: 16px;
+}
+.history-item::before {
+    content: ''; position: absolute; left: -16px; top: 4px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--primary); border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.history-period { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
+.history-event-or { font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); }
+.history-event-en { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+.history-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; }
+
+/* ── Responsive additions ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .temple-tabs, .heritage-subtabs { flex-direction: column; }
+    .temple-tab-btn, .heritage-tab-btn { width: 100%; text-align: left; }
+    .sankranti-grid, .besha-grid, .special-occasions-grid, .personality-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 640px) {
     .header-inner { gap: 8px; }
     .header-brand h1 { font-size: 1.2rem; }
