@@ -170,9 +170,11 @@ def _build_enrichment(base: dict) -> dict:
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
     """Serve the main web interface."""
+    api_base_url = os.getenv("PUBLIC_API_URL", "")
     return templates.TemplateResponse(
         request=request,
-        name="index.html"
+        name="index.html",
+        context={"api_base_url": api_base_url}
     )
 
 
