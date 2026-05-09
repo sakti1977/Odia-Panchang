@@ -209,6 +209,8 @@ The API includes automatic daily Twitter posting at 5:00 AM IST with bilingual O
    TWITTER_API_SECRET=your_api_secret
    TWITTER_ACCESS_TOKEN=your_access_token
    TWITTER_ACCESS_SECRET=your_access_secret
+   # Optional but recommended for improved authentication:
+   TWITTER_BEARER_TOKEN=your_bearer_token
    ```
 
 3. **Verify setup** — Check startup logs for:
@@ -226,7 +228,18 @@ If tweets aren't posting:
    - `❌ NOT INSTALLED` → Tweepy not installed
    - `✅ active` → Credentials found
 
-2. **Check application logs** for detailed errors:
+2. **Test credentials** — Run the test script:
+   ```bash
+   python test_twitter_credentials.py
+   ```
+
+3. **Common 401 Unauthorized issues**:
+   - All 4 credentials must be from the SAME Twitter app
+   - If you regenerated API keys, you must also regenerate access tokens
+   - OAuth 1.0a must be enabled in app settings
+   - See [TWITTER_AUTH_GUIDE.md](TWITTER_AUTH_GUIDE.md) for detailed troubleshooting
+
+4. **Check application logs** for detailed errors:
    ```
    [Twitter] Missing credentials: consumer_key, access_token
    [Twitter] ❌ Post failed: Forbidden: 403 Forbidden
