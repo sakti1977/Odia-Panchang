@@ -45,14 +45,28 @@ def test_credentials():
         print("❌ Tweepy not installed. Run: pip install tweepy")
         return False
 
-    # Create client
+    # Create client with bearer token support
     try:
-        client = tweepy.Client(
-            consumer_key=os.getenv("TWITTER_API_KEY"),
-            consumer_secret=os.getenv("TWITTER_API_SECRET"),
-            access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
-            access_token_secret=os.getenv("TWITTER_ACCESS_SECRET"),
-        )
+        # Try with bearer token first (recommended for v2 API read operations)
+        bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+
+        if bearer_token:
+            print("🔑 Using OAuth 2.0 Bearer Token authentication")
+            client = tweepy.Client(
+                bearer_token=bearer_token,
+                consumer_key=os.getenv("TWITTER_API_KEY"),
+                consumer_secret=os.getenv("TWITTER_API_SECRET"),
+                access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
+                access_token_secret=os.getenv("TWITTER_ACCESS_SECRET"),
+            )
+        else:
+            print("🔑 Using OAuth 1.0a User Context authentication (no bearer token found)")
+            client = tweepy.Client(
+                consumer_key=os.getenv("TWITTER_API_KEY"),
+                consumer_secret=os.getenv("TWITTER_API_SECRET"),
+                access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
+                access_token_secret=os.getenv("TWITTER_ACCESS_SECRET"),
+            )
         print("✅ Tweepy client created successfully")
     except Exception as e:
         print(f"❌ Failed to create client: {e}")
@@ -69,6 +83,20 @@ def test_credentials():
         else:
             print("⚠️  Authentication returned no data")
             return False
+    except tweepy.errors.Unauthorized as e:
+        print(f"❌ Authentication failed: 401 Unauthorized")
+        print(f"   Error: {e}")
+        print("\n   Possible causes:")
+        print("   1. Incorrect API credentials (check keys and tokens)")
+        print("   2. Access token doesn't match the API key/secret")
+        print("   3. API keys may have been regenerated (need new access tokens)")
+        print("   4. App authentication settings may need to be updated")
+        print("\n   Solutions:")
+        print("   • Regenerate access token and secret at: https://developer.twitter.com/en/portal/projects-and-apps")
+        print("   • Ensure OAuth 1.0a is enabled in app settings")
+        print("   • Verify all 4 credentials are from the SAME Twitter app")
+        print("   • Try adding TWITTER_BEARER_TOKEN to environment variables")
+        return False
     except tweepy.errors.Forbidden as e:
         print(f"❌ Authentication failed with Forbidden error")
         print(f"   Error: {e}")
