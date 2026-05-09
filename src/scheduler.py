@@ -41,12 +41,26 @@ def _get_twitter_client():
             return None
 
         logger.info("[Twitter] All credentials found, creating client...")
-        client = tweepy.Client(
-            consumer_key=keys["consumer_key"],
-            consumer_secret=keys["consumer_secret"],
-            access_token=keys["access_token"],
-            access_token_secret=keys["access_token_secret"],
-        )
+
+        # Add bearer token if available (recommended for v2 API)
+        bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+        if bearer_token:
+            logger.info("[Twitter] Using OAuth 2.0 Bearer Token + OAuth 1.0a credentials")
+            client = tweepy.Client(
+                bearer_token=bearer_token,
+                consumer_key=keys["consumer_key"],
+                consumer_secret=keys["consumer_secret"],
+                access_token=keys["access_token"],
+                access_token_secret=keys["access_token_secret"],
+            )
+        else:
+            logger.info("[Twitter] Using OAuth 1.0a User Context authentication")
+            client = tweepy.Client(
+                consumer_key=keys["consumer_key"],
+                consumer_secret=keys["consumer_secret"],
+                access_token=keys["access_token"],
+                access_token_secret=keys["access_token_secret"],
+            )
         logger.info(f"[Twitter] Client created successfully (tweepy v{tweepy.__version__})")
         return client
     except ImportError as e:
