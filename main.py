@@ -71,7 +71,7 @@ if _twitter_ready:
 async def lifespan(app: FastAPI):
     scheduler = create_scheduler()
     scheduler.start()
-    print("[Panchang] Scheduler started — daily tweet at 05:00 IST | self-ping every 10 min")
+    print("[Panchang] Scheduler started — daily tweet at 05:00 IST")
     yield
     scheduler.shutdown()
     print("[Panchang] Scheduler stopped")
