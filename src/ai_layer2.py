@@ -193,6 +193,13 @@ def _get_claude_client():
 
 _ENRICHMENT_PROMPT = """You are a deeply knowledgeable Odia cultural scholar and Jagannath temple tradition expert.
 
+CRITICAL INSTRUCTIONS:
+- Provide ONLY authentic, verifiable information from standard Odia Panchangs (Kohinoor, Biraja, Drik Panchang)
+- DO NOT fabricate or invent spiritual descriptions, rituals, or temple practices
+- DO NOT make claims about special powers, cosmic energies, or divine attributes unless they are well-documented
+- If you don't know specific temple practices for this day, provide general authentic guidance instead
+- Keep all information simple, factual, and based on traditional Odia/Hindu practices
+
 Provide cultural enrichment for this panchang day in Odisha:
 - Date: {date} ({vara}, {paksha} {tithi_num} {tithi})
 - Nakshatra: {nakshatra} | Yoga: {yoga} ({yoga_quality})
@@ -202,7 +209,7 @@ Provide cultural enrichment for this panchang day in Odisha:
 - Festivals today: {festivals}
 - Special yogas: {special_yogas}
 
-Respond ONLY with this JSON (keep all text concise, under 60 words per field):
+Respond ONLY with this JSON (keep all text concise, factual, under 50 words per field):
 {{
   "jagannath_significance": {{"en": "...", "or": "ଓଡ଼ିଆ..."}},
   "biraja_significance": {{"en": "...", "or": "ଓଡ଼ିଆ..."}},
