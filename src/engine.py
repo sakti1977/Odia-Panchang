@@ -1,6 +1,6 @@
 """
 Astronomical Panchang calculation engine using Swiss Ephemeris (pyswisseph).
-Default location: Bangalore, Karnataka (lat=12.9716, lon=77.5946, tz=+5.5)
+Default location: Bhubaneswar, Odisha (lat=20.2961, lon=85.8245, tz=+5.5)
 Location is configurable via LOCATION_* env vars.
 """
 
@@ -13,9 +13,10 @@ from src.translations import (
 )
 
 # Location — configurable via environment variables
-_LOCATION_NAME = os.getenv("LOCATION_NAME", "Bangalore")
-_LOC_LAT = float(os.getenv("LOCATION_LAT", "12.9716"))
-_LOC_LON = float(os.getenv("LOCATION_LON", "77.5946"))
+# Default: Bhubaneswar, capital of Odisha
+_LOCATION_NAME = os.getenv("LOCATION_NAME", "Bhubaneswar")
+_LOC_LAT = float(os.getenv("LOCATION_LAT", "20.2961"))
+_LOC_LON = float(os.getenv("LOCATION_LON", "85.8245"))
 _LOC_TZ  = float(os.getenv("LOCATION_TZ",  "5.5"))
 
 # Keep old names as aliases for backward compatibility
