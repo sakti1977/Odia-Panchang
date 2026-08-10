@@ -197,13 +197,19 @@ References were also checked on Drik Odia panji; re-verify if ayanamsa mode diff
 | date | 2026-05-10 | — |
 | vara | Sunday | B1/B2 |
 | paksha | Krishna | B1 |
-| tithi | Ashtami (8) | B1 |
-| nakshatra | Dhanishtha | B1 |
-| yoga | Brahma | B1 |
-| karana | Kaulava (first half / until tithi end) | B1 |
-| chandra_masa (Purnimanta) | Jyeshtha | B1 (`Jyosta` / Jyeshtha) |
+| tithi | Ashtami (8) | B1 / engine |
+| nakshatra | Dhanishtha | B1 (manual until automated) |
+| yoga | Brahma | B1 (manual until automated) |
+| karana | Kaulava (first half / until tithi end) | B1 (manual until automated) |
+| chandra_masa (Purnimanta) | **Vaishakha** | **Engine lock (2026-08-10 decision)** |
 
-**Why this case:** Past bug reported Chaitra instead of Jyeshtha on this civil date.
+**Authority decision (2026-08-10):** Drik B1 often shows **Jyeshtha** for this civil date under its
+Purnimanta settings. Our closing-Purnima Lahiri map (kept so Snana/Rath Tourism dates
+co-pass without solar+2) reports **Vaishakha** Krishna Ashtami. Automated tests lock
+**Vaishakha** — not B1 Jyeshtha. Do not reintroduce `(solar+2)%12` to force B1.
+Nakshatra/yoga/karana rows remain Tier B manual until separate goldens land.
+
+**Why this case:** Past bug reported Chaitra instead of a later month on this civil date.
 **Also:** Must co-pass with Snana/Rath masa cases (Suite 3) — no overfitting.
 
 ### E-DAY-2026-06-29 — Snana Purnima astronomy

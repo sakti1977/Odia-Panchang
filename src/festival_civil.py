@@ -131,7 +131,7 @@ def _build_puri_cycle(
         _row(
             "Rath Yatra",
             "ରଥ ଯାତ୍ରା",
-            "common",
+            "jagannath",  # not common — dual-tradition isolation
             f"Puri Rath Yatra — civil date per {note}",
             source_tier=tier,
             source_note=f"{note} — Rath Yatra {rath.isoformat()}",
@@ -156,7 +156,7 @@ def _build_puri_cycle(
         _row(
             "Bahuda Yatra",
             "ବାହୁଡ଼ା ଯାତ୍ରା",
-            "common",
+            "jagannath",  # not common — dual-tradition isolation
             f"Bahuda (return) Yatra — civil date per {note}",
             source_tier=tier,
             source_note=f"{note} — Bahuda Yatra {bahuda.isoformat()}",

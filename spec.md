@@ -127,7 +127,9 @@ Required meta block (names may match implementation):
     "lat": 19.8135,
     "lon": 85.8312,
     "tz": "Asia/Kolkata",
-    "disclaimer": "Astronomical core is Lahiri/Swiss Ephemeris for the stated place. Festival overlays follow tradition rules. Not a digital reprint of commercial Khadiratna or Biraja tables."
+    "disclaimer": "Lahiri day elements at shared ~06:00 IST sample; city moves sunrise/sunset. Festival overlays follow tradition rules. Not a commercial panjika reprint.",
+    "day_elements_anchor": "approx_06:00_IST_lahiri",
+    "biraja_civil_status": "rule_only"
   }
 }
 ```
@@ -230,7 +232,7 @@ culturally legible — not only a name.
 | Ephemeris | Swiss Ephemeris (`pyswisseph`) |
 | Neutral default place | Bhubaneswar — 20.2961°N, 85.8245°E, IST (+5:30) |
 | Tradition defaults | See Dual tradition table (Puri / Jajpur / Bhubaneswar) |
-| Day anchor | Civil date in IST. Core elements at a fixed UT sample near local morning (document JD in code). Prefer sunrise-based day boundary when implementing tradition-sensitive edges later. |
+| Day anchor | Civil date in IST. Core elements at a **shared ~06:00 IST** Lahiri sample (not local sunrise). City currently changes **sunrise/sunset only**. Sunrise-based day elements are future work (issue #21 Path A). |
 | Tithi system | 30 tithis from Moon−Sun elongation; Shukla 1–15 then Krishna 1–15 (Amavasya = Krishna 15, never 30). |
 | Lunar month system | **Purnimanta** default (`purnimanta_odia_default`) |
 | Solar month | Sidereal rashi of Sun (Mesha…Meena) |
@@ -347,7 +349,9 @@ GET /api/panchang/today/jajpur?tradition=biraja
     "lat": 19.8135,
     "lon": 85.8312,
     "tz": "Asia/Kolkata",
-    "disclaimer": "Astronomical core is Lahiri/Swiss Ephemeris for the stated place. Festival overlays follow tradition rules. Not a digital reprint of commercial Khadiratna or Biraja tables."
+    "disclaimer": "Lahiri day elements at shared ~06:00 IST sample; city moves sunrise/sunset. Festival overlays follow tradition rules. Not a commercial panjika reprint.",
+    "day_elements_anchor": "approx_06:00_IST_lahiri",
+    "biraja_civil_status": "rule_only"
   },
   "date": "2026-07-16",
   "vara": { "en": "Thursday", "or": "ଗୁରୁବାର" },
@@ -472,7 +476,7 @@ A change is done only when:
 
 A devotee in Puri (Jagannath mode) and a devotee in Jajpur (Biraja mode) each see:
 
-- Correct tithi/masa for their **place** under the declared Lahiri engine  
+- Correct tithi/masa under the declared Lahiri engine (shared IST sample; sun times place-local)  
 - The **right festival overlay** for their tradition  
 - An honest **meta** line that does not pretend to be a commercial panjika reprint  
 

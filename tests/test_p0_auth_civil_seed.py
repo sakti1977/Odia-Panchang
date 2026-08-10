@@ -133,7 +133,7 @@ class TestCivilHonesty:
             date="2025-06-27",
             name_en="Rath Yatra",
             name_or="ରଥ ଯାତ୍ରା",
-            tradition="common",
+            tradition="jagannath",
             description="x",
         )
         d = _festival_to_dict(fake)
@@ -160,6 +160,6 @@ class TestEngineVersion:
         monkeypatch.setattr(seedmod, "DATABASE_URL", f"sqlite:///{tmp_path}/t.db")
         # redirect version file next to tmp db
         p = seedmod.engine_version_path()
-        assert p.parent == tmp_path or True
         seedmod.write_stored_engine_version("v-test")
         assert seedmod.read_stored_engine_version() == "v-test"
+        assert seedmod.engine_version_path().name == ".engine_version"

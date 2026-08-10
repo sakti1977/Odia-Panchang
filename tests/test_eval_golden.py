@@ -101,7 +101,9 @@ class TestEInv:
         for rule in TITHI_RULES:
             assert rule[3] in allowed
             if rule[4] == "Rath Yatra":
-                assert rule[3] != "biraja"
+                assert rule[3] == "jagannath"
+            if rule[4] == "Bahuda Yatra":
+                assert rule[3] == "jagannath"
         for rule in SANKRANTI_RULES:
             assert rule[1] in allowed
         # Biraja chariot distinct
@@ -294,24 +296,41 @@ class TestELocApiDual:
                 "/panchang/2026-07-16", params={"tradition": "biraja"}
             ).json()["festivals"]
         }
-        assert any("Rath" in n for n in j_names)
-        # Biraja mode must not invent Puri Gundicha Rath claim as Biraja-only
-        assert "Simhadhwaja Rath Yatra" not in j_names or True
+        # Puri Rath is jagannath-tagged — visible in jagannath mode
+        assert "Rath Yatra" in j_names
+        # Biraja mode must NOT surface Puri Gundicha Rath
+        assert "Rath Yatra" not in b_names
         assert not any("Gundicha" in n for n in b_names)
+        # Jagannath mode does not invent Simhadhwaja
+        assert "Simhadhwaja Rath Yatra" not in j_names
 
     def test_e_dual_003_meta_honesty(self):
         meta = client.get("/panchang/2026-07-16").json()["meta"]
         assert meta["masa_system"] == "purnimanta_odia_default"
-        assert "biraja" not in meta["masa_system"].lower() or "official" not in meta["masa_system"]
+        assert meta["masa_system"] != "official_biraja"
+        assert meta["masa_system"] != "official_khadiratna"
+        assert meta.get("day_elements_scope") == "shared_ist_sample"
+        assert "sunrise" in (meta.get("place_affects") or [])
+        assert meta.get("biraja_civil_status") == "rule_only"
+        assert "06:00" in meta.get("disclaimer", "") or "06:00" in meta.get(
+            "day_elements_anchor", ""
+        )
 
     def test_e_dual_004_biraja_fixture_opt_in(self):
+        """
+        Empty list = no human civil goldens yet (product is rule_only).
+        When rows appear they must carry source_edition + retrieved (not engine-generated).
+        """
         path = ROOT / "tests" / "fixtures" / "golden_festivals_biraja.json"
-        # Empty or missing is OK
-        if path.exists():
-            import json
+        assert path.exists(), "fixture file required (may be empty list)"
+        import json
 
-            data = json.loads(path.read_text(encoding="utf-8"))
-            assert isinstance(data, list)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert isinstance(data, list)
+        for row in data:
+            assert row.get("source_edition"), row
+            assert row.get("retrieved"), row
+            assert row.get("date") and row.get("name_contains")
 
 
 # ── Suite story quality + safety ──────────────────────────────────────────

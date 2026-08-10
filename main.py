@@ -152,16 +152,23 @@ def _build_meta(place: dict, tradition: str) -> dict:
         "engine": "lahiri_swiss_ephemeris",
         "engine_version": ENGINE_VERSION,
         "masa_system": "purnimanta_odia_default",
+        # Honesty (#21): tithi/masa/nakshatra share one IST sample; city only moves sun times.
         "day_elements_anchor": "approx_06:00_IST_lahiri",
+        "day_elements_scope": "shared_ist_sample",
+        "place_affects": ["sunrise", "sunset", "meta.city", "meta.lat", "meta.lon"],
+        "biraja_civil_status": "rule_only",  # no print-panji civil goldens yet (E-DUAL-004)
         "tradition": tradition or "all",
         "city": place.get("key") or place.get("name", "").lower(),
         "lat": place.get("lat"),
         "lon": place.get("lon"),
         "tz": "Asia/Kolkata" if float(place.get("tz", 5.5)) == 5.5 else place.get("tz"),
         "disclaimer": (
-            "Astronomical core is Lahiri/Swiss Ephemeris for the stated place. "
-            "Festival overlays follow tradition rules. Not a digital reprint of "
-            "commercial Khadiratna or Biraja tables."
+            "Lahiri/Swiss Ephemeris day elements (tithi, masa, nakshatra, yoga, karana) "
+            "are computed at a shared ~06:00 IST sample — not local-sunrise panji. "
+            "Requested city currently changes sunrise/sunset (and labels), not those elements. "
+            "Festival overlays follow tradition rules and Tier A civil tables where present. "
+            "Not a digital reprint of commercial Khadiratna or Biraja tables. "
+            "Biraja peetha civil dates are rule_only until print/panji fixtures exist."
         ),
     }
 

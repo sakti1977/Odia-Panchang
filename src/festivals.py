@@ -47,8 +47,9 @@ TITHI_RULES = [
     ("Jyeshtha",   "shukla", 15,  "common", "Snana Purnima",              "ସ୍ନାନ ପୂର୍ଣ୍ଣିମା",        "108-pot ritual bathing of Lord Jagannath; Anavasara (convalescence) period begins"),
 
     # Ashadha
-    ("Ashadha",    "shukla",  2,  "common", "Rath Yatra",                 "ରଥ ଯାତ୍ରା",               "Chariot festival of Lord Jagannath, Balabhadra and Subhadra; chariots pulled to Gundicha Temple"),
-    ("Ashadha",    "shukla", 10,  "common", "Bahuda Yatra",               "ବାହୁଡ଼ା ଯାତ୍ରା",           "Return chariot festival; deities return from Gundicha to Jagannath Temple"),
+    # Puri chariot cycle is jagannath (not common): Biraja mode must not show Gundicha Rath.
+    ("Ashadha",    "shukla",  2,  "jagannath", "Rath Yatra",               "ରଥ ଯାତ୍ରା",               "Chariot festival of Lord Jagannath, Balabhadra and Subhadra; chariots pulled to Gundicha Temple (Sri Mandir / Puri)"),
+    ("Ashadha",    "shukla", 10,  "jagannath", "Bahuda Yatra",             "ବାହୁଡ଼ା ଯାତ୍ରା",           "Return chariot festival; deities return from Gundicha to Jagannath Temple (Puri)"),
 
     # Shravana
     ("Shravana",   "shukla", 15,  "common", "Gamha Purnima",              "ଗହ୍ମା ପୂର୍ଣ୍ଣିମା",        "Worship and decoration of cattle; Raksha Bandhan observed; Balabhadra's birthday"),
@@ -116,16 +117,17 @@ TITHI_RULES = [
     ("Chaitra",    "shukla", 12,  "lingaraj", "Rukuna Rath Bahuda Yatra",          "ରୁକୁଣା ରଥ ବାହୁଡ଼ା ଯାତ୍ରା",  "Swarnadri Bije; return journey of Lord Lingaraj from Rameswara to Lingaraj Temple"),
 
     # ── BIRAJA TRADITION (Jajpur) ─────────────────────────────────────────
-    ("Vaishakha",  "shukla",  3,  "biraja", "Biraja Akshaya Tritiya",              "ବିରଜା ଅକ୍ଷୟ ତୃତୀୟା",        "Pana Sankranti celebrations at Biraja Temple; Chandan Yatra begins"),
-    ("Jyeshtha",   "shukla",  5,  "biraja", "Sitala Shashthi (Biraja)",            "ସୀତଳ ଷଷ୍ଠୀ",                 "Sitala Shashthi celebrated at Biraja with special temple rituals and community festivities"),
+    ("Vaishakha",  "shukla",  3,  "biraja", "Biraja Akshaya Tritiya",              "ବିରଜା ଅକ୍ଷୟ ତୃତୀୟା",        "Akshaya Tritiya peetha rites at Biraja (rule_only civil date until print panji transcribed; not Pana Sankranti)"),
+    ("Jyeshtha",   "shukla",  5,  "biraja", "Sitala Shashthi (Biraja)",            "ସୀତଳ ଷଷ୍ଠୀ",                 "Peetha note for Sitala rites at Biraja (rule_only: tithi 5 vs common Sital Shashthi on 6 — confirm with C2 print)"),
     ("Bhadrapada", "shukla",  5,  "biraja", "Nuakhai Juhar",                       "ନୂଆଖାଇ ଜୁହାର",               "First new harvest grain offered to Maa Biraja before community feast and Juhar ceremony"),
-    ("Ashwina",    "krishna",  8, "biraja", "Shodasha Dinatatmika Puja Begins",    "ଷୋଡ଼ଶ ଦିନାତ୍ମିକ ପୂଜା ଆରମ୍ଭ", "Start of 16-day Sharadiya Durga Puja at Biraja Temple; unique to Jajpur"),
-    ("Ashwina",    "shukla",  1,  "biraja", "Simhadhwaja Rath Yatra",              "ସିଂହଧ୍ୱଜ ରଥ ଯାତ୍ରା",         "Maa Biraja's unique chariot festival during Navratri; chariot pulled through Jajpur town"),
+    ("Ashwina",    "krishna",  8, "biraja", "Shodasha Dinatatmika Puja Begins",    "ଷୋଡ଼ଶ ଦିନାତ୍ମିକ ପୂଜା ଆରମ୍ଭ", "Start of 16-day Sharadiya Durga Puja at Biraja Temple; unique to Jajpur (civil year needs A4/C2)"),
+    ("Ashwina",    "shukla",  1,  "biraja", "Simhadhwaja Rath Yatra",              "ସିଂହଧ୍ୱଜ ରଥ ଯାତ୍ରା",         "Maa Biraja's unique chariot festival during Navratri; chariot pulled through Jajpur town (not Puri Rath)"),
     ("Ashwina",    "shukla",  6,  "biraja", "Biraja Shashthi",                     "ବିରଜା ଷଷ୍ଠୀ",                "Kalasha Sthapana at Biraja Temple; formal commencement of Navratri rituals"),
     ("Ashwina",    "shukla",  8,  "biraja", "Maa Biraja Ashtami",                  "ମା ବିରଜା ଅଷ୍ଟମୀ",           "Main festival day at Biraja; Sandhi Puja and Bali Daanam ritual transition begins"),
     ("Ashwina",    "shukla",  9,  "biraja", "Mahanavami at Biraja",                "ମା ବିରଜା ମହାନବମୀ",          "Special puja at Biraja Temple; Bali Daanam concludes; Homa performed"),
     ("Ashwina",    "shukla", 10,  "biraja", "Vijaya Dashami at Biraja",            "ବିରଜା ବିଜୟ ଦଶମୀ",           "Effigy burning and victory procession at Biraja; Goddess returns victorious"),
-    ("Margashira", "shukla",  5,  "biraja", "Biraja Manabasa",                     "ବିରଜା ମନବସ",                  "Manabasa Gurubara — Goddess Lakshmi puja on Thursdays of Margashira observed at Biraja"),
+    # Real Manabasa is each Thursday of Margashira — single tithi rule is incomplete (rule_only).
+    ("Margashira", "shukla",  5,  "biraja", "Biraja Manabasa",                     "ବିରଜା ମନବସ",                  "rule_only marker: Manabasa Gurubara is Thursdays of Margashira at peetha — not a single fixed tithi"),
     ("Phalguna",   "krishna", 14, "biraja", "Biraja Shivaratri",                   "ବିରଜା ଶିବରାତ୍ରି",            "Maha Shivaratri special puja at Biraja Temple and Dashaswamedha Ghat on Baitarani river"),
     ("Chaitra",    "shukla",  1,  "biraja", "Biraja New Year Puja",                "ବିରଜା ନୂତନ ବର୍ଷ ପୂଜା",      "Special puja at Biraja Temple on first day of Chaitra; Odia New Year blessings sought"),
 ]
