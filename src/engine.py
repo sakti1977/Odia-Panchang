@@ -116,7 +116,8 @@ def _chandra_masa_index(sun_lon: float, moon_lon: float) -> int:
       - 2026-06-29 Snana (Jyeshtha Shukla 15)
       - 2026-07-16 Rath (Ashadha Shukla 2)
       - 2027-07-05 Rath (Ashadha Shukla 2)
-    Note: 2025 may involve adhika-masa / authority differences; see eval fixtures.
+    Note: 2025 Puri civil dates (Tourism) disagree with pure masa labels;
+    festival attachment uses src/festival_civil.py overrides — see eval.md.
     """
     tithi_idx = _tithi_index(moon_lon, sun_lon)  # 0-29
 

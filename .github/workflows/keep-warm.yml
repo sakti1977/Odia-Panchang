@@ -1,11 +1,11 @@
 name: Keep-warm free Render (optional)
 
-# Optional: ping /api every 12 minutes so Free web service stays warm.
-# Free workspaces get ~750 instance-hours/month; one always-warm service ≈ 720h.
-# Disable this workflow if you prefer cold starts and lower instance-hour use.
+# Decision (default): KEEP ENABLED for public UX (fewer cold starts).
+# Free workspaces get ~750 instance-hours/month; always-warm ≈ 720h.
+# If hours run out mid-month: disable this workflow first; keep daily-tweet.
+# See HOSTING_FREE_TIER.md § Keep-warm decision.
 #
-# Enable: Actions → Keep-warm free Render → Enable workflow
-# Or leave as-is; schedule only runs if workflow is enabled in default branch.
+# Disable: Actions → Keep-warm free Render → Disable workflow
 
 on:
   schedule:

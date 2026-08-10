@@ -76,6 +76,7 @@ def test_db_row_matches_match_festivals_rules(session: Session):
             f["name_en"]
             for f in match_festivals(
                 {
+                    "date": live["date"],
                     "paksha_en": live["paksha_en"],
                     "tithi_num": live["tithi_num"],
                     "chandra_masa_en": live["chandra_masa_en"],

@@ -161,26 +161,57 @@ def match_festivals(panchang_day: dict) -> list[dict]:
       - tithi_num (int): 1-15
       - chandra_masa_en (str): lunar month name in English
       - soura_masa_en (str): solar month name in English
+      - date (str, optional): YYYY-MM-DD — enables Tier A civil overrides
+        (see festival_civil.py; required for correct 2025 Puri cycle)
 
     Each result includes short description plus story / why_today (see festival_stories).
     """
+    from src.festival_civil import civil_festivals_for_date, suppressed_rule_names
     from src.festival_stories import attach_story
 
     results = []
+    seen: set[tuple[str, str]] = set()
 
     paksha  = panchang_day["paksha_en"].lower()   # "shukla" or "krishna"
     tithi   = panchang_day["tithi_num"]           # 1-15 (15 = Purnima or Amavasya)
     chandra = panchang_day["chandra_masa_en"]
+    date_iso = panchang_day.get("date")
+    year = None
+    if date_iso and isinstance(date_iso, str) and len(date_iso) >= 4:
+        try:
+            year = int(date_iso[:4])
+        except ValueError:
+            year = None
+    suppress = suppressed_rule_names(year)
 
     for rule in TITHI_RULES:
         r_masa, r_paksha, r_tithi, tradition, name_en, name_or, desc = rule
+        if name_en in suppress:
+            continue
         if r_masa == chandra and r_paksha == paksha and r_tithi == tithi:
+            key = (name_en, tradition)
+            if key in seen:
+                continue
+            seen.add(key)
             results.append(attach_story({
                 "name_en":     name_en,
                 "name_or":     name_or,
                 "tradition":   tradition,
                 "description": desc,
             }))
+
+    # Tier A civil attachments (may add festivals when masa labels disagree)
+    for f in civil_festivals_for_date(date_iso if isinstance(date_iso, str) else None):
+        key = (f["name_en"], f["tradition"])
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append(attach_story({
+            "name_en":     f["name_en"],
+            "name_or":     f["name_or"],
+            "tradition":   f["tradition"],
+            "description": f["description"],
+        }))
 
     return results
 

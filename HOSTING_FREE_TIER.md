@@ -83,6 +83,32 @@ Twitter credentials must be on **Render**, not GitHub (the server posts via Twee
 | keep-warm every 12 min | Usually warm |
 | Free instance hours exhausted | Service suspended until next month |
 
+### Keep-warm decision (P2 default)
+
+**Recommendation: leave Keep-warm enabled** for public UX (fewer 30–60s cold
+starts on first API/UI hit). Free workspaces get ~750 instance-hours/month;
+always-warm ≈ 720h. If Render suspends mid-month:
+
+1. Disable **Keep-warm free Render** first (Actions → workflow → Disable).
+2. Keep **Daily Odia Panjika Tweet** (one wake/day is enough for tweets).
+3. Re-enable keep-warm next billing cycle if needed.
+
+Do **not** turn on `ENABLE_INPROCESS_SCHEDULER` on Free — it does not wake a sleeping dyno.
+
+## Database reseed policy
+
+SQLite on Render is created at first boot (`start.sh` seeds only if DB missing).
+Engine or festival-rule changes **do not** auto-reseed an existing file.
+
+| When | Action |
+|------|--------|
+| Change `src/engine.py` masa/tithi logic | Local: `python seed.py --start 2020 --end 2030` (or wipe years). Deploy: delete Render disk DB **or** force reseed, then redeploy |
+| Change `src/festivals.py` / `festival_civil.py` | `python seed.py --refresh-festivals --start 2020 --end 2030` (rewrites Festival rows only) |
+| Stories only (`festival_stories.py`) | **No reseed** — stories attach at API read time |
+| After reseed | Run `pytest tests/test_db_parity.py tests/test_eval_golden.py -q` |
+
+**Never** commit large binary DB churn without need; CI seeds if `data/panchang.db` is empty.
+
 ## What not to do on Free
 
 - Rely on in-process APScheduler for 5 AM tweets (process is asleep).

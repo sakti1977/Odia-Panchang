@@ -399,9 +399,11 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
     "Rath Yatra": _RATH,
     "Bahuda Yatra": _story(
         "Bahuda is the return ratha: after days at Gundicha, the three deities ride back toward "
-        "the main temple. Later rites include Suna Besha and Niladri Bije.",
-        "ବାହୁଡ଼ା ଯାତ୍ରାରେ ଗୁଣ୍ଡିଚାରେ କିଛି ଦିନ ରହିବା ପରେ ଚତୁର୍ଦ୍ଧାମୂର୍ତ୍ତି ରଥରେ ମୂଳ ମନ୍ଦିର ଆଡ଼କୁ "
-        "ଫେରନ୍ତି। ପରେ ସୁନା ବେଶ ଓ ନୀଳାଦ୍ରି ବିଜେ ଆଦି ନୀତି ହୁଏ।",
+        "the main temple along the Bada Danda. Crowds pull the chariots again; later rites in the "
+        "same cycle include Suna Besha (gold adornment) and Niladri Bije (re-entry to the temple).",
+        "ବାହୁଡ଼ା ଯାତ୍ରାରେ ଗୁଣ୍ଡିଚାରେ କିଛି ଦିନ ରହିବା ପରେ ଚତୁର୍ଦ୍ଧାମୂର୍ତ୍ତି ରଥରେ ବଡ଼ଦାଣ୍ଡ ଦେଇ "
+        "ମୂଳ ମନ୍ଦିର ଆଡ଼କୁ ଫେରନ୍ତି। ଭକ୍ତମାନେ ପୁଣି ରଥ ଟାଣନ୍ତି। ପରେ ସୁନା ବେଶ ଓ ନୀଳାଦ୍ରି ବିଜେ "
+        "ଆଦି ନୀତି ହୁଏ।",
         "Ashadha Shukla Dashami — return chariot day in the Puri calendar.",
         "ଆଷାଢ଼ ଶୁକ୍ଳ ଦଶମୀ — ବାହୁଡ଼ା ଯାତ୍ରା।",
         "ritual_observance",
@@ -410,9 +412,11 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
     "Gamha Purnima": _GAMHA,
     "Janmashtami": _short(
         "Janmashtami celebrates Krishna’s birth at midnight of Shravana Krishna Ashtami. "
-        "Homes and temples keep vigil, fast, and sing.",
+        "Homes and temples keep vigil, fast, and sing the Bhagavata. In Odisha, many also "
+        "remember Balabhadra’s season around Gamha Purnima in the same lunar month.",
         "ଶ୍ରାବଣ କୃଷ୍ଣ ଅଷ୍ଟମୀ ମଧ୍ୟରାତ୍ରିରେ ଜନ୍ମାଷ୍ଟମୀ — ଭଗବାନ ଶ୍ରୀକୃଷ୍ଣଙ୍କ ଜନ୍ମ ଉତ୍ସବ। "
-        "ଘର ଓ ମନ୍ଦିରରେ ଜାଗରଣ, ଉପବାସ ଓ ଭଜନ ହୁଏ।",
+        "ଘର ଓ ମନ୍ଦିରରେ ଜାଗରଣ, ଉପବାସ ଓ ଭାଗବତ ଭଜନ ହୁଏ। ଓଡ଼ିଶାରେ ଏହି ମାସରେ ଗହ୍ମା ପୂର୍ଣ୍ଣିମା "
+        "ସହିତ ବଳଭଦ୍ର ଋତୁ ମଧ୍ୟ ସ୍ମରଣ କରାଯାଏ।",
         "Shravana Krishna Ashtami — Krishna Janmashtami.",
         "ଶ୍ରାବଣ କୃଷ୍ଣ ଅଷ୍ଟମୀ — ଜନ୍ମାଷ୍ଟମୀ।",
         "puranic_tradition",
@@ -430,8 +434,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
     "Nuakhai": _NUAKHAI,
     "Mahalaya": _short(
         "Mahalaya (Sarvapitri Amavasya) opens ancestral remembrance and the approach of Devi Paksha. "
-        "Tarpan honours the pitrs before Durga’s fortnight.",
-        "ମହାଳୟ ବା ସର୍ବପିତୃ ଅମାବାସ୍ୟାରେ ପିତୃପୁରୁଷଙ୍କୁ ତର୍ପଣ କରାଯାଏ ଓ ଦେବୀପକ୍ଷର ଆରମ୍ଭ ହୁଏ।",
+        "Families offer tarpan for the pitrs; in eastern India the day is also linked with the "
+        "invocation of Durga before the main autumn puja.",
+        "ମହାଳୟ ବା ସର୍ବପିତୃ ଅମାବାସ୍ୟାରେ ପିତୃପୁରୁଷଙ୍କୁ ତର୍ପଣ କରାଯାଏ ଓ ଦେବୀପକ୍ଷର ଆରମ୍ଭ ହୁଏ। "
+        "ପୂର୍ବ ଭାରତରେ ଏହି ଦିନ ଶାରଦୀୟ ଦୁର୍ଗାପୂଜାର ଆହ୍ୱାନ ସହିତ ଯୋଡ଼ା।",
         "Ashwina Krishna Amavasya — Mahalaya.",
         "ଆଶ୍ୱିନ କୃଷ୍ଣ ଅମାବାସ୍ୟା — ମହାଳୟ।",
         "ritual_observance",
@@ -463,9 +469,12 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Naraka Chaturdashi / Diwali cycle"],
     ),
     "Diwali / Lakshmi Puja": _short(
-        "On Kartika Amavasya, homes light lamps for Lakshmi (and in many places Kali). "
-        "The festival of lights marks hope for prosperity.",
-        "କାର୍ତ୍ତିକ ଅମାବାସ୍ୟାରେ ଦୀପାବଳୀ — ଘରେ ଲକ୍ଷ୍ମୀ ପୂଜା ଓ ଦୀପାଳି; ଅନେକ ସ୍ଥାନରେ କାଳୀପୂଜା ମଧ୍ୟ।",
+        "On Kartika Amavasya, homes light rows of lamps for Lakshmi (and in many places Kali). "
+        "The festival of lights marks hope for prosperity after Naraka Chaturdashi and before "
+        "Bali Pratipada / Govardhan day in the Odia panji sequence.",
+        "କାର୍ତ୍ତିକ ଅମାବାସ୍ୟାରେ ଦୀପାବଳୀ — ଘରେ ଲକ୍ଷ୍ମୀ ପୂଜା ଓ ଧାଡ଼ି ଧାଡ଼ି ଦୀପାଳି; ଅନେକ ସ୍ଥାନରେ "
+        "କାଳୀପୂଜା ମଧ୍ୟ। ନରକ ଚତୁର୍ଦ୍ଦଶୀ ପରେ ଓ ବଳି ପ୍ରତିପଦା / ଗୋବର୍ଦ୍ଧନ ପୂଜା ପୂର୍ବରୁ "
+        "ଏହି ରାତ୍ରି ଓଡ଼ିଆ ପାଞ୍ଜିରେ ମୁଖ୍ୟ ଦୀପାଳି ଦିନ।",
         "Kartika Krishna Amavasya — Diwali / Lakshmi Puja.",
         "କାର୍ତ୍ତିକ କୃଷ୍ଣ ଅମାବାସ୍ୟା — ଦୀପାବଳୀ।",
         "ritual_observance",
@@ -484,10 +493,14 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
     "Kartik Purnima / Boita Bandana": _BOITA,
     "Prathamastami": _PRATHAMA,
     "Pausha Purnima": _short(
-        "Pausha Purnima is a full-moon bath and merit day at river ghats in the cold month.",
-        "ପୌଷ ପୂର୍ଣ୍ଣିମାରେ ନଦୀଘାଟରେ ପୁଣ୍ୟସ୍ନାନ — ଶୀତକାଳୀନ ପୂର୍ଣ୍ଣିମାର ବ୍ରତ।",
+        "Pausha Purnima is a full-moon bath and merit day at river ghats in the cold month. "
+        "Devotees seek punya snanam and quiet charity as the solar year leans toward Makara.",
+        "ପୌଷ ପୂର୍ଣ୍ଣିମାରେ ନଦୀଘାଟରେ ପୁଣ୍ୟସ୍ନାନ — ଶୀତକାଳୀନ ପୂର୍ଣ୍ଣିମାର ବ୍ରତ। ଭକ୍ତମାନେ "
+        "ଦାନ ଓ ସ୍ନାନ ଦ୍ୱାରା ପୁଣ୍ୟ ଅର୍ଜନ କରନ୍ତି; ମକର ଋତୁ ନିକଟତର ହୁଏ।",
         "Pausha full moon — sacred bath day.",
         "ପୌଷ ପୂର୍ଣ୍ଣିମା — ପୁଣ୍ୟସ୍ନାନର ଦିନ।",
+        "ritual_observance",
+        ["Pausha Purnima snanam"],
     ),
     "Vasanta Panchami / Saraswati Puja": _short(
         "Vasanta Panchami welcomes spring and honours Saraswati — learning and the arts. "
@@ -500,18 +513,25 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Saraswati Puja / Vasanta Panchami"],
     ),
     "Magha Purnima": _short(
-        "Magha Purnima is a great bathing full moon; pilgrims seek rivers and cold-season merit.",
-        "ମାଘ ପୂର୍ଣ୍ଣିମାରେ ବିଶେଷ ପୁଣ୍ୟସ୍ନାନ — ଶୀତକାଳୀନ ପୂର୍ଣ୍ଣିମାର ବ୍ରତ।",
-        "Magha full moon.",
-        "ମାଘ ପୂର୍ଣ୍ଣିମା।",
+        "Magha Purnima is a great bathing full moon; pilgrims seek rivers, tanks, and cold-season "
+        "merit before the approach of Shivaratri and Holi season.",
+        "ମାଘ ପୂର୍ଣ୍ଣିମାରେ ବିଶେଷ ପୁଣ୍ୟସ୍ନାନ — ନଦୀ ଓ ପୁଷ୍କରିଣୀରେ ଶୀତକାଳୀନ ପୂର୍ଣ୍ଣିମାର ବ୍ରତ। "
+        "ଶିବରାତ୍ରି ଓ ହୋଲି ଋତୁ ଆଗରୁ ଏହି ସ୍ନାନ ପୁଣ୍ୟ ବୋଲି ଗଣାଯାଏ।",
+        "Magha full moon — major snanam day.",
+        "ମାଘ ପୂର୍ଣ୍ଣିମା — ବିଶେଷ ପୁଣ୍ୟସ୍ନାନ।",
+        "ritual_observance",
+        ["Magha Purnima snanam"],
     ),
     "Maha Shivaratri": _short(
-        "Maha Shivaratri is the great night of Shiva: fasting, bilva leaves, abhisheka and night vigil.",
-        "ମହା ଶିବରାତ୍ରି — ମହାଦେବଙ୍କ ରାତ୍ରି। ଉପବାସ, ବେଲପତ୍ର, ଅଭିଷେକ ଓ ରାତ୍ରିଜାଗରଣ ହୁଏ।",
+        "Maha Shivaratri is the great night of Shiva: fasting, bilva leaves, milk abhisheka, and "
+        "night-long vigil. In Odisha, Lingaraj (Bhubaneswar) and Biraja kshetra (Jajpur) draw "
+        "especially large night gatherings.",
+        "ମହା ଶିବରାତ୍ରି — ମହାଦେବଙ୍କ ରାତ୍ରି। ଉପବାସ, ବେଲପତ୍ର, ଦୁଗ୍ଧାଭିଷେକ ଓ ରାତ୍ରିଜାଗରଣ ହୁଏ। "
+        "ଓଡ଼ିଶାରେ ଭୁବନେଶ୍ୱର ଲିଙ୍ଗରାଜ ଓ ଯାଜପୁର ବିରଜା କ୍ଷେତ୍ରରେ ବିଶେଷ ଭିଡ଼ ହୁଏ।",
         "Phalguna Krishna Chaturdashi — Maha Shivaratri.",
         "ଫାଲ୍ଗୁନ କୃଷ୍ଣ ଚତୁର୍ଦ୍ଦଶୀ — ମହା ଶିବରାତ୍ରି।",
         "puranic_tradition",
-        ["Maha Shivaratri"],
+        ["Maha Shivaratri", "Lingaraj / Biraja night vigil custom"],
     ),
     "Dola Purnima": _DOLA,
     # Jagannath
@@ -547,10 +567,12 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Suna Besha (Puri)"],
     ),
     "Adhara Pana": _short(
-        "Adhara Pana offers a special sweet drink (pana) to the deities while they are still on the chariots.",
-        "ଅଧର ପଣାରେ ରଥ ଉପରେ ଥିବା ଦେବତାମାନଙ୍କୁ ବିଶେଷ ମିଠା ପଣା ଭୋଗ ଲଗାଯାଏ।",
-        "Special pana offering on the chariots.",
-        "ରଥ ଉପରେ ଅଧର ପଣା ଭୋଗ।",
+        "Adhara Pana offers a special sweet drink (pana) to the deities while they are still "
+        "seated on the chariots after Bahuda — a late-cycle niti before Niladri Bije.",
+        "ଅଧର ପଣାରେ ବାହୁଡ଼ା ପରେ ରଥ ଉପରେ ଥିବା ଦେବତାମାନଙ୍କୁ ବିଶେଷ ମିଠା ପଣା ଭୋଗ ଲଗାଯାଏ — "
+        "ନୀଳାଦ୍ରି ବିଜେ ପୂର୍ବର ଏକ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ ନୀତି।",
+        "Special pana offering on the chariots after the return journey.",
+        "ବାହୁଡ଼ା ପରେ ରଥ ଉପରେ ଅଧର ପଣା ଭୋଗ।",
         "ritual_observance",
         ["Adhara Pana (Puri)"],
     ),

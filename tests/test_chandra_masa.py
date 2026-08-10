@@ -20,8 +20,9 @@ def _p(d: date) -> dict:
 
 def _fest_names(d: date) -> list[str]:
     p = _p(d)
-    # match_festivals expects paksha_en lower or as stored
+    # match_festivals expects paksha_en lower or as stored; date enables civil overrides
     day = {
+        "date": p["date"],
         "paksha_en": p["paksha_en"],
         "tithi_num": p["tithi_num"],
         "chandra_masa_en": p["chandra_masa_en"],
@@ -142,13 +143,15 @@ class TestPurnimantaStructure:
         assert CHANDRA_MASA[a]["en"] == "Ashadha"
 
 
-# ── 2025 note (adhika / authority) ─────────────────────────────────────────
+# ── 2025 authority (Tier A civil) vs engine masa labels ───────────────────
 
-class TestYear2025Documented:
+class TestYear2025Authority:
     """
-    Wikipedia lists Rath 2025 as 27 June; under Lahiri + this Purnimanta map,
-    Ashadha Shukla 2 falls on 2025-07-26. Keep both assertions explicit so
-    we do not silently 'fix' evals to match one source.
+    Odisha Tourism (A1) + Wikipedia (A2): Rath 2025-06-27, Snana 2025-06-11.
+
+    Engine masa labels without adhika still name 2025-06-27 as Jyeshtha and
+    place engine Ashadha Shukla 2 on 2025-07-26. Festival *attachment* uses
+    civil overrides (festival_civil.py) so product days match Tier A.
     """
 
     def test_2025_06_27_is_shukla_dwitiya(self):
@@ -156,13 +159,24 @@ class TestYear2025Documented:
         assert p["paksha_en"] == "Shukla"
         assert p["tithi_num"] == 2
 
-    def test_2025_engine_ashadha_dwitiya_is_july_26(self):
+    def test_2025_engine_ashadha_dwitiya_is_july_26_without_rath(self):
+        """Rule-based Rath suppressed in 2025; civil override is 27 Jun only."""
         p = _p(date(2025, 7, 26))
         assert p["chandra_masa_en"] == "Ashadha"
         assert p["paksha_en"] == "Shukla"
         assert p["tithi_num"] == 2
-        assert any("Rath Yatra" in n for n in _fest_names(date(2025, 7, 26)))
+        assert not any("Rath Yatra" in n for n in _fest_names(date(2025, 7, 26)))
 
     def test_2025_06_27_not_ashadha_under_this_engine(self):
         p = _p(date(2025, 6, 27))
         assert p["chandra_masa_en"] != "Ashadha"
+
+    def test_2025_civil_rath_on_june_27(self):
+        assert any("Rath Yatra" in n for n in _fest_names(date(2025, 6, 27)))
+
+    def test_2025_civil_snana_on_june_11(self):
+        names = _fest_names(date(2025, 6, 11))
+        assert any("Snana" in n for n in names), names
+
+    def test_2025_civil_bahuda_on_july_5(self):
+        assert any("Bahuda" in n for n in _fest_names(date(2025, 7, 5)))

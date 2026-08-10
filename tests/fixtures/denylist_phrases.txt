@@ -1,0 +1,7 @@
+# Fabrication / unsafe cultural phrases (E-SAFE-002)
+# One phrase per line; case-insensitive substring match against story/enrichment text.
+Mahakashiya Shakti
+guaranteed cosmic energy
+Devadasis perform Abhishek
+official Biraja ephemeris
+official Khadiratna reprint
