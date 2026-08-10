@@ -67,6 +67,9 @@ curl -s https://odia-panchang.onrender.com/api/status | jq .scheduler
 
 Expect `scheduler.inprocess: false` and `recommended: github_actions`.
 
+`GET /api` returns **200** only if today’s panji row exists; otherwise **503 degraded**
+(so keep-warm / monitors can notice a missing seed).
+
 ## Daily tweet timeline (IST)
 
 | Time | What |

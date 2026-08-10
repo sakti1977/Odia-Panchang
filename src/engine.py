@@ -22,10 +22,14 @@ _LOC_LAT = float(os.getenv("LOCATION_LAT", "20.2961"))
 _LOC_LON = float(os.getenv("LOCATION_LON", "85.8245"))
 _LOC_TZ  = float(os.getenv("LOCATION_TZ",  "5.5"))
 
-# Keep old names as aliases for backward compatibility
-PURI_LAT = _LOC_LAT
+# Default env place is Bhubaneswar (not Puri). Historical aliases kept for
+# backward-compat imports; prefer BHUBANESWAR_* or LOCATION_* env.
+BHUBANESWAR_LAT = _LOC_LAT
+BHUBANESWAR_LON = _LOC_LON
+BHUBANESWAR_TZ = _LOC_TZ
+PURI_LAT = _LOC_LAT  # misnamed legacy alias → module default lat
 PURI_LON = _LOC_LON
-PURI_TZ  = _LOC_TZ
+PURI_TZ = _LOC_TZ
 
 swe.set_ephe_path(None)  # use built-in ephemeris
 swe.set_sid_mode(swe.SIDM_LAHIRI)  # Lahiri ayanamsa for Indian panchang

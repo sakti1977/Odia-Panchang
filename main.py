@@ -267,12 +267,24 @@ def _get_day(db: OrmSession, date_str: str) -> PanchangDay:
 
 
 def _build_enrichment(base: dict) -> dict:
-    """Run both AI enrichment layers and attach results to the panchang dict."""
-    # Determine weekday (Mon=0, Sun=6)
+    """
+    Run both AI enrichment layers. Never mutates `base` panji fields.
+    Output is sanitized (denylist, Odia fill, non_authoritative flag).
+    """
+    from src.enrichment_safety import sanitize_enrichment
+
     d = date.fromisoformat(base["date"])
     weekday = d.weekday()  # Mon=0, Sun=6
 
-    # Layer 1: muhurtas + special yogas + Groq validation
+    # Snapshot base identity fields — must remain identical after enrichment
+    base_identity = {
+        "date": base.get("date"),
+        "tithi": base.get("tithi"),
+        "chandra_masa": base.get("chandra_masa"),
+        "nakshatra": base.get("nakshatra"),
+        "paksha": base.get("paksha"),
+    }
+
     muhurtas = compute_muhurtas(
         base["date"],
         base.get("sunrise", ""),
@@ -281,11 +293,16 @@ def _build_enrichment(base: dict) -> dict:
     )
     yogas = detect_special_yogas(weekday, base["nakshatra"]["en"], base["yoga"]["en"])
     layer1 = validate_with_ai(base, muhurtas, yogas)
-
-    # Layer 2: Claude cultural enrichment
     layer2 = enrich_with_claude(base, layer1)
 
-    return {"astronomical": layer1, "cultural": layer2}
+    # Integrity: base must be unchanged by enrichment helpers
+    for k, v in base_identity.items():
+        if base.get(k) != v:
+            logger = logging.getLogger(__name__)
+            logger.error("Enrichment mutated base panji field %s — restoring", k)
+            base[k] = v
+
+    return sanitize_enrichment({"astronomical": layer1, "cultural": layer2})
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -303,11 +320,32 @@ async def home_page(request: Request):
 
 @app.get("/api")
 def health_check():
-    return {
-        "status": "ok",
-        "service": "Odia Panchang API",
-        "engine_version": ENGINE_VERSION,
-    }
+    """
+    Health: ok only if today's panji row exists in the DB.
+    Degraded (503) when DB is empty/missing today so keep-warm/load balancers notice.
+    """
+    today = datetime.now(tz=IST).date().isoformat()
+    db = SessionLocal()
+    try:
+        row = db.get(PanchangDay, today)
+        if row is None:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "degraded",
+                    "service": "Odia Panchang API",
+                    "engine_version": ENGINE_VERSION,
+                    "detail": f"No panchang row for today ({today}). Run seed.py / start.sh reseed.",
+                },
+            )
+        return {
+            "status": "ok",
+            "service": "Odia Panchang API",
+            "engine_version": ENGINE_VERSION,
+            "today": today,
+        }
+    finally:
+        db.close()
 
 
 def _require_tweet_secret(
@@ -410,22 +448,38 @@ def get_today(
 
 @app.get("/panchang/{date_str}/insights")
 @limiter.limit("10/minute")
-def get_panchang_insights(date_str: str, request: Request):
+def get_panchang_insights(
+    date_str: str,
+    request: Request,
+    city: Optional[str] = Query(default=None, description="City key from /api/cities"),
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+        description="Festival overlay + default city when city omitted",
+    ),
+):
     """
     Return full AI-enriched Panchang insights for a specific date.
-    Always runs both enrichment layers (Groq validation + Claude cultural context).
-    Date format: YYYY-MM-DD
+    Always runs both enrichment layers (advisory only — non_authoritative).
+    Same city/tradition semantics as GET /panchang/{date}.
     """
     try:
-        date.fromisoformat(date_str)
+        d = date.fromisoformat(date_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
 
+    place = _resolve_place_or_400(city, tradition)
     db = SessionLocal()
     try:
         day = _get_day(db, date_str)
-        festivals = [_festival_to_dict(f) for f in day.festivals]
-        result = _day_to_dict(day, festivals)
+        festivals = _filter_festivals(
+            [_festival_to_dict(f) for f in day.festivals],
+            tradition,
+        )
+        sr, ss = _place_sun(d, place)
+        result = _day_to_dict(
+            day, festivals, place=place, tradition=tradition or "all",
+            sunrise=sr, sunset=ss,
+        )
         result["enrichment"] = _build_enrichment(result)
         return result
     finally:
@@ -576,11 +630,10 @@ def get_cities():
 @app.get("/api/detect-city")
 def detect_city(request: Request):
     """
-    Detect the user's nearest city based on their IP address.
+    Detect the user's nearest *Odisha* city based on IP geolocation.
+    Does not echo the raw client IP (privacy). Falls back to Bhubaneswar.
     """
     client_ip = request.client.host if request.client else None
-
-    # Check for forwarded IP (for proxies/load balancers)
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         client_ip = forwarded.split(",")[0].strip()
@@ -591,7 +644,8 @@ def detect_city(request: Request):
     return {
         "detected_city": detected_city,
         "city_info": city_info,
-        "client_ip": client_ip
+        "fallback": "bhubaneswar",
+        "note": "Nearest city among supported Odisha keys only; IP is not returned.",
     }
 
 
@@ -664,16 +718,22 @@ def get_panchang_for_city_today(
 def download_monthly_panchang(
     year: int,
     month: int,
-    city: str = Query(default="puri", description="City name"),
-    format: str = Query(default="text", description="Format: text or calendar")
+    city: str = Query(default="puri", description="City key from /api/cities"),
+    format: str = Query(default="text", description="Format: text or calendar"),
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+    ),
 ):
     """
     Download monthly Panchang as text file for printing or offline use.
+    City recomputes sunrise/sunset for each day (day elements remain shared IST sample).
     """
     if not (1 <= month <= 12):
         raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
 
-    # Get month data from database
+    place = _resolve_place_or_400(city, tradition)
+    city_key = place.get("key") or city
+
     prefix = f"{year:04d}-{month:02d}-"
     db = SessionLocal()
     try:
@@ -689,25 +749,31 @@ def download_monthly_panchang(
                 detail=f"No data for {year}-{month:02d}. Run seed.py to populate."
             )
 
-        # Convert to dictionaries
-        panchang_data = [
-            _day_to_dict(d, [_festival_to_dict(f) for f in d.festivals])
-            for d in days
-        ]
-
+        panchang_data = []
+        for drow in days:
+            d = date.fromisoformat(drow.date)
+            fests = _filter_festivals(
+                [_festival_to_dict(f) for f in drow.festivals],
+                tradition,
+            )
+            sr, ss = _place_sun(d, place)
+            panchang_data.append(
+                _day_to_dict(
+                    drow, fests, place=place, tradition=tradition or "all",
+                    sunrise=sr, sunset=ss,
+                )
+            )
     finally:
         db.close()
 
-    # Generate text based on format
     if format == "calendar":
         content = generate_calendar_view(year, month, panchang_data)
     else:
         content = generate_monthly_text(year, month, panchang_data)
 
-    # Return as downloadable text file
     from fastapi.responses import Response
 
-    filename = f"Odia_Panchang_{year}_{month:02d}_{city}.txt"
+    filename = f"Odia_Panchang_{year}_{month:02d}_{city_key}.txt"
     return Response(
         content=content,
         media_type="text/plain; charset=utf-8",

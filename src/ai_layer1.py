@@ -144,9 +144,10 @@ def detect_special_yogas(weekday: int, nakshatra_en: str, yoga_en: str) -> list[
             "meaning": "Auspicious for starting new ventures and important tasks.",
         })
 
-    # Inauspicious base yogas (from the 27 yoga cycle)
+    # Inauspicious base yogas (27-cycle). Include spelling aliases used in translations.
     _ASHUBHA_YOGAS = {
-        "Vishkumbha", "Atiganda", "Shoola", "Ganda", "Vyaghata",
+        "Vishkumbha", "Vishkambha",  # translations.py uses Vishkambha
+        "Atiganda", "Shoola", "Shula", "Ganda", "Vyaghata",
         "Vajra", "Vyatipata", "Parigha", "Vaidhriti",
     }
     if yoga_en in _ASHUBHA_YOGAS:
@@ -247,14 +248,25 @@ def validate_with_ai(panchang: dict, muhurtas: dict, yogas: list) -> dict:
             response_format={"type": "json_object"},
         )
         ai_data = json.loads(response.choices[0].message.content)
+        # Advisory only: never let LLM replace rule muhurtas or invent day type over rules
+        rule_day = result["special_day_type"]
+        rule_sig = result["special_day_significance"]
+        ai_status = ai_data.get("validation_status", "valid")
+        # Map LLM "anomaly_detected" to advisory status — base panji remains authoritative
+        if ai_status == "anomaly_detected":
+            ai_status = "advisory_anomaly_noted"
         result.update({
-            "validation_status": ai_data.get("validation_status", "valid"),
-            "anomalies":         ai_data.get("anomalies", []),
+            "validation_status": ai_status,
+            "anomalies": ai_data.get("anomalies", []),
             "astronomical_notes": ai_data.get("astronomical_notes", []),
-            "special_day_type":  ai_data.get("special_day_type", result["special_day_type"]),
-            "special_day_significance": ai_data.get("special_day_significance", result["special_day_significance"]),
-            "day_energy":        ai_data.get("day_energy", ""),
-            "day_energy_or":     ai_data.get("day_energy_or", ""),
+            # Keep rule-based special day; surface AI label only as note
+            "special_day_type": rule_day,
+            "special_day_significance": rule_sig,
+            "ai_special_day_type": ai_data.get("special_day_type"),
+            "day_energy": ai_data.get("day_energy", ""),
+            "day_energy_or": ai_data.get("day_energy_or", ""),
+            "muhurtas": muhurtas,  # always rule-based
+            "special_yogas": yogas,
         })
     except Exception as e:
         logger.warning(f"Groq validation failed: {e}")

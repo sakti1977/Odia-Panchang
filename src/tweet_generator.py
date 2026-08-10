@@ -81,12 +81,21 @@ def generate_main_tweet(panchang: dict, enrichment: dict | None = None) -> str:
     fest_or = " | ".join(f["name"]["or"] for f in festivals) if festivals else ""
     fest_tags = _festival_hashtags(festivals)
 
+    # Optional place line (meta.city or city key)
+    place = ""
+    meta = panchang.get("meta") or {}
+    city_key = meta.get("city") or panchang.get("city") or ""
+    if isinstance(city_key, str) and city_key.strip():
+        place = city_key.strip().replace("_", " ").title()
+
     lines = [
         "🙏 ଜୟ ଜଗନ୍ନାଥ 🙏",
         f"{emoji} ଓଡ଼ିଆ ପଞ୍ଜିକା | {date_or}",
         f"📅 {chandra_or} {paksha_or} {tithi_or}",
         f"⭐ {nakshatra_or} | {vara_or} | {yoga_or} ଯୋଗ",
     ]
+    if place:
+        lines.append(f"📍 {place}")
     if fest_or:
         lines.append(f"🎉 {fest_or}")
     # Sunrise / Sunset

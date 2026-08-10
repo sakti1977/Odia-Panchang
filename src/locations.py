@@ -316,45 +316,52 @@ def resolve_city(
 
 def detect_city_from_ip(ip_address: str) -> str:
     """
-    Detect the nearest city based on IP address geolocation.
-    Falls back to Bhubaneswar if detection fails.
+    Detect the nearest *Odisha* city based on IP geolocation.
+    Falls back to Bhubaneswar if detection fails, private IP, or far outside Odisha.
 
-    For simplicity, this uses a basic approach with httpx to call a free geolocation API.
-    In production, you might want to use a local GeoIP database for better performance.
+    Uses HTTPS geolocation (ipapi.co). Only compares against ODISHA_CITIES keys
+    (no London/NY “nearest hub” surprise for global IPs — those still fall back
+    if distance is huge).
     """
     import httpx
     import math
 
-    if not ip_address or ip_address == "127.0.0.1" or ip_address.startswith("192.168."):
+    if (
+        not ip_address
+        or ip_address in ("127.0.0.1", "::1")
+        or ip_address.startswith("192.168.")
+        or ip_address.startswith("10.")
+    ):
         return "bhubaneswar"
 
     try:
-        # Use ip-api.com free tier (no authentication required)
-        response = httpx.get(f"http://ip-api.com/json/{ip_address}", timeout=2.0)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("status") == "success":
-                user_lat = data.get("lat")
-                user_lon = data.get("lon")
+        # HTTPS-only free lookup (no client IP stored server-side by us)
+        response = httpx.get(f"https://ipapi.co/{ip_address}/json/", timeout=2.5)
+        if response.status_code != 200:
+            return "bhubaneswar"
+        data = response.json()
+        if data.get("error"):
+            return "bhubaneswar"
+        user_lat = data.get("latitude")
+        user_lon = data.get("longitude")
+        if user_lat is None or user_lon is None:
+            return "bhubaneswar"
 
-                if user_lat is not None and user_lon is not None:
-                    # Find nearest city using simple distance calculation
-                    nearest_city = "bhubaneswar"
-                    min_distance = float('inf')
+        # Odisha approx bbox — outside → Bhubaneswar (do not pick global outliers)
+        if not (17.5 <= float(user_lat) <= 22.6 and 81.3 <= float(user_lon) <= 87.6):
+            return "bhubaneswar"
 
-                    for city_key, city_info in ODISHA_CITIES.items():
-                        # Haversine distance approximation
-                        lat_diff = user_lat - city_info["lat"]
-                        lon_diff = user_lon - city_info["lon"]
-                        distance = math.sqrt(lat_diff**2 + lon_diff**2)
-
-                        if distance < min_distance:
-                            min_distance = distance
-                            nearest_city = city_key
-
-                    return nearest_city
+        nearest_city = "bhubaneswar"
+        min_distance = float("inf")
+        for city_key, city_info in ODISHA_CITIES.items():
+            lat_diff = float(user_lat) - city_info["lat"]
+            lon_diff = float(user_lon) - city_info["lon"]
+            distance = math.sqrt(lat_diff**2 + lon_diff**2)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_city = city_key
+        return nearest_city
     except Exception as e:
-        print(f"[Geolocation] Failed to detect location from IP {ip_address}: {e}")
+        print(f"[Geolocation] Failed IP lookup (falling back to bhubaneswar): {e}")
 
-    # Default fallback
     return "bhubaneswar"

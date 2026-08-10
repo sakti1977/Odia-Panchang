@@ -135,9 +135,12 @@ _NAKSHATRA_QUALITY = {
 
 # Yoga quality (27 yogas)
 _YOGA_QUALITY = {
-    "Vishkumbha": "inauspicious", "Priti": "auspicious", "Ayushman": "auspicious",
+    "Vishkumbha": "inauspicious",
+    "Vishkambha": "inauspicious",  # translations.py spelling
+    "Priti": "auspicious", "Ayushman": "auspicious",
     "Saubhagya": "auspicious", "Shobhana": "auspicious", "Atiganda": "inauspicious",
-    "Sukarma": "auspicious", "Dhriti": "auspicious", "Shoola": "inauspicious",
+    "Sukarma": "auspicious", "Dhriti": "auspicious",
+    "Shoola": "inauspicious", "Shula": "inauspicious",
     "Ganda": "inauspicious", "Vriddhi": "auspicious", "Dhruva": "auspicious",
     "Vyaghata": "inauspicious", "Harshana": "auspicious", "Vajra": "inauspicious",
     "Siddhi": "auspicious", "Vyatipata": "inauspicious", "Variyan": "auspicious",
@@ -242,28 +245,32 @@ def enrich_with_claude(panchang: dict, layer1_result: dict) -> dict:
     fallback = {
         "jagannath_significance": {
             "en": vara_info.get("jagannath_note", "Visit Jagannath temple for darshan and prasad."),
-            "or": "",
+            "or": "ଶ୍ରୀଜଗନ୍ନାଥ ମନ୍ଦିରରେ ଦର୍ଶନ ଓ ପ୍ରସାଦ ଗ୍ରହଣ କରିବା ଶୁଭ।",
         },
         "biraja_significance": {
-            "en": "Offer prayers at Biraja Devi temple in Jajpur for blessings.",
-            "or": "",
+            "en": "Offer prayers at Biraja Devi temple in Jajpur for blessings (rule_only peetha note).",
+            "or": "ଯାଜପୁର ବିରଜା ଦେବୀ ପୀଠରେ ପ୍ରାର୍ଥନା କରିବା ଶୁଭ।",
         },
         "fasting_guidance": {
             "recommended": layer1_result.get("special_day_type") in ("ekadashi", "amavasya", "purnima", "pradosha"),
             "vrat_name": vara_info.get("fasting", ""),
             "vrat_name_or": "",
             "description": layer1_result.get("special_day_significance", vara_info.get("fasting", "")),
-            "description_or": "",
+            "description_or": "ଉପବାସ ବା ସାତ୍ତ୍ୱିକ ଆହାର ପାରମ୍ପରିକ ନିୟମ ଅନୁସାରେ ବିଚାର କରନ୍ତୁ।",
         },
         "auspicious_activities": nakshatra_info.get("suitable", []),
         "activities_to_avoid": vara_info.get("avoid", []),
         "odia_proverb": {"text": "", "text_or": "", "meaning": ""},
-        "seasonal_context": {"en": "", "or": ""},
+        "seasonal_context": {
+            "en": "Follow the Odia panji season for household and field work.",
+            "or": "ଘର ଓ କ୍ଷେତ କାର୍ଯ୍ୟ ପାଇଁ ଓଡ଼ିଆ ପାଞ୍ଜିର ଋତୁ ଅନୁସରଣ କରନ୍ତୁ।",
+        },
         "household_guidance": {
-            "en": f"Today is presided over by {tithi_deity.get('deity', 'divine forces')}. Offer prayers with devotion.",
-            "or": "",
+            "en": f"Today is associated with {tithi_deity.get('deity', 'traditional observance')}. Offer prayers with devotion.",
+            "or": "ଆଜି ପାରମ୍ପରିକ ପୂଜା ଓ ଭକ୍ତିର ସହିତ ଦିନ ପାଳନ କରନ୍ତୁ।",
         },
         "rule_based": rule_based,
+        "source": "rule_based_fallback",
     }
 
     client = _get_claude_client()

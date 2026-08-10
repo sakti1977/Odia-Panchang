@@ -20,8 +20,9 @@ Changelog:
   - Renamed Ashwina shukla 6 entry from "Saraswati Puja" to "Durga Shashthi"
     (Saraswati Puja correctly belongs to Magha shukla 5 / Basanta Panchami)
   - Added missing common rule for Sital Sasthi (Jyeshtha shukla 6)
-  - Added Kojagiri Lakshmi Puja (Ashwina shukla 15) as a separate common entry
+  - Kumar Purnima remains Ashwina shukla 15 (Kojagiri noted culturally, not a separate rule)
   - Enriched descriptions across all rules using Odia Panjika context
+  - Rath Yatra / Bahuda retagged jagannath (not common) for dual-tradition isolation
   - Added Mahalaya note: it falls on Krishna Amavasya of Ashwina (Sarvapitri Amavasya),
     not shukla 1; corrected paksha and tithi accordingly
   - Added Naraka Chaturdashi description enrichment
