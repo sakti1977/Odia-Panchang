@@ -10,80 +10,24 @@ on:
 
 jobs:
   trigger-tweet:
-    name: Trigger Daily Tweet
+    name: Wake + tweet
     runs-on: ubuntu-latest
-    permissions: {}
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
-      - name: Install httpx
-        run: pip install httpx
-
-      - name: Trigger tweet via POST /tweet/post
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Wake + post
         env:
-          API_URL: ${{ github.event.inputs.api_url }}
+          PUBLIC_API_URL: ${{ github.event.inputs.api_url }}
         run: |
-          python - <<'EOF'
-          import httpx, sys, json, os
-
-          api_url = os.environ["API_URL"].rstrip("/")
-          endpoint = f"{api_url}/tweet/post"
-          max_retries = 5
-          initial_wait = 30  # seconds — allow free-tier spin-up
-          request_timeout = 120  # seconds — enough for tweet generation + posting
-
-          import time
-
-          print(f"Triggering tweet: {endpoint}")
-          for attempt in range(1, max_retries + 1):
-              try:
-                  resp = httpx.post(endpoint, timeout=request_timeout)
-                  resp.raise_for_status()
-                  data = resp.json()
-                  result = data.get("result", {})
-                  status = result.get("status", "unknown")
-                  print(json.dumps(data, indent=2, ensure_ascii=False))
-                  if status == "posted":
-                      print(f"✅ Tweet posted to Twitter! (attempt {attempt})")
-                  elif status == "logged":
-                      print(
-                          "⚠️  Tweet NOT posted — Twitter credentials not configured.\n"
-                          "   Tweets are being saved to logs/daily_tweets.log.\n"
-                          "   Set TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN,\n"
-                          "   TWITTER_ACCESS_SECRET in the Render dashboard to enable posting."
-                      )
-                  elif status == "error":
-                      print(f"❌ Tweet post failed: {result.get('message')}")
-                  sys.exit(0)
-              except Exception as e:
-                  print(f"⚠️  Attempt {attempt}/{max_retries} failed: {e}")
-                  if attempt < max_retries:
-                      wait = initial_wait * attempt
-                      print(f"Retrying in {wait}s...")
-                      time.sleep(wait)
-
-          print("❌ All attempts failed.")
-          sys.exit(1)
-          EOF
-
-      - name: Preview today's tweet content
+          python scripts/free_tier_ops.py wake --url "$PUBLIC_API_URL"
+          python scripts/free_tier_ops.py tweet --url "$PUBLIC_API_URL" --no-wake
+      - name: Preview
         if: always()
         env:
-          API_URL: ${{ github.event.inputs.api_url }}
-        run: |
-          python - <<'EOF'
-          import httpx, json, os, sys
-
-          api_url = os.environ["API_URL"].rstrip("/")
-          endpoint = f"{api_url}/tweet/today"
-          try:
-              resp = httpx.get(endpoint, timeout=60)
-              resp.raise_for_status()
-              data = resp.json()
-              print("── Today's tweet preview ──")
-              print(f"Twitter configured: {data.get('twitter_configured', 'unknown')}")
-              print(f"Note: {data.get('note', 'N/A')}")
-              print(f"\nMain tweet ({data.get('main_tweet_length', 0)} chars):\n{data.get('main_tweet', '')}")
-              if data.get("thread_reply"):
-                  print(f"\nThread reply ({data.get('thread_reply_length', 0)} chars):\n{data.get('thread_reply', '')}")
-          except Exception as e:
-              print(f"Could not fetch preview: {e}", file=sys.stderr)
-          EOF
+          PUBLIC_API_URL: ${{ github.event.inputs.api_url }}
+        run: python scripts/free_tier_ops.py health --url "$PUBLIC_API_URL"

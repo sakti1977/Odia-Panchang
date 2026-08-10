@@ -245,10 +245,173 @@ button { cursor: pointer; font-family: inherit; }
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.festival-strip-item { font-size: 0.95rem; margin-bottom: 4px; }
+.festival-strip-item { font-size: 0.95rem; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+.festival-strip-item:last-child { border-bottom: none; margin-bottom: 0; }
 .festival-strip-item .fest-or { font-weight: 700; color: var(--accent); }
 .festival-strip-item .fest-en { color: var(--text-muted); font-size: 0.85rem; margin-left: 6px; }
 .festival-strip-item .fest-desc { font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 2px; }
+.fest-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.fest-kind-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 8px;
+}
+/* Tradition selector */
+.tradition-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.tradition-btn {
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    min-height: 40px;
+    transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.tradition-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+.tradition-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+.tradition-hint {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+.meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 4px;
+}
+.meta-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: lowercase;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: var(--primary-dark);
+}
+.meta-pill.muted { color: var(--text-muted); font-weight: 500; }
+
+/* Collapsible festival story (details/summary) */
+.fest-story-details {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    overflow: hidden;
+}
+.fest-story-summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: var(--primary-dark);
+    background: linear-gradient(180deg, var(--surface-alt) 0%, #fff 100%);
+    transition: background var(--transition);
+    min-height: 44px; /* touch-friendly */
+}
+.fest-story-summary::-webkit-details-marker { display: none; }
+.fest-story-summary::marker { content: ''; }
+.fest-story-summary:hover { background: var(--surface-alt); }
+.fest-story-summary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+.fest-summary-label {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    font-size: 0.88rem;
+}
+.fest-summary-icon { font-size: 1rem; line-height: 1; }
+.fest-summary-text-en {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.fest-summary-hint {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    line-height: 1;
+    transition: transform var(--transition), background var(--transition);
+}
+.fest-summary-hint::before { content: '+'; }
+.fest-story-details[open] .fest-summary-hint {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+.fest-story-details[open] .fest-summary-hint::before { content: '−'; }
+.fest-story-details[open] .fest-story-summary {
+    border-bottom: 1px solid var(--border);
+}
+.fest-story-panel {
+    padding: 4px 10px 12px;
+    animation: festStoryIn 0.2s ease;
+}
+@keyframes festStoryIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.fest-story, .fest-why {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--surface-alt);
+    border-left: 3px solid var(--primary);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.fest-why { border-left-color: var(--gold); background: #fffbf0; }
+.fest-story-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+.fest-story-or {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.fest-story-en {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+.festival-card.has-story { align-items: start; }
+
+
 
 /* ── City grid ──────────────────────────────────────────────────────────── */
 .city-grid {
@@ -441,6 +604,8 @@ button { cursor: pointer; font-family: inherit; }
 .badge-biraja    { background: #FCE4EC; color: var(--accent);  border: 1px solid var(--accent); }
 .badge-common    { background: #E8F5E9; color: var(--green);   border: 1px solid var(--green); }
 .festival-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+.festival-info-col .fest-story-details { margin-top: 10px; }
+.festival-info-col .fest-kind-pill { margin-left: 6px; vertical-align: middle; }
 
 /* ── Muhurta cards ──────────────────────────────────────────────────────── */
 .muhurta-grid {

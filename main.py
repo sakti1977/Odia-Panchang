@@ -28,7 +28,7 @@ from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_
 from src.ai_layer2 import enrich_with_claude
 from src.scheduler import create_scheduler, run_daily_tweet
 from src.tweet_generator import generate_tweet_bundle
-from src.locations import get_city_info, list_all_cities, detect_city_from_ip
+from src.locations import get_city_info, list_all_cities, detect_city_from_ip, resolve_city
 from src.engine import compute_panchang
 from src.pdf_generator import generate_monthly_text, generate_calendar_view
 from src.festivals import match_festivals, get_sankranti_festivals
@@ -67,14 +67,35 @@ if _twitter_ready:
         _twitter_ready = False
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+# Free-tier path: prefer GitHub Actions (or external cron) over in-process APScheduler.
+# Set ENABLE_INPROCESS_SCHEDULER=true only if you run always-on and want 05:00 IST inside the app.
+_ENABLE_INPROCESS_SCHEDULER = _env_flag("ENABLE_INPROCESS_SCHEDULER", default=False)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler = create_scheduler()
-    scheduler.start()
-    print("[Panchang] Scheduler started — daily tweet at 05:00 IST")
+    scheduler = None
+    if _ENABLE_INPROCESS_SCHEDULER:
+        scheduler = create_scheduler()
+        scheduler.start()
+        print("[Panchang] In-process scheduler ON — daily tweet at 05:00 IST")
+    else:
+        print(
+            "[Panchang] In-process scheduler OFF (free-tier default). "
+            "Use GitHub Actions workflow 'Daily Odia Panjika Tweet' or external cron → POST /tweet/post. "
+            "Set ENABLE_INPROCESS_SCHEDULER=true to re-enable APScheduler."
+        )
     yield
-    scheduler.shutdown()
-    print("[Panchang] Scheduler stopped")
+    if scheduler is not None:
+        scheduler.shutdown()
+        print("[Panchang] Scheduler stopped")
 
 app = FastAPI(
     title="Odia Panjika API (ଓଡ଼ିଆ ପଞ୍ଜିକା)",
@@ -82,7 +103,8 @@ app = FastAPI(
         "Free public bilingual (Odia + English) Panjika API covering tithi, nakshatra, yoga, "
         "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions. "
         "AI-powered enrichment: muhurtas, cultural significance, fasting guidance. "
-        "Daily tweet at 5 AM IST. No API key required for basic endpoints."
+        "Daily tweet: GitHub Actions → POST /tweet/post (recommended on free tier). "
+        "No API key required for basic endpoints."
     ),
     version="2.0.0",
     lifespan=lifespan,
@@ -104,8 +126,55 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def _day_to_dict(day: PanchangDay, festivals: list) -> dict:
+def _filter_festivals(festivals: list, tradition: str | None) -> list:
+    """
+    Day API filter (spec):
+      all      → everything
+      common   → common only
+      jagannath→ common + jagannath
+      biraja   → common + biraja
+      lingaraj → common + lingaraj
+    """
+    t = (tradition or "all").lower()
+    if t == "all":
+        return festivals
+    if t == "common":
+        return [f for f in festivals if f.get("tradition") == "common"]
+    if t in ("jagannath", "biraja", "lingaraj"):
+        return [f for f in festivals if f.get("tradition") in ("common", t)]
+    return festivals
+
+
+def _build_meta(place: dict, tradition: str) -> dict:
     return {
+        "engine": "lahiri_swiss_ephemeris",
+        "masa_system": "purnimanta_odia_default",
+        "tradition": tradition or "all",
+        "city": place.get("key") or place.get("name", "").lower(),
+        "lat": place.get("lat"),
+        "lon": place.get("lon"),
+        "tz": "Asia/Kolkata" if float(place.get("tz", 5.5)) == 5.5 else place.get("tz"),
+        "disclaimer": (
+            "Astronomical core is Lahiri/Swiss Ephemeris for the stated place. "
+            "Festival overlays follow tradition rules. Not a digital reprint of "
+            "commercial Khadiratna or Biraja tables."
+        ),
+    }
+
+
+def _day_to_dict(
+    day: PanchangDay,
+    festivals: list,
+    *,
+    place: dict | None = None,
+    tradition: str = "all",
+    sunrise: str | None = None,
+    sunset: str | None = None,
+) -> dict:
+    if place is None:
+        place = resolve_city(tradition="common")
+    return {
+        "meta":            _build_meta(place, tradition),
         "date":            day.date,
         "vara":            {"en": day.vara_en,         "or": day.vara_or},
         "soura_masa":      {"en": day.soura_masa_en,   "or": day.soura_masa_or},
@@ -119,17 +188,51 @@ def _day_to_dict(day: PanchangDay, festivals: list) -> dict:
         "nakshatra":       {"en": day.nakshatra_en,    "or": day.nakshatra_or},
         "yoga":            {"en": day.yoga_en,         "or": day.yoga_or},
         "karana":          {"en": day.karana_en,       "or": day.karana_or},
-        "sunrise":         day.sunrise,
-        "sunset":          day.sunset,
+        "sunrise":         sunrise if sunrise is not None else day.sunrise,
+        "sunset":          sunset if sunset is not None else day.sunset,
         "festivals":       festivals,
     }
 
 
+def _resolve_place_or_400(city: str | None, tradition: str | None) -> dict:
+    try:
+        return resolve_city(city=city, tradition=tradition)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+def _place_sun(d: date, place: dict) -> tuple[str | None, str | None]:
+    """Sunrise/sunset for place without mutating global env."""
+    live = compute_panchang(
+        d,
+        lat=place["lat"],
+        lon=place["lon"],
+        tz_hours=place.get("tz", 5.5),
+    )
+    return live.get("sunrise"), live.get("sunset")
+
+
 def _festival_to_dict(f: Festival) -> dict:
-    return {
+    """Serialize festival; attach curated story / why_today at read time."""
+    from src.festival_stories import attach_story
+
+    payload = {
         "name":        {"en": f.name_en, "or": f.name_or},
         "tradition":   f.tradition,
         "description": f.description,
+        "name_en":     f.name_en,  # for story lookup; stripped below
+    }
+    attach_story(payload)
+    payload.pop("name_en", None)
+    return {
+        "name":           payload["name"],
+        "tradition":      payload["tradition"],
+        "description":    payload["description"],
+        "story":          payload.get("story"),
+        "why_today":      payload.get("why_today"),
+        "story_kind":     payload.get("story_kind"),
+        "story_sources":  payload.get("story_sources"),
+        "story_complete": payload.get("story_complete"),
     }
 
 
@@ -185,7 +288,7 @@ def health_check():
 
 @app.get("/api/status")
 def ai_status():
-    """Show which AI enrichment layers are configured and active."""
+    """Show AI layers, Twitter, and free-tier scheduler configuration."""
     return {
         "layer1_groq": {
             "active": _groq_ready,
@@ -201,6 +304,16 @@ def ai_status():
             "cost": "~$0.001/request",
             "setup": "Set ANTHROPIC_API_KEY in .env — https://console.anthropic.com/",
         },
+        "twitter": {
+            "configured": _twitter_ready,
+            "note": "Keys must be set on the web service for POST /tweet/post to publish",
+        },
+        "scheduler": {
+            "inprocess": _ENABLE_INPROCESS_SCHEDULER,
+            "recommended": "github_actions",
+            "workflow": ".github/workflows/daily-tweet.yml",
+            "enable_inprocess_env": "ENABLE_INPROCESS_SCHEDULER=true",
+        },
         "enrichment_endpoints": [
             "/today?enriched=true",
             "/panchang/{date}?enriched=true",
@@ -210,14 +323,29 @@ def ai_status():
 
 
 @app.get("/today")
-def get_today(enriched: bool = Query(default=False, description="Include AI enrichment layers")):
+def get_today(
+    enriched: bool = Query(default=False, description="Include AI enrichment layers"),
+    city: Optional[str] = Query(default=None, description="City key from /api/cities"),
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+        description="Festival overlay + default city when city omitted",
+    ),
+):
     """Return full Panchang for today (IST)."""
+    place = _resolve_place_or_400(city, tradition)
     today = datetime.now(tz=timezone(timedelta(hours=5, minutes=30))).date()
     db = SessionLocal()
     try:
         day = _get_day(db, today.isoformat())
-        festivals = [_festival_to_dict(f) for f in day.festivals]
-        result = _day_to_dict(day, festivals)
+        festivals = _filter_festivals(
+            [_festival_to_dict(f) for f in day.festivals],
+            tradition,
+        )
+        sr, ss = _place_sun(today, place)
+        result = _day_to_dict(
+            day, festivals, place=place, tradition=tradition or "all",
+            sunrise=sr, sunset=ss,
+        )
         if enriched:
             result["enrichment"] = _build_enrichment(result)
         return result
@@ -253,22 +381,36 @@ def get_panchang_insights(date_str: str, request: Request):
 def get_panchang_by_date(
     date_str: str,
     enriched: bool = Query(default=False, description="Include AI enrichment layers"),
+    city: Optional[str] = Query(default=None, description="City key from /api/cities"),
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+        description="Festival overlay + default city when city omitted",
+    ),
 ):
     """
     Return full Panchang for a specific date.
     Date format: YYYY-MM-DD
     Add ?enriched=true for AI-powered astronomical validation + Odia cultural insights.
+    Optional ?city= & ?tradition= per dual-tradition spec.
     """
     try:
-        date.fromisoformat(date_str)
+        d = date.fromisoformat(date_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
 
+    place = _resolve_place_or_400(city, tradition)
     db = SessionLocal()
     try:
         day = _get_day(db, date_str)
-        festivals = [_festival_to_dict(f) for f in day.festivals]
-        result = _day_to_dict(day, festivals)
+        festivals = _filter_festivals(
+            [_festival_to_dict(f) for f in day.festivals],
+            tradition,
+        )
+        sr, ss = _place_sun(d, place)
+        result = _day_to_dict(
+            day, festivals, place=place, tradition=tradition or "all",
+            sunrise=sr, sunset=ss,
+        )
         if enriched:
             result["enrichment"] = _build_enrichment(result)
         return result
@@ -277,12 +419,20 @@ def get_panchang_by_date(
 
 
 @app.get("/panchang/{year}/{month}")
-def get_panchang_by_month(year: int, month: int):
+def get_panchang_by_month(
+    year: int,
+    month: int,
+    city: Optional[str] = Query(default=None),
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+    ),
+):
     """
     Return Panchang for all days in a given month.
     """
     if not (1 <= month <= 12):
         raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
+    place = _resolve_place_or_400(city, tradition)
 
     # Build date prefix for filtering
     prefix = f"{year:04d}-{month:02d}-"
@@ -300,10 +450,21 @@ def get_panchang_by_month(year: int, month: int):
                 status_code=404,
                 detail=f"No data for {year}-{month:02d}. Run seed.py to populate."
             )
-        return [
-            _day_to_dict(d, [_festival_to_dict(f) for f in d.festivals])
-            for d in days
-        ]
+        out = []
+        for day in days:
+            d = date.fromisoformat(day.date)
+            festivals = _filter_festivals(
+                [_festival_to_dict(f) for f in day.festivals],
+                tradition,
+            )
+            sr, ss = _place_sun(d, place)
+            out.append(
+                _day_to_dict(
+                    day, festivals, place=place, tradition=tradition or "all",
+                    sunrise=sr, sunset=ss,
+                )
+            )
+        return out
     finally:
         db.close()
 
@@ -311,9 +472,9 @@ def get_panchang_by_month(year: int, month: int):
 @app.get("/festivals/{year}")
 def get_festivals_by_year(
     year: int,
-    tradition: Optional[Literal["jagannath", "biraja", "common", "all"]] = Query(
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
         default="all",
-        description="Filter by temple tradition: jagannath, biraja, common, or all"
+        description="Filter by temple tradition: jagannath, biraja, common, lingaraj, or all"
     ),
 ):
     """
@@ -337,15 +498,12 @@ def get_festivals_by_year(
                 detail=f"No festival data for {year}. Run seed.py to populate."
             )
 
-        return [
-            {
-                "date":        f.date,
-                "name":        {"en": f.name_en, "or": f.name_or},
-                "tradition":   f.tradition,
-                "description": f.description,
-            }
-            for f in festivals
-        ]
+        out = []
+        for f in festivals:
+            item = _festival_to_dict(f)
+            item["date"] = f.date
+            out.append(item)
+        return out
     finally:
         db.close()
 
@@ -383,88 +541,68 @@ def detect_city(request: Request):
 
 
 @app.get("/api/panchang/today/{city}")
-def get_panchang_for_city_today(city: str):
+def get_panchang_for_city_today(
+    city: str,
+    tradition: Optional[Literal["jagannath", "biraja", "common", "all", "lingaraj"]] = Query(
+        default="all",
+    ),
+):
     """
-    Get today's Panchang for a specific city.
-    City can be: bhubaneswar, delhi, mumbai, bangalore, hyderabad, etc.
+    Get today's Panchang for a specific city (sunrise/sunset for that place).
     """
-    city_info = get_city_info(city)
-    if not city_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"City '{city}' not found. Use /api/cities to see available cities."
-        )
-
-    # Get today's date in IST
+    place = _resolve_place_or_400(city, tradition)
     today = datetime.now(tz=IST).date()
-
-    # Compute panchang with city-specific coordinates
-    import os
-    # Temporarily set environment variables for this computation
-    old_lat = os.getenv("LOCATION_LAT")
-    old_lon = os.getenv("LOCATION_LON")
-    old_name = os.getenv("LOCATION_NAME")
-
-    os.environ["LOCATION_LAT"] = str(city_info["lat"])
-    os.environ["LOCATION_LON"] = str(city_info["lon"])
-    os.environ["LOCATION_NAME"] = city_info["name"]
-
+    db = SessionLocal()
     try:
-        # Compute panchang for this city
-        p = compute_panchang(today)
-
-        # Get festivals for this date from database
-        db = SessionLocal()
-        try:
-            day = db.get(PanchangDay, today.isoformat())
-            if day:
-                festivals = [_festival_to_dict(f) for f in day.festivals]
-            else:
-                # If not in DB, match festivals from computed panchang
-                festivals_data = match_festivals(p)
-                festivals = [
-                    {
-                        "name": {"en": f["name_en"], "or": f["name_or"]},
-                        "tradition": f["tradition"],
-                        "description": f["description"]
-                    }
-                    for f in festivals_data
-                ]
-        finally:
-            db.close()
-
-        # Build response
-        result = {
-            "city": city_info["name"],
-            "city_or": city_info["name_or"],
-            "date": p["date"],
-            "vara": {"en": p["vara_en"], "or": p["vara_or"]},
-            "soura_masa": {"en": p["soura_masa_en"], "or": p["soura_masa_or"]},
-            "chandra_masa": {"en": p["chandra_masa_en"], "or": p["chandra_masa_or"]},
-            "paksha": {"en": p["paksha_en"], "or": p["paksha_or"]},
-            "tithi": {
-                "num": p["tithi_num"],
-                "en": p["tithi_en"],
-                "or": p["tithi_or"],
-            },
-            "nakshatra": {"en": p["nakshatra_en"], "or": p["nakshatra_or"]},
-            "yoga": {"en": p["yoga_en"], "or": p["yoga_or"]},
-            "karana": {"en": p["karana_en"], "or": p["karana_or"]},
-            "sunrise": p["sunrise"],
-            "sunset": p["sunset"],
-            "festivals": festivals,
-        }
-
+        day = db.get(PanchangDay, today.isoformat())
+        if day:
+            festivals = _filter_festivals(
+                [_festival_to_dict(f) for f in day.festivals],
+                tradition,
+            )
+            sr, ss = _place_sun(today, place)
+            result = _day_to_dict(
+                day, festivals, place=place, tradition=tradition or "all",
+                sunrise=sr, sunset=ss,
+            )
+        else:
+            p = compute_panchang(
+                today, lat=place["lat"], lon=place["lon"], tz_hours=place.get("tz", 5.5)
+            )
+            festivals_data = _filter_festivals(match_festivals(p), tradition)
+            festivals = [
+                {
+                    "name": {"en": f["name_en"], "or": f["name_or"]},
+                    "tradition": f["tradition"],
+                    "description": f["description"],
+                    "story": f.get("story"),
+                    "why_today": f.get("why_today"),
+                    "story_kind": f.get("story_kind"),
+                    "story_sources": f.get("story_sources"),
+                    "story_complete": f.get("story_complete"),
+                }
+                for f in festivals_data
+            ]
+            result = {
+                "meta": _build_meta(place, tradition or "all"),
+                "date": p["date"],
+                "vara": {"en": p["vara_en"], "or": p["vara_or"]},
+                "soura_masa": {"en": p["soura_masa_en"], "or": p["soura_masa_or"]},
+                "chandra_masa": {"en": p["chandra_masa_en"], "or": p["chandra_masa_or"]},
+                "paksha": {"en": p["paksha_en"], "or": p["paksha_or"]},
+                "tithi": {"num": p["tithi_num"], "en": p["tithi_en"], "or": p["tithi_or"]},
+                "nakshatra": {"en": p["nakshatra_en"], "or": p["nakshatra_or"]},
+                "yoga": {"en": p["yoga_en"], "or": p["yoga_or"]},
+                "karana": {"en": p["karana_en"], "or": p["karana_or"]},
+                "sunrise": p["sunrise"],
+                "sunset": p["sunset"],
+                "festivals": festivals,
+            }
+        result["city"] = place["name"]
+        result["city_or"] = place.get("name_or", "")
         return result
-
     finally:
-        # Restore original environment variables
-        if old_lat:
-            os.environ["LOCATION_LAT"] = old_lat
-        if old_lon:
-            os.environ["LOCATION_LON"] = old_lon
-        if old_name:
-            os.environ["LOCATION_NAME"] = old_name
+        db.close()
 
 
 @app.get("/api/panchang/monthly/{year}/{month}/download")
@@ -549,8 +687,12 @@ def preview_tweet(request: Request):
     return {
         **bundle,
         "twitter_configured": twitter_active,
-        "note": "POST /tweet/post to publish now, or it auto-posts at 05:00 IST" if twitter_active
-                else "Add TWITTER_* keys to .env to enable auto-posting. Tweets saved to logs/daily_tweets.log",
+        "note": (
+            "POST /tweet/post to publish now. Free-tier: use GitHub Actions daily-tweet workflow "
+            "(or ENABLE_INPROCESS_SCHEDULER=true on always-on)."
+            if twitter_active
+            else "Add TWITTER_* keys on the host to enable posting. Until then tweets go to logs/daily_tweets.log"
+        ),
     }
 
 

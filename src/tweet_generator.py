@@ -125,17 +125,54 @@ def generate_main_tweet(panchang: dict, enrichment: dict | None = None) -> str:
     return tweet
 
 
+def _one_line_story(festival: dict, prefer_or: bool = True, max_len: int = 160) -> str:
+    """
+    One-line story blurb for tweets from curated festival story fields.
+    Prefer Odia; fall back to English. Truncate cleanly.
+    """
+    story = festival.get("story") or {}
+    why = festival.get("why_today") or {}
+    text = ""
+    if prefer_or:
+        text = (story.get("or") or why.get("or") or story.get("en") or why.get("en") or "").strip()
+    else:
+        text = (story.get("en") or why.get("en") or story.get("or") or why.get("or") or "").strip()
+    if not text:
+        # Fallback: short description
+        text = (festival.get("description") or "").strip()
+    if not text:
+        return ""
+    # Collapse whitespace / newlines for tweet line
+    text = " ".join(text.split())
+    if len(text) > max_len:
+        cut = text[: max_len - 1]
+        # avoid mid-word when possible
+        if " " in cut:
+            cut = cut.rsplit(" ", 1)[0]
+        text = cut + "…"
+    return text
+
+
 def generate_thread_tweet(panchang: dict, enrichment: dict | None = None) -> str:
     """
-    Generate thread reply (2nd tweet) with cultural enrichment.
+    Generate thread reply (2nd tweet): festival story first, then optional AI cultural notes.
+    Festival stories work even when enrichment is empty.
     """
-    if not enrichment:
-        return ""
-
-    cultural = enrichment.get("cultural", {})
-    astro = enrichment.get("astronomical", {})
+    enrichment = enrichment or {}
+    cultural = enrichment.get("cultural", {}) or {}
 
     parts = []
+
+    # Curated festival stories (priority — accuracy over AI)
+    festivals = panchang.get("festivals") or []
+    for f in festivals[:2]:  # at most two festivals to keep under 280
+        name_or = (f.get("name") or {}).get("or") or (f.get("name") or {}).get("en") or ""
+        blurb = _one_line_story(f, prefer_or=True, max_len=140)
+        if blurb:
+            if name_or:
+                parts.append(f"🎉 {name_or}\n{blurb}")
+            else:
+                parts.append(f"🎉 {blurb}")
 
     # Jagannath significance in Odia
     jagannath_or = cultural.get("jagannath_significance", {}).get("or", "")
@@ -179,9 +216,35 @@ def generate_thread_tweet(panchang: dict, enrichment: dict | None = None) -> str
 def generate_tweet_bundle(panchang: dict, enrichment: dict | None = None) -> dict:
     """
     Returns both main tweet and thread reply, plus metadata.
+    Thread includes festival stories when present (no enrichment required).
     """
+    # Ensure festivals carry stories if only names/descriptions were loaded from DB
+    festivals = panchang.get("festivals") or []
+    if festivals:
+        from src.festival_stories import attach_story
+
+        enriched_fests = []
+        for f in festivals:
+            # Normalize ORM-style vs API-style
+            if "name_en" not in f and isinstance(f.get("name"), dict):
+                f = {
+                    **f,
+                    "name_en": f["name"].get("en", ""),
+                    "name_or": f["name"].get("or", ""),
+                }
+            if not f.get("story"):
+                f = attach_story(dict(f))
+                # restore nested name for tweet formatting
+                if "name" not in f or not isinstance(f.get("name"), dict):
+                    f["name"] = {
+                        "en": f.get("name_en", ""),
+                        "or": f.get("name_or", ""),
+                    }
+            enriched_fests.append(f)
+        panchang = {**panchang, "festivals": enriched_fests}
+
     main = generate_main_tweet(panchang, enrichment)
-    thread = generate_thread_tweet(panchang, enrichment) if enrichment else ""
+    thread = generate_thread_tweet(panchang, enrichment)
 
     return {
         "date": panchang["date"],
@@ -189,5 +252,8 @@ def generate_tweet_bundle(panchang: dict, enrichment: dict | None = None) -> dic
         "main_tweet_length": len(main),
         "thread_reply": thread,
         "thread_reply_length": len(thread),
-        "festivals": [f["name"]["en"] for f in panchang.get("festivals", [])],
+        "festivals": [
+            (f.get("name") or {}).get("en") or f.get("name_en", "")
+            for f in panchang.get("festivals", [])
+        ],
     }

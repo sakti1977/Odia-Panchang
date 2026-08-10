@@ -1,0 +1,33 @@
+name: Keep-warm free Render (optional)
+
+# Optional: ping /api every 12 minutes so Free web service stays warm.
+# Free workspaces get ~750 instance-hours/month; one always-warm service ≈ 720h.
+# Disable this workflow if you prefer cold starts and lower instance-hour use.
+#
+# Enable: Actions → Keep-warm free Render → Enable workflow
+# Or leave as-is; schedule only runs if workflow is enabled in default branch.
+
+on:
+  schedule:
+    - cron: "*/12 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Health ping
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://odia-panchang.onrender.com' }}
+        run: python scripts/free_tier_ops.py health --url "$PUBLIC_API_URL"
+        # health failure should not spam email if service is intentionally down
+        continue-on-error: true

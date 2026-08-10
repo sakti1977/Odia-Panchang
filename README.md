@@ -193,9 +193,12 @@ Pana Sankranti (Odia New Year), Kumar Purnima, Prathamastami, Gamha Purnima, Boi
 
 ---
 
-## 🐦 Twitter Auto-Posting
+## 🐦 Twitter Auto-Posting (free-tier friendly)
 
-The API includes automatic daily Twitter posting at 5:00 AM IST with bilingual Odia+English tweets.
+**Recommended on Render Free:** GitHub Actions wakes the service and calls `POST /tweet/post` at 05:00 IST.  
+Do **not** rely on in-process APScheduler while the free web service sleeps.
+
+See full setup: **[HOSTING_FREE_TIER.md](HOSTING_FREE_TIER.md)**
 
 ### Setup Twitter Integration
 
@@ -203,7 +206,7 @@ The API includes automatic daily Twitter posting at 5:00 AM IST with bilingual O
    - Apply for **Elevated access** or **Basic tier** (required for posting tweets)
    - Note: Free tier typically only allows read operations
 
-2. **Add credentials to `.env` or Render dashboard**:
+2. **Add credentials on the Render web service** (not only GitHub):
    ```env
    TWITTER_API_KEY=your_api_key
    TWITTER_API_SECRET=your_api_secret
@@ -211,12 +214,15 @@ The API includes automatic daily Twitter posting at 5:00 AM IST with bilingual O
    TWITTER_ACCESS_SECRET=your_access_secret
    # Optional but recommended for improved authentication:
    TWITTER_BEARER_TOKEN=your_bearer_token
+   ENABLE_INPROCESS_SCHEDULER=false
    ```
 
-3. **Verify setup** — Check startup logs for:
+3. **Enable GitHub Actions** workflow `Daily Odia Panjika Tweet` (and optional `Keep-warm free Render`).
+
+4. **Verify setup** — Check startup logs for:
    ```
    [Panchang] Twitter/X posting: ✅ active
-   [Panchang] Tweepy library: ✅ v4.x.x installed
+   [Panchang] In-process scheduler OFF (free-tier default)
    ```
 
 ### Troubleshooting Twitter Posts

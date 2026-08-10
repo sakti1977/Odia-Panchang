@@ -87,42 +87,62 @@ def _soura_masa_index(sun_lon: float) -> int:
 
 def _chandra_masa_index(sun_lon: float, moon_lon: float) -> int:
     """
-    Lunar month in Purnimanta system (used in Odisha):
-    - In Purnimanta, the lunar month is named after the solar month
-      in which the ENDING Purnima of that lunar month falls.
-    - The lunar month runs from one Purnima to the next.
-    - Empirically verified against standard Odia Panchangs (Kohinoor, Biraja, Drik):
-      Chandra Masa Index = (Soura Masa Index + 2) % 12
+    Lunar month in the Purnimanta system (Odisha panji default).
 
-    Examples:
-      - When Purnima falls in Mesha (0), the lunar month is Jyeshtha (2)
-      - When Purnima falls in Kumbha (10), the lunar month is Chaitra (0)
+    Purnimanta structure:
+      - A lunar month ends on Purnima and is *named* for that closing Purnima.
+      - Krishna paksha of a named month comes *before* its Shukla paksha
+        (after the previous Purnima, through Amavasya, into Shukla, ending Purnima).
+
+    Naming rule used here:
+      Chandra masa index = solar rashi index of the Sun at the *closing* Purnima
+      of the current lunar month.
+
+      Closing Purnima ≈ now if tithi is Purnima; otherwise the upcoming Purnima.
+      Sun longitude at that Purnima is estimated with ~1°/tithi motion
+      (standard short-arc approximation used in many software panji engines).
+
+      Mapping: SOURA_MASA index at that Purnima → same index in CHANDRA_MASA
+      (Mesha-Purnima region → Chaitra, …, Mithuna-Purnima region → Jyeshtha, …).
+
+    Why not (solar + 2) % 12:
+      That offset matched one Drik sample (e.g. 2026-05-10) but shifted Snana /
+      Rath month names off Odisha Tourism civil dates. Festival-aligned Purnimanta
+      for Jagannath cycle is the product non-negotiable.
+
+    Verified anchors (tithi rule → civil date under this formula, Lahiri, ~06:00 IST):
+      - 2024-06-22 Snana (Jyeshtha Shukla 15)
+      - 2024-07-07 Rath (Ashadha Shukla 2)
+      - 2026-06-29 Snana (Jyeshtha Shukla 15)
+      - 2026-07-16 Rath (Ashadha Shukla 2)
+      - 2027-07-05 Rath (Ashadha Shukla 2)
+    Note: 2025 may involve adhika-masa / authority differences; see eval fixtures.
     """
     tithi_idx = _tithi_index(moon_lon, sun_lon)  # 0-29
 
-    # Estimate sun's longitude at the upcoming/most recent Purnima
-    if tithi_idx < 15:
-        # Shukla paksha: tithis remaining until next Purnima = (14 - tithi_idx)
-        # Sun moves approximately 1° per day
-        sun_at_purnima = (sun_lon + (14 - tithi_idx)) % 360
+    if tithi_idx <= 14:
+        # Shukla (0–13) or Purnima (14): closing Purnima is upcoming / today
+        # Tithis remaining until Purnima ≈ (14 - tithi_idx)
+        sun_at_closing_purnima = (sun_lon + (14 - tithi_idx)) % 360
     else:
-        # Krishna paksha: tithis since last Purnima = (tithi_idx - 14)
-        # Sun was approximately (tithi_idx - 14) degrees back
-        sun_at_purnima = (sun_lon - (tithi_idx - 14)) % 360
+        # Krishna (15–29): month already past last Purnima; closing Purnima is next
+        # Tithis to Amavasya ≈ (29 - tithi_idx), then +15 Shukla tithis to Purnima
+        sun_at_closing_purnima = (sun_lon + (29 - tithi_idx) + 15) % 360
 
-    # Get solar month at Purnima
-    soura_at_purnima = int(sun_at_purnima / 30) % 12
-
-    # Apply the corrected Purnimanta offset: lunar month = solar month + 2
-    return (soura_at_purnima + 2) % 12
+    return int(sun_at_closing_purnima / 30) % 12
 
 
-def _get_sunrise_sunset(d: date, lat: float = PURI_LAT, lon: float = PURI_LON):
-    """Return (sunrise_iso, sunset_iso) in local IST time."""
+def _get_sunrise_sunset(
+    d: date,
+    lat: float = PURI_LAT,
+    lon: float = PURI_LON,
+    tz_hours: float = PURI_TZ,
+):
+    """Return (sunrise_iso, sunset_iso) in local time for lat/lon/tz."""
     # Start search from previous noon UT
     jd_start = _date_to_jd(d, -6.0)  # ~midnight UT (5:30 AM IST previous day)
     geopos = (lon, lat, 0.0)
-    ist = timezone(timedelta(hours=PURI_TZ))
+    ist = timezone(timedelta(hours=tz_hours))
 
     try:
         res_rise = swe.rise_trans(
@@ -156,11 +176,22 @@ def _get_sunrise_sunset(d: date, lat: float = PURI_LAT, lon: float = PURI_LON):
         return None, None
 
 
-def compute_panchang(d: date) -> dict:
+def compute_panchang(
+    d: date,
+    lat: float | None = None,
+    lon: float | None = None,
+    tz_hours: float | None = None,
+) -> dict:
     """
-    Compute full Panchang for a given date (at sunrise time ~6 AM UT).
-    Returns a dict with all fields bilingual (en + or).
+    Compute full Panchang for a given date (at ~0:30 UT ≈ 06:00 IST sample).
+
+    Optional lat/lon/tz_hours override the module default place for sunrise/sunset
+    only (tithi/masa use the same Lahiri sample for all Odisha cities).
     """
+    lat = _LOC_LAT if lat is None else float(lat)
+    lon = _LOC_LON if lon is None else float(lon)
+    tz_hours = _LOC_TZ if tz_hours is None else float(tz_hours)
+
     # Use 0:30 UT ≈ 6:00 AM IST for sunrise-based panchang
     jd = _date_to_jd(d, 0.5)
 
@@ -182,7 +213,7 @@ def compute_panchang(d: date) -> dict:
     # Vara (day of week): Python weekday() 0=Mon, we need 0=Sun
     vara_idx = (d.weekday() + 1) % 7
 
-    sunrise, sunset = _get_sunrise_sunset(d)
+    sunrise, sunset = _get_sunrise_sunset(d, lat=lat, lon=lon, tz_hours=tz_hours)
 
     tithi_data     = TITHIS[tithi_idx]
     nakshatra_data = NAKSHATRAS[nakshatra_idx]

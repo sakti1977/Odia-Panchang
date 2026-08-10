@@ -133,10 +133,10 @@ TITHI_RULES = [
 # Sankranti rules — triggered on first day of solar month
 # These are matched by the seeder when a soura masa transition is detected
 SANKRANTI_RULES = [
-    ("Mesha",      "common",    "Pana Sankranti (Odia New Year)",         "ପଣ ସଂକ୍ରାନ୍ତି",                  "Odia New Year; Hanuman Jayanti; sweet Pana offered to passers-by; Meru Yatra at Lingaraj Temple"),
-    ("Mesha",      "jagannath", "Pana Sankranti at Jagannath",            "ଜଗନ୍ନାଥ ପଣ ସଂକ୍ରାନ୍ତି",          "Special besha and rituals at Jagannath Temple, Puri on Odia New Year"),
-    ("Mesha",      "biraja",    "Pana Sankranti at Biraja",               "ବିରଜା ପଣ ସଂକ୍ରାନ୍ତି",            "Special puja and Pana offering at Biraja Temple, Jajpur on Odia New Year"),
-    ("Mesha",      "lingaraj",  "Pana Sankranti at Lingaraj",             "ଲିଙ୍ଗରାଜ ପଣ ସଂକ୍ରାନ୍ତି",         "Meru Yatra and special puja at Lingaraj Temple, Bhubaneswar on Odia New Year"),
+    ("Mesha",      "common",    "Pana Sankranti (Odia New Year)",         "ପଣା ସଂକ୍ରାନ୍ତି",                 "Odia New Year; Hanuman Jayanti; sweet Pana offered to passers-by; Meru Yatra at Lingaraj Temple"),
+    ("Mesha",      "jagannath", "Pana Sankranti at Jagannath",            "ଜଗନ୍ନାଥ ପଣା ସଂକ୍ରାନ୍ତି",         "Special besha and rituals at Jagannath Temple, Puri on Odia New Year"),
+    ("Mesha",      "biraja",    "Pana Sankranti at Biraja",               "ବିରଜା ପଣା ସଂକ୍ରାନ୍ତି",           "Special puja and Pana offering at Biraja Temple, Jajpur on Odia New Year"),
+    ("Mesha",      "lingaraj",  "Pana Sankranti at Lingaraj",             "ଲିଙ୍ଗରାଜ ପଣା ସଂକ୍ରାନ୍ତି",        "Meru Yatra and special puja at Lingaraj Temple, Bhubaneswar on Odia New Year"),
     ("Vrishabha",  "common",    "Vrishabha Sankranti",                    "ବୃଷଭ ସଂକ୍ରାନ୍ତି",                "Sun enters Taurus; planting season begins in Odisha"),
     ("Mithuna",    "common",    "Mithuna Sankranti (Raja Parba)",         "ମିଥୁନ ସଂକ୍ରାନ୍ତି (ରଜ ପର୍ବ)",     "Start of Raja Parba; 4-day Odia festival celebrating womanhood and earth's fertility; swing riding and special Pitha"),
     ("Karka",      "common",    "Karka Sankranti (Dakshinayana)",         "କର୍କ ସଂକ୍ରାନ୍ତି — ଦକ୍ଷିଣାୟନ",    "Sun enters Cancer; Dakshinayana (southward journey of Sun) begins"),
@@ -161,23 +161,26 @@ def match_festivals(panchang_day: dict) -> list[dict]:
       - tithi_num (int): 1-15
       - chandra_masa_en (str): lunar month name in English
       - soura_masa_en (str): solar month name in English
+
+    Each result includes short description plus story / why_today (see festival_stories).
     """
+    from src.festival_stories import attach_story
+
     results = []
 
     paksha  = panchang_day["paksha_en"].lower()   # "shukla" or "krishna"
     tithi   = panchang_day["tithi_num"]           # 1-15 (15 = Purnima or Amavasya)
     chandra = panchang_day["chandra_masa_en"]
-    soura   = panchang_day["soura_masa_en"]
 
     for rule in TITHI_RULES:
         r_masa, r_paksha, r_tithi, tradition, name_en, name_or, desc = rule
         if r_masa == chandra and r_paksha == paksha and r_tithi == tithi:
-            results.append({
+            results.append(attach_story({
                 "name_en":     name_en,
                 "name_or":     name_or,
                 "tradition":   tradition,
                 "description": desc,
-            })
+            }))
 
     return results
 
@@ -186,15 +189,18 @@ def get_sankranti_festivals(soura_masa_en: str) -> list[dict]:
     """
     Return sankranti festivals for a given solar month transition.
     Called by the seeder when it detects a soura masa change from the previous day.
+    Includes story / why_today via festival_stories.
     """
+    from src.festival_stories import attach_story
+
     results = []
     for rule in SANKRANTI_RULES:
         r_masa, tradition, name_en, name_or, desc = rule
         if r_masa == soura_masa_en:
-            results.append({
+            results.append(attach_story({
                 "name_en":     name_en,
                 "name_or":     name_or,
                 "tradition":   tradition,
                 "description": desc,
-            })
+            }))
     return results

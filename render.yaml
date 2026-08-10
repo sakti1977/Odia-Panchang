@@ -1,23 +1,11 @@
-services:
-  - type: cron
-    name: daily-tweet-cron
-    runtime: python
-    # 5:00 AM IST = 23:30 UTC (previous day)
-    schedule: "30 23 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python trigger_tweet.py
-    envVars:
-      - key: PUBLIC_API_URL
-        value: https://odia-panchang.onrender.com
-      - key: TWITTER_API_KEY
-        sync: false
-      - key: TWITTER_API_SECRET
-        sync: false
-      - key: TWITTER_ACCESS_TOKEN
-        sync: false
-      - key: TWITTER_ACCESS_SECRET
-        sync: false
+# Free-tier friendly blueprint.
+# Daily tweets: prefer GitHub Actions (.github/workflows/daily-tweet.yml)
+# rather than a paid/always-on Render Cron + in-process APScheduler.
+#
+# Do NOT set ENABLE_INPROCESS_SCHEDULER on free web — the dyno sleeps.
+# Put TWITTER_* on the web service so POST /tweet/post can publish.
 
+services:
   - type: web
     name: odia-panjika-api
     runtime: python
@@ -29,19 +17,22 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./data/panchang.db
       - key: LOCATION_NAME
-        value: Bangalore
+        value: Bhubaneswar
       - key: LOCATION_LAT
-        value: "12.9716"
+        value: "20.2961"
       - key: LOCATION_LON
-        value: "77.5946"
+        value: "85.8245"
       - key: LOCATION_TZ
         value: "5.5"
       - key: PUBLIC_API_URL
         value: https://odia-panchang.onrender.com
+      # Free-tier default: scheduler off (GitHub Actions posts tweets)
+      - key: ENABLE_INPROCESS_SCHEDULER
+        value: "false"
       - key: GROQ_API_KEY
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: ANTHROPIC_API_KEY
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: TWITTER_API_KEY
         sync: false
       - key: TWITTER_API_SECRET
@@ -50,3 +41,18 @@ services:
         sync: false
       - key: TWITTER_ACCESS_SECRET
         sync: false
+      - key: TWITTER_BEARER_TOKEN
+        sync: false
+
+# Optional: if you later pay for always-on + Render Cron, uncomment and set secrets.
+# Prefer GitHub Actions while on Free plan.
+#
+#  - type: cron
+#    name: daily-tweet-cron
+#    runtime: python
+#    schedule: "30 23 * * *"
+#    buildCommand: pip install -r requirements.txt
+#    startCommand: python trigger_tweet.py
+#    envVars:
+#      - key: PUBLIC_API_URL
+#        value: https://odia-panchang.onrender.com

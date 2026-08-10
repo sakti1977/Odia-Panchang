@@ -1,0 +1,78 @@
+name: Daily Odia Panjika Tweet
+
+# Free-tier path: wake Render Free web service, then POST /tweet/post.
+# Twitter keys live on Render (web service env), not in GitHub.
+# Optional repo Variable: PUBLIC_API_URL
+
+on:
+  schedule:
+    # 05:00 IST = 23:30 UTC previous calendar day
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "API base URL (leave empty to use vars.PUBLIC_API_URL or default)"
+        required: false
+        default: ""
+
+concurrency:
+  group: daily-tweet
+  cancel-in-progress: false
+
+jobs:
+  daily-tweet:
+    name: Wake free tier + post tweet
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve API URL
+        id: url
+        run: |
+          U="${{ github.event.inputs.api_url }}"
+          if [ -z "$U" ]; then U="${{ vars.PUBLIC_API_URL }}"; fi
+          if [ -z "$U" ]; then U="https://odia-panchang.onrender.com"; fi
+          echo "url=$U" >> "$GITHUB_OUTPUT"
+          echo "Using API: $U"
+
+      - name: Wake service (free-tier cold start)
+        env:
+          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
+        run: python scripts/free_tier_ops.py wake --url "$PUBLIC_API_URL"
+
+      - name: Post daily tweet
+        env:
+          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
+        run: python scripts/free_tier_ops.py tweet --url "$PUBLIC_API_URL" --no-wake
+
+      - name: Preview tweet content
+        if: always()
+        env:
+          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
+        run: |
+          python - <<'EOF'
+          import json, os, urllib.request
+          api = os.environ["PUBLIC_API_URL"].rstrip("/")
+          url = f"{api}/tweet/today"
+          try:
+              with urllib.request.urlopen(url, timeout=90) as r:
+                  data = json.loads(r.read().decode())
+              print("twitter_configured:", data.get("twitter_configured"))
+              print("note:", data.get("note"))
+              print("--- main ---")
+              print(data.get("main_tweet", ""))
+              if data.get("thread_reply"):
+                  print("--- thread ---")
+                  print(data.get("thread_reply"))
+          except Exception as e:
+              print("preview failed:", e)
+          EOF

@@ -9,11 +9,27 @@ const OR_MONTHS = ['ଜାନୁଆରୀ','ଫେବ୍ରୁଆରୀ','ମା
                    'ଜୁଲାଇ','ଅଗଷ୍ଟ','ସେପ୍ଟେମ୍ବର','ଅକ୍ଟୋବର','ନଭେମ୍ବର','ଡିସେମ୍ବର'];
 
 let selectedCity = 'bhubaneswar';
+let selectedTradition = 'all';
+let userPickedCity = false; // if true, tradition change does not override city
 let currentTemple = 'jagannath';
 let currentHeritage = 'personalities';
 let templeData = null;   // cached
 let heritageData = null; // cached
 let sankrantiData = null; // cached
+
+const TRADITION_DEFAULT_CITY = {
+    all: 'bhubaneswar',
+    common: 'bhubaneswar',
+    jagannath: 'puri',
+    biraja: 'jajpur',
+};
+
+const TRADITION_HINTS = {
+    all: 'Shows all festivals. Pick a city for local sunrise.',
+    common: 'Shared Odia / Hindu observances only.',
+    jagannath: 'Jagannath + common festivals. Default city: Puri.',
+    biraja: 'Biraja + common festivals. Default city: Jajpur.',
+};
 
 const API_BASE = (window.PANCHANG_API_BASE || '').replace(/\/$/, '');
 function apiUrl(path) {
@@ -112,9 +128,18 @@ async function loadCities() {
         const cities = await resp.json();
         const grid = document.getElementById('city-grid');
         grid.innerHTML = '';
+        // Prefer Odisha cities first in the grid (region flag or known keys)
+        const odishaKeys = new Set(['bhubaneswar','puri','jajpur','cuttack','berhampur','sambalpur','rourkela','balasore','konark','baripada','bhadrak']);
+        cities.sort((a, b) => {
+            const ao = odishaKeys.has(a.key) ? 0 : 1;
+            const bo = odishaKeys.has(b.key) ? 0 : 1;
+            if (ao !== bo) return ao - bo;
+            return a.name.localeCompare(b.name);
+        });
         cities.forEach(city => {
             const btn = document.createElement('button');
             btn.className = 'city-btn' + (city.key === selectedCity ? ' active' : '');
+            btn.dataset.cityKey = city.key;
             btn.innerHTML = `<span class="city-name-or">${city.name_or}</span>
                              <span class="city-name-en">${city.name}</span>`;
             btn.onclick = () => selectCity(city.key, city.name_or, btn);
@@ -134,10 +159,37 @@ async function loadCities() {
 
 function selectCity(cityKey, nameOr, btn) {
     selectedCity = cityKey;
+    userPickedCity = true;
     document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
     const badge = document.getElementById('today-city-badge');
-    if (badge) badge.textContent = nameOr;
+    if (badge) badge.textContent = nameOr || cityKey;
+    loadTodayPanchang();
+}
+
+function selectTradition(tradition, btn) {
+    selectedTradition = tradition || 'all';
+    document.querySelectorAll('.tradition-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const hint = document.getElementById('tradition-hint');
+    if (hint) hint.textContent = TRADITION_HINTS[selectedTradition] || '';
+
+    // Apply tradition default city unless user already chose a city
+    if (!userPickedCity) {
+        const def = TRADITION_DEFAULT_CITY[selectedTradition] || 'bhubaneswar';
+        selectedCity = def;
+        const cityBtn = document.querySelector(`.city-btn`);
+        // re-mark active city button if present
+        document.querySelectorAll('.city-btn').forEach(b => {
+            const key = b.dataset.cityKey;
+            b.classList.toggle('active', key === selectedCity);
+            if (key === selectedCity) {
+                const badge = document.getElementById('today-city-badge');
+                const or = b.querySelector('.city-name-or');
+                if (badge && or) badge.textContent = or.textContent;
+            }
+        });
+    }
     loadTodayPanchang();
 }
 
@@ -146,7 +198,8 @@ async function loadTodayPanchang() {
     const el = document.getElementById('today-panchang');
     el.innerHTML = spinner();
     try {
-        const url = `/api/panchang/today/${selectedCity}`;
+        const q = new URLSearchParams({ tradition: selectedTradition });
+        const url = `/api/panchang/today/${selectedCity}?${q}`;
         const resp = await fetch(apiUrl(url));
         if (!resp.ok) throw new Error(resp.statusText);
         const data = await resp.json();
@@ -190,19 +243,116 @@ function renderPanchang(data) {
             </div>`).join('')}
         </div>`;
 
-    if (data.festivals?.length) {
-        html += `<div class="festival-strip">
-            <h4>🎉 ପର୍ବ · Festivals</h4>
-            ${data.festivals.map(f => `
-            <div class="festival-strip-item">
-                <span class="fest-or">${f.name?.or || ''}</span>
-                <span class="fest-en">${f.name?.en || ''}</span>
-                ${f.description ? `<span class="fest-desc">${f.description}</span>` : ''}
-            </div>`).join('')}
+    if (data.meta) {
+        html += `<div class="meta-strip">
+            <span class="meta-pill">${esc(data.meta.city || '')}</span>
+            <span class="meta-pill">${esc(data.meta.tradition || '')}</span>
+            <span class="meta-pill muted">${esc(data.meta.masa_system || '')}</span>
         </div>`;
     }
 
+    if (data.festivals?.length) {
+        html += `<div class="festival-strip">
+            <h4>🎉 ପର୍ବ · Festivals &amp; Stories</h4>
+            ${data.festivals.map(f => renderFestivalStoryBlock(f, 'strip')).join('')}
+        </div>`;
+    } else if (data.festivals) {
+        html += `<div class="festival-strip"><p class="fest-desc">No festivals for this tradition filter.</p></div>`;
+    }
+
     return html;
+}
+
+/** Escape text for HTML text nodes */
+function esc(s) {
+    if (s == null || s === '') return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/**
+ * Inner story + why_today HTML (used inside collapsible).
+ */
+function renderStoryWhyInner(f) {
+    const storyOr = f.story?.or || '';
+    const storyEn = f.story?.en || '';
+    const whyOr = f.why_today?.or || '';
+    const whyEn = f.why_today?.en || '';
+
+    const storyBody = (storyOr || storyEn)
+        ? `<div class="fest-story">
+             <div class="fest-story-label">📖 କାହାଣୀ · Story</div>
+             ${storyOr ? `<p class="fest-story-or">${esc(storyOr)}</p>` : ''}
+             ${storyEn ? `<p class="fest-story-en">${esc(storyEn)}</p>` : ''}
+           </div>`
+        : '';
+    const whyBody = (whyOr || whyEn)
+        ? `<div class="fest-why">
+             <div class="fest-story-label">✨ ଆଜି କାହିଁକି · Why today</div>
+             ${whyOr ? `<p class="fest-story-or">${esc(whyOr)}</p>` : ''}
+             ${whyEn && whyEn !== whyOr ? `<p class="fest-story-en">${esc(whyEn)}</p>` : ''}
+           </div>`
+        : '';
+    return { storyBody, whyBody, hasContent: !!(storyBody || whyBody) };
+}
+
+/**
+ * Collapsible wrapper — collapsed by default (mobile-friendly).
+ * Uses <details>/<summary> for accessibility without extra JS.
+ */
+function renderStoryCollapse(f, opts = {}) {
+    const { storyBody, whyBody, hasContent } = renderStoryWhyInner(f);
+    if (!hasContent) return '';
+
+    const openAttr = opts.open ? ' open' : '';
+    return `
+      <details class="fest-story-details"${openAttr}>
+        <summary class="fest-story-summary">
+          <span class="fest-summary-label">
+            <span class="fest-summary-icon" aria-hidden="true">📖</span>
+            <span class="fest-summary-text-or">କାହାଣୀ ପଢ଼ନ୍ତୁ</span>
+            <span class="fest-summary-text-en">Read story</span>
+          </span>
+          <span class="fest-summary-hint" aria-hidden="true"></span>
+        </summary>
+        <div class="fest-story-panel">
+          ${storyBody}
+          ${whyBody}
+        </div>
+      </details>`;
+}
+
+/**
+ * Festival card with story + why_today.
+ * mode: 'strip' (today/lookup) | 'list' (festivals tab)
+ */
+function renderFestivalStoryBlock(f, mode) {
+    const kind = f.story_kind || '';
+    const kindLabel = {
+        puranic_tradition: 'Traditional lore',
+        historical_cultural: 'Cultural history',
+        ritual_observance: 'Ritual observance',
+    }[kind] || kind;
+
+    const collapse = renderStoryCollapse(f, { open: false });
+
+    if (mode === 'strip') {
+        return `
+        <div class="festival-strip-item has-story">
+            <div class="fest-title-row">
+                <span class="fest-or">${esc(f.name?.or || '')}</span>
+                <span class="fest-en">${esc(f.name?.en || '')}</span>
+                ${kindLabel ? `<span class="fest-kind-pill">${esc(kindLabel)}</span>` : ''}
+            </div>
+            ${f.description ? `<span class="fest-desc">${esc(f.description)}</span>` : ''}
+            ${collapse}
+        </div>`;
+    }
+
+    return { collapse, kindLabel };
 }
 
 // ── Date lookup ─────────────────────────────────────────────────────────────
@@ -212,7 +362,11 @@ async function lookupDate() {
     const el = document.getElementById('lookup-result');
     el.innerHTML = `<div class="card" style="margin-top:12px;">${spinner()}</div>`;
     try {
-        const resp = await fetch(apiUrl(`/panchang/${dateVal}`));
+        const q = new URLSearchParams({
+            tradition: selectedTradition,
+            city: selectedCity,
+        });
+        const resp = await fetch(apiUrl(`/panchang/${dateVal}?${q}`));
         if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
         const data = await resp.json();
         el.innerHTML = `<div class="card" style="margin-top:12px;">${renderPanchang(data)}</div>`;
@@ -266,18 +420,21 @@ function renderFestivalList(festivals) {
                 const mn = d.toLocaleDateString('en-IN', { month: 'short' });
                 const badge = tradBadge[f.tradition] || 'badge-common';
                 const label = tradLabel[f.tradition] || f.tradition;
+                const storyParts = renderFestivalStoryBlock(f, 'list');
                 return `
-                <div class="festival-card">
+                <div class="festival-card has-story">
                     <div class="festival-date-col">
                         <div class="festival-date-day">${d.getDate()}</div>
                         <div class="festival-date-mon">${mn}</div>
                         <div class="festival-date-weekday">${wd}</div>
                     </div>
                     <div class="festival-info-col">
-                        <div class="festival-name-or">${f.name?.or || ''}</div>
-                        <div class="festival-name-en">${f.name?.en || ''}</div>
-                        <span class="festival-tradition-badge ${badge}">${label}</span>
-                        ${f.description ? `<div class="festival-desc">${f.description}</div>` : ''}
+                        <div class="festival-name-or">${esc(f.name?.or || '')}</div>
+                        <div class="festival-name-en">${esc(f.name?.en || '')}</div>
+                        <span class="festival-tradition-badge ${badge}">${esc(label)}</span>
+                        ${storyParts.kindLabel ? `<span class="fest-kind-pill">${esc(storyParts.kindLabel)}</span>` : ''}
+                        ${f.description ? `<div class="festival-desc">${esc(f.description)}</div>` : ''}
+                        ${storyParts.collapse || ''}
                     </div>
                 </div>`;
             }).join('')}

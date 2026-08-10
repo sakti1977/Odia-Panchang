@@ -1,17 +1,122 @@
 """
-Location data for major cities in India and internationally.
-Each location includes coordinates and timezone for accurate sunrise/sunset calculations.
+Location data for Odisha peetha cities, major Indian cities, and international hubs.
+Each location includes coordinates and timezone for sunrise/sunset.
+
+Tradition defaults (spec.md):
+  jagannath → puri
+  biraja    → jajpur
+  common    → bhubaneswar
 """
 
+# Tradition → default city key (used by API resolver)
+TRADITION_DEFAULT_CITY = {
+    "jagannath": "puri",
+    "biraja": "jajpur",
+    "common": "bhubaneswar",
+    "all": "bhubaneswar",
+    "lingaraj": "bhubaneswar",
+}
+
 ODISHA_CITIES = {
-    # Odisha
+    # ── Odisha (peetha + major) ───────────────────────────────────────────
     "bhubaneswar": {
         "name": "Bhubaneswar",
         "name_or": "ଭୁବନେଶ୍ୱର",
         "lat": 20.2961,
         "lon": 85.8245,
         "tz": 5.5,
-        "description": "Capital of Odisha, Temple city of India"
+        "description": "Capital of Odisha; Lingaraj / Ekamra",
+        "region": "odisha",
+    },
+    "puri": {
+        "name": "Puri",
+        "name_or": "ପୁରୀ",
+        "lat": 19.8135,
+        "lon": 85.8312,
+        "tz": 5.5,
+        "description": "Sri Jagannath Dham; coastal panji heartland",
+        "region": "odisha",
+    },
+    "jajpur": {
+        "name": "Jajpur",
+        "name_or": "ଯାଜପୁର",
+        "lat": 20.8480,
+        "lon": 86.3350,
+        "tz": 5.5,
+        "description": "Maa Biraja peetha; north Odisha panji heartland",
+        "region": "odisha",
+    },
+    "cuttack": {
+        "name": "Cuttack",
+        "name_or": "କଟକ",
+        "lat": 20.4625,
+        "lon": 85.8830,
+        "tz": 5.5,
+        "description": "Millennium City; cultural capital of Odisha",
+        "region": "odisha",
+    },
+    "berhampur": {
+        "name": "Berhampur",
+        "name_or": "ବ୍ରହ୍ମପୁର",
+        "lat": 19.3149,
+        "lon": 84.7941,
+        "tz": 5.5,
+        "description": "Silk city of southern Odisha",
+        "region": "odisha",
+    },
+    "sambalpur": {
+        "name": "Sambalpur",
+        "name_or": "ସମ୍ବଲପୁର",
+        "lat": 21.4669,
+        "lon": 83.9756,
+        "tz": 5.5,
+        "description": "Western Odisha; Samaleswari / Nuakhai region",
+        "region": "odisha",
+    },
+    "rourkela": {
+        "name": "Rourkela",
+        "name_or": "ରାଉରକେଲା",
+        "lat": 22.2604,
+        "lon": 84.8536,
+        "tz": 5.5,
+        "description": "Steel city of northern Odisha",
+        "region": "odisha",
+    },
+    "balasore": {
+        "name": "Balasore",
+        "name_or": "ବାଲେଶ୍ୱର",
+        "lat": 21.4942,
+        "lon": 86.9336,
+        "tz": 5.5,
+        "description": "Northern coastal Odisha",
+        "region": "odisha",
+    },
+    "konark": {
+        "name": "Konark",
+        "name_or": "କୋଣାର୍କ",
+        "lat": 19.8876,
+        "lon": 86.0945,
+        "tz": 5.5,
+        "description": "Sun Temple; coastal pilgrimage",
+        "region": "odisha",
+    },
+    "baripada": {
+        "name": "Baripada",
+        "name_or": "ବାରିପଦା",
+        "lat": 21.9347,
+        "lon": 86.7337,
+        "tz": 5.5,
+        "description": "Mayurbhanj; Rath Yatra tradition of Baripada",
+        "region": "odisha",
+    },
+    "bhadrak": {
+        "name": "Bhadrak",
+        "name_or": "ଭଦ୍ରକ",
+        "lat": 21.0583,
+        "lon": 86.4958,
+        "tz": 5.5,
+        "description": "North Odisha; Biraja panji region",
+        "region": "odisha",
     },
 
     # Major Indian Metro Cities
@@ -148,12 +253,17 @@ ODISHA_CITIES = {
 }
 
 
-def get_city_info(city_key: str) -> dict:
+def get_city_info(city_key: str) -> dict | None:
     """
     Get location information for a city.
     Returns None if city not found.
     """
-    return ODISHA_CITIES.get(city_key.lower())
+    if not city_key:
+        return None
+    info = ODISHA_CITIES.get(city_key.lower())
+    if not info:
+        return None
+    return {"key": city_key.lower(), **info}
 
 
 def list_all_cities() -> list:
@@ -167,6 +277,41 @@ def list_all_cities() -> list:
         }
         for key, info in ODISHA_CITIES.items()
     ]
+
+
+def resolve_city(
+    city: str | None = None,
+    tradition: str | None = None,
+) -> dict:
+    """
+    Resolve place for a request.
+
+    Priority:
+      1. Explicit city key if valid
+      2. Tradition default city (spec.md)
+      3. Bhubaneswar
+
+    Raises ValueError for unknown city / tradition when provided.
+    """
+    trad = (tradition or "common").lower().strip()
+    if tradition is not None and trad not in TRADITION_DEFAULT_CITY:
+        raise ValueError(
+            f"Unknown tradition '{tradition}'. "
+            f"Use one of: {', '.join(sorted(TRADITION_DEFAULT_CITY))}."
+        )
+
+    if city:
+        info = get_city_info(city)
+        if not info:
+            raise ValueError(
+                f"Unknown city '{city}'. Use /api/cities for valid keys."
+            )
+        return info
+
+    key = TRADITION_DEFAULT_CITY.get(trad, "bhubaneswar")
+    info = get_city_info(key)
+    assert info is not None
+    return info
 
 
 def detect_city_from_ip(ip_address: str) -> str:

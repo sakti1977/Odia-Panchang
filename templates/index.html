@@ -75,7 +75,17 @@
         <!-- ─── TAB: Today ──────────────────────────────────── -->
         <section id="tab-today" class="tab-panel active" role="tabpanel">
 
-            <!-- City selector -->
+            <!-- Tradition + city -->
+            <div class="section-block">
+                <h2 class="section-title">ପରମ୍ପରା <span class="section-title-en">Tradition</span></h2>
+                <div class="tradition-row" id="tradition-row" role="group" aria-label="Panji tradition">
+                    <button type="button" class="tradition-btn active" data-tradition="all" onclick="selectTradition('all', this)">ସବୁ · All</button>
+                    <button type="button" class="tradition-btn" data-tradition="jagannath" onclick="selectTradition('jagannath', this)">ଜଗନ୍ନାଥ · Jagannath</button>
+                    <button type="button" class="tradition-btn" data-tradition="biraja" onclick="selectTradition('biraja', this)">ବିରଜା · Biraja</button>
+                    <button type="button" class="tradition-btn" data-tradition="common" onclick="selectTradition('common', this)">ସାଧାରଣ · Common</button>
+                </div>
+                <p class="tradition-hint" id="tradition-hint">Shows all festivals. City stays as selected below.</p>
+            </div>
             <div class="section-block">
                 <h2 class="section-title">ଆପଣଙ୍କ ସହର ବାଛନ୍ତୁ <span class="section-title-en">Select Your City</span></h2>
                 <div class="city-grid" id="city-grid">
