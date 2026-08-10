@@ -28,7 +28,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/panchang.db")
 from src.models import PanchangDay, Festival, get_engine, get_session_factory, init_db
 from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
 from src.ai_layer2 import enrich_with_claude
-from src.scheduler import create_scheduler, run_daily_tweet
+from src.scheduler import create_scheduler, run_daily_tweet, run_daily_social, run_daily_all_channels
 from src.tweet_generator import generate_tweet_bundle
 from src.locations import get_city_info, list_all_cities, detect_city_from_ip, resolve_city
 from src.engine import compute_panchang, ENGINE_VERSION
@@ -55,9 +55,16 @@ IST = timezone(timedelta(hours=5, minutes=30))
 _groq_ready    = bool(os.getenv("GROQ_API_KEY"))
 _claude_ready  = bool(os.getenv("ANTHROPIC_API_KEY"))
 _twitter_ready = all(os.getenv(k) for k in ("TWITTER_API_KEY","TWITTER_API_SECRET","TWITTER_ACCESS_TOKEN","TWITTER_ACCESS_SECRET"))
+_meta_page_ready = bool(
+    (os.getenv("META_PAGE_ID") or "").strip()
+    and (os.getenv("META_PAGE_ACCESS_TOKEN") or "").strip()
+)
+_meta_ig_ready = _meta_page_ready and bool((os.getenv("META_IG_USER_ID") or "").strip())
 print(f"[Panchang] Layer 1 (Groq/Llama):   {'✅ active — llama-3.3-70b-versatile' if _groq_ready else '⚠️  GROQ_API_KEY not set — using rule-based fallback'}")
 print(f"[Panchang] Layer 2 (Claude Haiku):  {'✅ active — claude-haiku-4-5' if _claude_ready else '⚠️  ANTHROPIC_API_KEY not set — using rule-based fallback'}")
 print(f"[Panchang] Twitter/X posting:       {'✅ active' if _twitter_ready else '⚠️  TWITTER_* keys not set — tweets will be logged to logs/daily_tweets.log'}")
+print(f"[Panchang] Facebook Page posting:   {'✅ active' if _meta_page_ready else '⚠️  META_PAGE_ID / META_PAGE_ACCESS_TOKEN not set'}")
+print(f"[Panchang] Instagram posting:       {'✅ active' if _meta_ig_ready else '⚠️  META_IG_USER_ID not set (needs Page token + IG Business)'}")
 
 # Additional Twitter diagnostic
 if _twitter_ready:
@@ -399,6 +406,14 @@ def ai_status():
             "note": "Keys must be set on the web service for POST /tweet/post to publish",
             "cron_auth_required": True,
             "cron_secret_configured": tweet_secret_set,
+        },
+        "facebook": {
+            "configured": _meta_page_ready,
+            "note": "META_PAGE_ID + META_PAGE_ACCESS_TOKEN for POST /social/post",
+        },
+        "instagram": {
+            "configured": _meta_ig_ready,
+            "note": "META_IG_USER_ID + Page token; needs public HTTPS card URL via PUBLIC_API_URL",
         },
         "engine_version": ENGINE_VERSION,
         "scheduler": {
@@ -887,6 +902,144 @@ async def post_tweet_now(
     except Exception as exc:
         _log.error("[tweet/post] Unexpected error: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Tweet job encountered an unexpected error. Check application logs.")
+
+
+# ── Facebook / Instagram (Meta Graph) ───────────────────────────────────────
+
+@app.get("/social/preview")
+@limiter.limit("10/minute")
+def preview_social(request: Request):
+    """
+    Preview Facebook caption, Instagram caption, and share-card image URL.
+    Does not publish.
+    """
+    from src.meta_poster import (
+        generate_facebook_message,
+        generate_instagram_caption,
+        meta_configured,
+    )
+    from src.social_card import generate_daily_card, public_card_url
+
+    today = datetime.now(tz=IST).date()
+    db = SessionLocal()
+    try:
+        day = _get_day(db, today.isoformat())
+        festivals = [_festival_to_dict(f) for f in day.festivals]
+        panchang = _day_to_dict(day, festivals)
+    finally:
+        db.close()
+
+    enrichment = _build_enrichment(panchang)
+    card = generate_daily_card(panchang, enrichment)
+    image_url = public_card_url(card, public_base=os.getenv("PUBLIC_API_URL"))
+    return {
+        "date": panchang["date"],
+        "facebook_message": generate_facebook_message(panchang, enrichment),
+        "instagram_caption": generate_instagram_caption(panchang, enrichment),
+        "card_path": str(card),
+        "image_url": image_url,
+        "facebook_configured": meta_configured(need_ig=False),
+        "instagram_configured": meta_configured(need_ig=True),
+        "note": (
+            "POST /social/post with Bearer TWEET_CRON_SECRET to publish. "
+            "Instagram needs a public HTTPS image_url (PUBLIC_API_URL)."
+        ),
+    }
+
+
+@app.post("/social/post")
+@limiter.limit("5/hour")
+async def post_social_now(
+    request: Request,
+    _: None = Depends(_require_tweet_secret),
+    platforms: str = Query(
+        default="facebook,instagram",
+        description="Comma-separated: facebook,instagram",
+    ),
+):
+    """
+    Publish today's panjika to Facebook Page and/or Instagram Business.
+    Requires TWEET_CRON_SECRET. Uses META_* env on the server.
+    """
+    plat_list = [p.strip().lower() for p in platforms.split(",") if p.strip()]
+    allowed = {"facebook", "instagram"}
+    plat_list = [p for p in plat_list if p in allowed]
+    if not plat_list:
+        raise HTTPException(
+            status_code=400,
+            detail="platforms must include facebook and/or instagram",
+        )
+    try:
+        data = await run_daily_social(plat_list)
+        if "error" in data and "social" not in data:
+            _log.error("[social/post] job error: %s", data.get("error"))
+            return {
+                "date": data.get("date"),
+                "status": "error",
+                "message": "Social post job failed. Check application logs.",
+            }
+        social = data.get("social") or {}
+        # Sanitize platform messages (no raw tokens)
+        safe_platforms = {}
+        for name, res in (social.get("platforms") or {}).items():
+            safe_platforms[name] = {
+                "status": res.get("status"),
+                "message": res.get("message", ""),
+                "post_id": res.get("post_id") or res.get("media_id"),
+            }
+        return {
+            "date": data.get("date") or social.get("date"),
+            "status": social.get("status", "unknown"),
+            "image_url": social.get("image_url"),
+            "platforms": safe_platforms,
+            "facebook_message": social.get("facebook_message"),
+            "instagram_caption": social.get("instagram_caption"),
+        }
+    except Exception as exc:
+        _log.error("[social/post] Unexpected error: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Social post job failed. Check application logs.",
+        )
+
+
+@app.post("/social/post/all")
+@limiter.limit("5/hour")
+async def post_all_channels(
+    request: Request,
+    _: None = Depends(_require_tweet_secret),
+):
+    """
+    One wake: post X + Facebook + Instagram (free-tier daily cron).
+    Requires TWEET_CRON_SECRET.
+    """
+    try:
+        data = await run_daily_all_channels()
+        tw = data.get("twitter") or {}
+        social = data.get("social") or {}
+        safe_platforms = {}
+        for name, res in (social.get("platforms") or {}).items():
+            if isinstance(res, dict):
+                safe_platforms[name] = {
+                    "status": res.get("status"),
+                    "message": res.get("message", ""),
+                    "post_id": res.get("post_id") or res.get("media_id"),
+                }
+        return {
+            "date": data.get("date"),
+            "twitter": {
+                "status": tw.get("status") if isinstance(tw, dict) else "unknown",
+                "message": (tw.get("message") if isinstance(tw, dict) else "") or "",
+            },
+            "social": {
+                "status": social.get("status"),
+                "image_url": social.get("image_url"),
+                "platforms": safe_platforms,
+            },
+        }
+    except Exception as exc:
+        _log.error("[social/post/all] Unexpected error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="All-channels post failed.")
 
 
 # ── Temple & Heritage endpoints ─────────────────────────────────────────────

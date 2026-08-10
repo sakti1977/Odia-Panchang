@@ -3,13 +3,15 @@
 Free-tier ops helpers for Odia-Panchang on Render Free + GitHub Actions.
 
 Usage:
-  python scripts/free_tier_ops.py wake   [--url URL]
-  python scripts/free_tier_ops.py tweet  [--url URL]
-  python scripts/free_tier_ops.py health [--url URL]
+  python scripts/free_tier_ops.py wake    [--url URL]
+  python scripts/free_tier_ops.py tweet   [--url URL]
+  python scripts/free_tier_ops.py social  [--url URL] [--platforms facebook,instagram]
+  python scripts/free_tier_ops.py all     [--url URL]
+  python scripts/free_tier_ops.py health  [--url URL]
 
 Environment:
   PUBLIC_API_URL      Base API URL (default https://odia-panchang.onrender.com)
-  TWEET_CRON_SECRET   Required for tweet command (Bearer token)
+  TWEET_CRON_SECRET   Required for tweet/social/all (Bearer token)
 """
 
 from __future__ import annotations
@@ -168,11 +170,100 @@ def health_check(url: str | None = None) -> int:
     return 0 if code == 200 else 1
 
 
+def _auth_headers() -> dict[str, str] | None:
+    secret = (os.getenv("TWEET_CRON_SECRET") or "").strip()
+    if not secret:
+        print(
+            "[auth] TWEET_CRON_SECRET is not set. "
+            "Add it as a GitHub Actions secret and on the Render web service."
+        )
+        return None
+    return {"Authorization": f"Bearer {secret}"}
+
+
+def post_social(
+    url: str | None = None,
+    *,
+    platforms: str = "facebook,instagram",
+    max_attempts: int = 5,
+    initial_wait: float = 25.0,
+    request_timeout: float = 180.0,
+    wake_first: bool = True,
+) -> int:
+    """POST /social/post — Facebook and/or Instagram."""
+    api = base_url(url)
+    headers = _auth_headers()
+    if not headers:
+        return 1
+    if wake_first and not wake_service(api):
+        print("[social] continuing despite wake failure")
+
+    endpoint = f"{api}/social/post?platforms={platforms}"
+    print(f"[social] POST {endpoint}")
+    for attempt in range(1, max_attempts + 1):
+        code, data = http_json(
+            "POST", endpoint, timeout=request_timeout, headers=headers
+        )
+        print(f"[social] attempt {attempt}/{max_attempts}: HTTP {code}")
+        if isinstance(data, dict):
+            print(json.dumps(data, indent=2, ensure_ascii=False)[:3000])
+        if code == 401:
+            print("[social] unauthorized — check TWEET_CRON_SECRET")
+            return 1
+        if code == 200 and isinstance(data, dict):
+            st = data.get("status")
+            if st in ("posted", "partial", "logged"):
+                print(f"[social] done status={st}")
+                return 0 if st != "error" else 1
+            if st == "error":
+                return 1
+        if attempt < max_attempts:
+            wait = initial_wait * attempt
+            print(f"[social] retry in {wait:.0f}s…")
+            time.sleep(wait)
+    return 1
+
+
+def post_all_channels(
+    url: str | None = None,
+    *,
+    wake_first: bool = True,
+    request_timeout: float = 240.0,
+) -> int:
+    """POST /social/post/all — X + Facebook + Instagram."""
+    api = base_url(url)
+    headers = _auth_headers()
+    if not headers:
+        return 1
+    if wake_first and not wake_service(api):
+        print("[all] continuing despite wake failure")
+    endpoint = f"{api}/social/post/all"
+    print(f"[all] POST {endpoint}")
+    code, data = http_json("POST", endpoint, timeout=request_timeout, headers=headers)
+    print(f"[all] HTTP {code}")
+    if isinstance(data, dict):
+        print(json.dumps(data, indent=2, ensure_ascii=False)[:3500])
+    if code == 401:
+        return 1
+    if code != 200:
+        return 1
+    # Success if any channel posted or logged
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Free-tier wake / tweet ops")
-    p.add_argument("command", choices=["wake", "tweet", "health"])
+    p = argparse.ArgumentParser(description="Free-tier wake / tweet / social ops")
+    p.add_argument(
+        "command",
+        choices=["wake", "tweet", "social", "all", "health"],
+    )
     p.add_argument("--url", default=None, help="API base URL")
-    p.add_argument("--no-wake", action="store_true", help="Skip wake before tweet")
+    p.add_argument("--no-wake", action="store_true", help="Skip wake before post")
+    p.add_argument(
+        "--platforms",
+        default="facebook,instagram",
+        help="For social command: facebook,instagram",
+    )
     args = p.parse_args(argv)
 
     if args.command == "wake":
@@ -181,6 +272,14 @@ def main(argv: list[str] | None = None) -> int:
         return health_check(args.url)
     if args.command == "tweet":
         return post_tweet(args.url, wake_first=not args.no_wake)
+    if args.command == "social":
+        return post_social(
+            args.url,
+            platforms=args.platforms,
+            wake_first=not args.no_wake,
+        )
+    if args.command == "all":
+        return post_all_channels(args.url, wake_first=not args.no_wake)
     return 2
 
 

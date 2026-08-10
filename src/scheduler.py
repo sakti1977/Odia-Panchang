@@ -126,74 +126,141 @@ def _post_tweet(bundle: dict) -> dict:
         return {"status": "error", "message": f"{type(e).__name__}: {str(e)}"}
 
 
+async def load_today_panchang_enrichment() -> dict:
+    """
+    Load today's panji + enrichment for social publishers.
+    Prefer PUBLIC_API_URL (warms free tier); fall back to local DB.
+    Returns {date, panchang, enrichment} or {error}.
+    """
+    today = datetime.now(IST).date()
+    public_url = os.getenv("PUBLIC_API_URL", "").rstrip("/")
+    panchang = None
+    enrichment: dict = {}
+
+    if public_url:
+        try:
+            async with httpx.AsyncClient(timeout=45) as client:
+                resp = await client.get(
+                    f"{public_url}/panchang/{today.isoformat()}",
+                    params={"enriched": "true"},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            panchang = data
+            enrichment = {
+                "astronomical": data.get("enrichment", {}).get("astronomical", {}),
+                "cultural": data.get("enrichment", {}).get("cultural", {}),
+            }
+            logger.info("[Scheduler] Fetched panji from public API: %s", public_url)
+        except Exception as api_err:
+            logger.warning(
+                "[Scheduler] Public API call failed (%s), falling back to local",
+                api_err,
+            )
+            panchang = None
+
+    if panchang is None:
+        from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
+        from src.ai_layer2 import enrich_with_claude
+        from main import SessionLocal, _get_day, _day_to_dict, _festival_to_dict
+
+        db = SessionLocal()
+        try:
+            day = _get_day(db, today.isoformat())
+            festivals = [_festival_to_dict(f) for f in day.festivals]
+            panchang = _day_to_dict(day, festivals)
+        finally:
+            db.close()
+
+        weekday = today.weekday()
+        muhurtas = compute_muhurtas(
+            today.isoformat(), panchang["sunrise"], panchang["sunset"], weekday
+        )
+        yogas = detect_special_yogas(
+            weekday, panchang["nakshatra"]["en"], panchang["yoga"]["en"]
+        )
+        layer1 = validate_with_ai(panchang, muhurtas, yogas)
+        layer2 = enrich_with_claude(panchang, layer1)
+        enrichment = {"astronomical": layer1, "cultural": layer2}
+
+    return {
+        "date": today.isoformat(),
+        "panchang": panchang,
+        "enrichment": enrichment,
+    }
+
+
 async def run_daily_tweet():
     """
     Main scheduled job: fetch today's panchang + enrichment, generate tweet, post or log.
     Called at 5:00 AM IST every day.
-
-    If PUBLIC_API_URL is set, fetches enriched data from the public API (keeps
-    the Render free-tier server warm). Falls back to local computation otherwise.
     """
     today = datetime.now(IST).date()
     logger.info(f"[Scheduler] Running daily tweet job for {today}")
-
-    public_url = os.getenv("PUBLIC_API_URL", "").rstrip("/")
-
     try:
-        panchang = None
-        enrichment = {}
-
-        # ── Try public API first (warms up Render free tier) ──────────────
-        if public_url:
-            try:
-                async with httpx.AsyncClient(timeout=30) as client:
-                    resp = await client.get(
-                        f"{public_url}/panchang/{today.isoformat()}",
-                        params={"enriched": "true"},
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                panchang = data
-                enrichment = {
-                    "astronomical": data.get("enrichment", {}).get("astronomical", {}),
-                    "cultural":     data.get("enrichment", {}).get("cultural", {}),
-                }
-                logger.info(f"[Scheduler] Fetched from public API: {public_url}")
-            except Exception as api_err:
-                logger.warning(f"[Scheduler] Public API call failed ({api_err}), falling back to local compute")
-                panchang = None
-
-        # ── Local fallback ─────────────────────────────────────────────────
-        if panchang is None:
-            from src.ai_layer1 import compute_muhurtas, detect_special_yogas, validate_with_ai
-            from src.ai_layer2 import enrich_with_claude
-            from main import SessionLocal, _get_day, _day_to_dict, _festival_to_dict
-
-            db = SessionLocal()
-            try:
-                day = _get_day(db, today.isoformat())
-                festivals = [_festival_to_dict(f) for f in day.festivals]
-                panchang = _day_to_dict(day, festivals)
-            finally:
-                db.close()
-
-            weekday  = today.weekday()
-            muhurtas = compute_muhurtas(today.isoformat(), panchang["sunrise"], panchang["sunset"], weekday)
-            yogas    = detect_special_yogas(weekday, panchang["nakshatra"]["en"], panchang["yoga"]["en"])
-            layer1   = validate_with_ai(panchang, muhurtas, yogas)
-            layer2   = enrich_with_claude(panchang, layer1)
-            enrichment = {"astronomical": layer1, "cultural": layer2}
-
-        # ── Generate + post ────────────────────────────────────────────────
+        data = await load_today_panchang_enrichment()
+        if "error" in data:
+            return data
+        panchang = data["panchang"]
+        enrichment = data["enrichment"]
         from src.tweet_generator import generate_tweet_bundle
+
         bundle = generate_tweet_bundle(panchang, enrichment)
         result = _post_tweet(bundle)
         logger.info(f"[Scheduler] Tweet job done: {result}")
-        return {"date": today.isoformat(), "bundle": bundle, "result": result}
-
+        return {
+            "date": today.isoformat(),
+            "bundle": bundle,
+            "result": result,
+            "panchang": panchang,
+            "enrichment": enrichment,
+        }
     except Exception as e:
         logger.error(f"[Scheduler] Daily tweet job failed: {e}", exc_info=True)
         return {"error": str(e)}
+
+
+async def run_daily_social(platforms: list[str] | None = None):
+    """
+    Post today's panjika to Facebook Page and/or Instagram Business only
+    (does not post to Twitter — use run_daily_tweet for X).
+    """
+    from src.meta_poster import post_meta_bundle
+
+    platforms = platforms or ["facebook", "instagram"]
+    logger.info("[Scheduler] Running daily social job platforms=%s", platforms)
+    try:
+        data = await load_today_panchang_enrichment()
+        if "error" in data:
+            return data
+        panchang = data["panchang"]
+        enrichment = data["enrichment"]
+        social = post_meta_bundle(
+            panchang,
+            enrichment,
+            platforms=platforms,
+            public_base=os.getenv("PUBLIC_API_URL"),
+        )
+        logger.info("[Scheduler] Social job done: %s", social.get("status"))
+        return {
+            "date": panchang.get("date"),
+            "social": social,
+        }
+    except Exception as e:
+        logger.error("[Scheduler] Daily social job failed: %s", e, exc_info=True)
+        return {"error": str(e)}
+
+
+async def run_daily_all_channels():
+    """Tweet + Facebook + Instagram for free-tier cron (one wake)."""
+    tweet = await run_daily_tweet()
+    social = await run_daily_social(["facebook", "instagram"])
+    return {
+        "date": tweet.get("date") or social.get("date"),
+        "twitter": tweet.get("result") if "result" in tweet else tweet,
+        "tweet_bundle": tweet.get("bundle"),
+        "social": social.get("social") if "social" in social else social,
+    }
 
 
 def create_scheduler() -> AsyncIOScheduler:

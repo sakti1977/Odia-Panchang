@@ -43,9 +43,18 @@ services:
         sync: false
       - key: TWITTER_BEARER_TOKEN
         sync: false
-      # Required for POST /tweet/post (Bearer / X-Tweet-Cron-Secret)
+      # Required for POST /tweet/post and /social/post (Bearer / X-Tweet-Cron-Secret)
       - key: TWEET_CRON_SECRET
         sync: false
+      # Meta Graph API — Facebook Page + Instagram Business
+      - key: META_PAGE_ID
+        sync: false
+      - key: META_PAGE_ACCESS_TOKEN
+        sync: false
+      - key: META_IG_USER_ID
+        sync: false
+      - key: META_GRAPH_VERSION
+        value: "v21.0"
 
 # Optional: if you later pay for always-on + Render Cron, uncomment and set secrets.
 # Prefer GitHub Actions while on Free plan.

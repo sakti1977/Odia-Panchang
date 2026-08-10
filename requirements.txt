@@ -11,3 +11,4 @@ slowapi
 httpx
 jinja2
 geoip2
+Pillow

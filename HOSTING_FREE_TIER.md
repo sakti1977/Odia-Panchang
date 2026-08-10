@@ -133,6 +133,30 @@ Authorization: Bearer <TWEET_CRON_SECRET>
 Without secret → **401**. Without secret configured on server → **503**.
 Rate limit: **5/hour** per IP.
 
+## Facebook & Instagram (Meta)
+
+See **`SOCIAL_META.md`** for full Meta app setup.
+
+| Env | Purpose |
+|-----|---------|
+| `META_PAGE_ID` | Facebook Page ID |
+| `META_PAGE_ACCESS_TOKEN` | Long-lived Page token |
+| `META_IG_USER_ID` | Instagram Business user ID |
+| `PUBLIC_API_URL` | Required for IG (public HTTPS card URL) |
+
+```bash
+# Preview card + captions
+curl -s "$PUBLIC_API_URL/social/preview" | jq .
+
+# Publish FB + IG
+python scripts/free_tier_ops.py social --url "$PUBLIC_API_URL"
+
+# X + FB + IG
+python scripts/free_tier_ops.py all --url "$PUBLIC_API_URL"
+```
+
+Daily GH workflow posts X, then FB/IG (`continue-on-error` if Meta not configured).
+
 ## What not to do on Free
 
 - Rely on in-process APScheduler for 5 AM tweets (process is asleep).
