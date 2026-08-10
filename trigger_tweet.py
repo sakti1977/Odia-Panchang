@@ -17,10 +17,15 @@ REQUEST_TIMEOUT = 120  # seconds — enough for tweet generation + posting
 
 
 def trigger():
+    secret = (os.getenv("TWEET_CRON_SECRET") or "").strip()
+    if not secret:
+        print("[cron] ❌ TWEET_CRON_SECRET not set — refusing to call /tweet/post")
+        sys.exit(1)
+    headers = {"Authorization": f"Bearer {secret}"}
     print(f"[cron] Triggering daily tweet: {ENDPOINT}")
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            resp = httpx.post(ENDPOINT, timeout=REQUEST_TIMEOUT)
+            resp = httpx.post(ENDPOINT, timeout=REQUEST_TIMEOUT, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             result = data.get("result", {})

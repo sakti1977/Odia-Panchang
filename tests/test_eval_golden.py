@@ -141,6 +141,15 @@ class TestEFestCivil:
     def test_e_fest_2025_bahuda_july_5(self):
         assert any("Bahuda" in n for n in _fest_names(date(2025, 7, 5)))
 
+    def test_e_fest_2022_rath_authority_july_1(self):
+        """Wikipedia A2 — was wrong live (engine 2022-07-30) before multi-year civil."""
+        assert any("Rath Yatra" in n for n in _fest_names(date(2022, 7, 1)))
+        assert not any("Rath Yatra" in n for n in _fest_names(date(2022, 7, 30)))
+
+    def test_e_fest_2023_rath_authority_june_20(self):
+        assert any("Rath Yatra" in n for n in _fest_names(date(2023, 6, 20)))
+        assert not any("Rath Yatra" in n for n in _fest_names(date(2023, 7, 19)))
+
     def test_e_fest_2027_rath(self):
         assert any("Rath Yatra" in n for n in _fest_names(date(2027, 7, 5)))
 
@@ -165,7 +174,8 @@ class TestEFestCivil:
 
     def test_civil_override_source_notes(self):
         notes = authority_notes()
-        assert notes and "2025" in notes[0]["year"]
+        years = {n["year"] for n in notes}
+        assert "2025" in years and "2022" in years and "2023" in years
         rows = civil_festivals_for_date("2025-06-27")
         assert any(r["name_en"] == "Rath Yatra" for r in rows)
         assert "Tourism" in (rows[0].get("source_note") or "")
@@ -335,6 +345,7 @@ class TestStoryQualityAndSafe:
                 assert phrase.lower() not in blob, f"{name} contains denylist: {phrase}"
 
     def test_civil_override_years_only_when_sourced(self):
-        # Only years with human-sourced Tier A tables
-        assert 2025 in CIVIL_OVERRIDE_YEARS
-        assert set(CIVIL_OVERRIDE_YEARS.keys()) <= {2025}  # expand only with sources
+        # Only years with human-sourced Tier A/A2 tables
+        assert {2022, 2023, 2025} <= set(CIVIL_OVERRIDE_YEARS)
+        # Do not invent years without sources
+        assert set(CIVIL_OVERRIDE_YEARS.keys()) <= {2020, 2021, 2022, 2023, 2025, 2028, 2029, 2030}

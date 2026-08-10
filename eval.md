@@ -283,14 +283,17 @@ Optional same-cycle checks (from consistent Puri schedules, cross-check yearly):
 
 ### E-FEST-MULTIYEAR-RATH
 
-| Year | Rath Yatra date | Source |
-|------|-----------------|--------|
-| 2024 | 2024-07-07 | A2 |
-| 2025 | 2025-06-27 | **A1 Tourism 2025**, A2 |
-| 2026 | 2026-07-16 | A1, A2 |
-| 2027 | 2027-07-05 | A2 |
+| Year | Rath Yatra date | Source | Product path |
+|------|-----------------|--------|--------------|
+| 2022 | 2022-07-01 | A2 Wikipedia | **civil override** (engine Ashadha S2 = 2022-07-30) |
+| 2023 | 2023-06-20 | A2 Wikipedia | **civil override** (engine Ashadha S2 = 2023-07-19) |
+| 2024 | 2024-07-07 | A2 | tithi rule (matches engine) |
+| 2025 | 2025-06-27 | **A1 Tourism 2025**, A2 | **civil override** |
+| 2026 | 2026-07-16 | A1, A2 | tithi rule |
+| 2027 | 2027-07-05 | A2 | tithi rule |
 
 **Assert:** Festival list for that year includes Rath on that date (tradition common or jagannath).
+Civil years live in `src/festival_civil.py` (`CIVIL_OVERRIDE_YEARS`).
 
 ### E-FEST-2024-SNANA
 | Event | Date | Source |

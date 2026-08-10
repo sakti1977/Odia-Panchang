@@ -8,7 +8,9 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Literal
 
-from fastapi import FastAPI, HTTPException, Query, Request
+import secrets as _secrets
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -29,7 +31,7 @@ from src.ai_layer2 import enrich_with_claude
 from src.scheduler import create_scheduler, run_daily_tweet
 from src.tweet_generator import generate_tweet_bundle
 from src.locations import get_city_info, list_all_cities, detect_city_from_ip, resolve_city
-from src.engine import compute_panchang
+from src.engine import compute_panchang, ENGINE_VERSION
 from src.pdf_generator import generate_monthly_text, generate_calendar_view
 from src.festivals import match_festivals, get_sankranti_festivals
 from src.temple_data import (
@@ -148,7 +150,9 @@ def _filter_festivals(festivals: list, tradition: str | None) -> list:
 def _build_meta(place: dict, tradition: str) -> dict:
     return {
         "engine": "lahiri_swiss_ephemeris",
+        "engine_version": ENGINE_VERSION,
         "masa_system": "purnimanta_odia_default",
+        "day_elements_anchor": "approx_06:00_IST_lahiri",
         "tradition": tradition or "all",
         "city": place.get("key") or place.get("name", "").lower(),
         "lat": place.get("lat"),
@@ -214,6 +218,7 @@ def _place_sun(d: date, place: dict) -> tuple[str | None, str | None]:
 
 def _festival_to_dict(f: Festival) -> dict:
     """Serialize festival; attach curated story / why_today at read time."""
+    from src.festival_civil import lookup_civil_meta
     from src.festival_stories import attach_story
 
     payload = {
@@ -222,9 +227,12 @@ def _festival_to_dict(f: Festival) -> dict:
         "description": f.description,
         "name_en":     f.name_en,  # for story lookup; stripped below
     }
+    civil = lookup_civil_meta(getattr(f, "date", None), f.name_en)
+    if civil:
+        payload.update(civil)
     attach_story(payload)
     payload.pop("name_en", None)
-    return {
+    out = {
         "name":           payload["name"],
         "tradition":      payload["tradition"],
         "description":    payload["description"],
@@ -234,6 +242,11 @@ def _festival_to_dict(f: Festival) -> dict:
         "story_sources":  payload.get("story_sources"),
         "story_complete": payload.get("story_complete"),
     }
+    if payload.get("civil_override"):
+        out["civil_override"] = True
+        out["source_tier"] = payload.get("source_tier")
+        out["source_note"] = payload.get("source_note")
+    return out
 
 
 def _get_day(db: OrmSession, date_str: str) -> PanchangDay:
@@ -283,12 +296,44 @@ async def home_page(request: Request):
 
 @app.get("/api")
 def health_check():
-    return {"status": "ok", "service": "Odia Panchang API"}
+    return {
+        "status": "ok",
+        "service": "Odia Panchang API",
+        "engine_version": ENGINE_VERSION,
+    }
+
+
+def _require_tweet_secret(
+    authorization: str | None = Header(default=None),
+    x_tweet_cron_secret: str | None = Header(default=None, alias="X-Tweet-Cron-Secret"),
+) -> None:
+    """
+    Protect POST /tweet/post. Callers must send:
+      Authorization: Bearer <TWEET_CRON_SECRET>
+    or X-Tweet-Cron-Secret: <TWEET_CRON_SECRET>
+    """
+    expected = (os.getenv("TWEET_CRON_SECRET") or "").strip()
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "TWEET_CRON_SECRET is not configured on the server. "
+                "Set it on Render and in GitHub Actions secrets."
+            ),
+        )
+    token = None
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    elif x_tweet_cron_secret:
+        token = x_tweet_cron_secret.strip()
+    if not token or not _secrets.compare_digest(token, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @app.get("/api/status")
 def ai_status():
     """Show AI layers, Twitter, and free-tier scheduler configuration."""
+    tweet_secret_set = bool((os.getenv("TWEET_CRON_SECRET") or "").strip())
     return {
         "layer1_groq": {
             "active": _groq_ready,
@@ -307,7 +352,10 @@ def ai_status():
         "twitter": {
             "configured": _twitter_ready,
             "note": "Keys must be set on the web service for POST /tweet/post to publish",
+            "cron_auth_required": True,
+            "cron_secret_configured": tweet_secret_set,
         },
+        "engine_version": ENGINE_VERSION,
         "scheduler": {
             "inprocess": _ENABLE_INPROCESS_SCHEDULER,
             "recommended": "github_actions",
@@ -721,9 +769,14 @@ _log = logging.getLogger(__name__)
 
 
 @app.post("/tweet/post")
-async def post_tweet_now():
+@limiter.limit("5/hour")
+async def post_tweet_now(
+    request: Request,
+    _: None = Depends(_require_tweet_secret),
+):
     """
     Manually trigger today's tweet right now (same as the 5 AM job).
+    Requires TWEET_CRON_SECRET (Bearer or X-Tweet-Cron-Secret).
     Waits for completion and returns the full result so callers can see
     whether the tweet was posted to Twitter or saved to the log file.
     """

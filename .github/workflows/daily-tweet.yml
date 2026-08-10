@@ -52,6 +52,7 @@ jobs:
       - name: Post daily tweet
         env:
           PUBLIC_API_URL: ${{ steps.url.outputs.url }}
+          TWEET_CRON_SECRET: ${{ secrets.TWEET_CRON_SECRET }}
         run: python scripts/free_tier_ops.py tweet --url "$PUBLIC_API_URL" --no-wake
 
       - name: Preview tweet content

@@ -24,7 +24,7 @@ def test_wake_service_success_first_try():
 def test_wake_service_retries_then_ok():
     calls = {"n": 0}
 
-    def flaky(method, url, timeout=60.0):
+    def flaky(method, url, timeout=60.0, headers=None):
         calls["n"] += 1
         if calls["n"] < 3:
             return 0, {"error": "down"}
@@ -36,17 +36,27 @@ def test_wake_service_retries_then_ok():
     assert calls["n"] == 3
 
 
-def test_post_tweet_posted():
+def test_post_tweet_requires_secret(monkeypatch):
+    monkeypatch.delenv("TWEET_CRON_SECRET", raising=False)
+    assert ops.post_tweet("https://example.com", wake_first=False) == 1
+
+
+def test_post_tweet_posted(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
     with patch.object(ops, "wake_service", return_value=True):
         with patch.object(
             ops,
             "http_json",
             return_value=(200, {"result": {"status": "posted"}, "date": "2026-08-10"}),
-        ):
+        ) as http:
             assert ops.post_tweet("https://example.com", wake_first=True) == 0
+            # Bearer auth sent
+            kwargs = http.call_args.kwargs
+            assert "Bearer test-secret" in kwargs.get("headers", {}).get("Authorization", "")
 
 
-def test_post_tweet_logged_is_success():
+def test_post_tweet_logged_is_success(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
     with patch.object(ops, "wake_service", return_value=True):
         with patch.object(
             ops,
@@ -56,13 +66,21 @@ def test_post_tweet_logged_is_success():
             assert ops.post_tweet("https://example.com") == 0
 
 
-def test_post_tweet_error_status_fails():
+def test_post_tweet_error_status_fails(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
     with patch.object(ops, "wake_service", return_value=True):
         with patch.object(
             ops,
             "http_json",
             return_value=(200, {"result": {"status": "error", "message": "x"}}),
         ):
+            assert ops.post_tweet("https://example.com", max_attempts=1) == 1
+
+
+def test_post_tweet_401_fails(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "wrong")
+    with patch.object(ops, "wake_service", return_value=True):
+        with patch.object(ops, "http_json", return_value=(401, {"detail": "Unauthorized"})):
             assert ops.post_tweet("https://example.com", max_attempts=1) == 1
 
 

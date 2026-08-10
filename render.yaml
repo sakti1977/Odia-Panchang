@@ -43,6 +43,9 @@ services:
         sync: false
       - key: TWITTER_BEARER_TOKEN
         sync: false
+      # Required for POST /tweet/post (Bearer / X-Tweet-Cron-Secret)
+      - key: TWEET_CRON_SECRET
+        sync: false
 
 # Optional: if you later pay for always-on + Render Cron, uncomment and set secrets.
 # Prefer GitHub Actions while on Free plan.

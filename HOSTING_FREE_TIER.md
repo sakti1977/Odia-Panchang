@@ -33,6 +33,7 @@ Confirm env vars (or apply `render.yaml`):
 | `ENABLE_INPROCESS_SCHEDULER` | `false` |
 | `PUBLIC_API_URL` | your `https://….onrender.com` |
 | `TWITTER_API_KEY` / `_SECRET` / `ACCESS_TOKEN` / `ACCESS_SECRET` | same Twitter app |
+| `TWEET_CRON_SECRET` | **Required** for `POST /tweet/post` (Bearer). Same value in GH Actions secret |
 | Optional | `TWITTER_BEARER_TOKEN`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY` |
 
 Redeploy after env changes. Check logs for:
@@ -45,9 +46,11 @@ In-process scheduler OFF (free-tier default)
 
 1. **Settings → Secrets and variables → Actions → Variables**  
    - Optional: `PUBLIC_API_URL` = `https://your-service.onrender.com`
-2. Ensure workflows are enabled (**Actions** tab).
-3. Run **Manual Tweet Trigger** once to verify wake + post.
-4. Optional: enable **Keep-warm free Render** if you want fewer cold starts  
+2. **Settings → Secrets → Actions → Secrets**  
+   - **Required:** `TWEET_CRON_SECRET` = long random string (**same** as Render env `TWEET_CRON_SECRET`)
+3. Ensure workflows are enabled (**Actions** tab).
+4. Run **Manual Tweet Trigger** once to verify wake + post (needs secret on both sides).
+5. Optional: enable **Keep-warm free Render** if you want fewer cold starts  
    (uses free instance hours; one always-warm service ≈ 720 h/mo vs 750 free hours).
 
 ### 3. Verify
@@ -97,17 +100,35 @@ Do **not** turn on `ENABLE_INPROCESS_SCHEDULER` on Free — it does not wake a s
 
 ## Database reseed policy
 
-SQLite on Render is created at first boot (`start.sh` seeds only if DB missing).
-Engine or festival-rule changes **do not** auto-reseed an existing file.
+`start.sh` runs `python seed.py --ensure-engine`:
 
-| When | Action |
-|------|--------|
-| Change `src/engine.py` masa/tithi logic | Local: `python seed.py --start 2020 --end 2030` (or wipe years). Deploy: delete Render disk DB **or** force reseed, then redeploy |
-| Change `src/festivals.py` / `festival_civil.py` | `python seed.py --refresh-festivals --start 2020 --end 2030` (rewrites Festival rows only) |
-| Stories only (`festival_stories.py`) | **No reseed** — stories attach at API read time |
-| After reseed | Run `pytest tests/test_db_parity.py tests/test_eval_golden.py -q` |
+| Condition | Action |
+|-----------|--------|
+| `data/.engine_version` ≠ `ENGINE_VERSION` in `src/engine.py` | **Force reseed** astronomy + festivals for 2020–2030 |
+| Versions match | Festival-only refresh (civil overrides / rules stay current) |
+| Stories only (`festival_stories.py`) | No reseed — attach at API read time |
 
-**Never** commit large binary DB churn without need; CI seeds if `data/panchang.db` is empty.
+Manual:
+
+```bash
+python seed.py --force --start 2020 --end 2030   # full rewrite
+python seed.py --refresh-festivals                 # festivals only
+python seed.py --ensure-engine                     # same as start.sh
+```
+
+Bump `ENGINE_VERSION` whenever masa/tithi/anchor formula changes.
+
+After reseed: `pytest tests/test_db_parity.py tests/test_eval_golden.py -q`.
+
+## Tweet cron auth (required)
+
+```http
+POST /tweet/post
+Authorization: Bearer <TWEET_CRON_SECRET>
+```
+
+Without secret → **401**. Without secret configured on server → **503**.
+Rate limit: **5/hour** per IP.
 
 ## What not to do on Free
 

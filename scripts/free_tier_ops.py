@@ -8,7 +8,8 @@ Usage:
   python scripts/free_tier_ops.py health [--url URL]
 
 Environment:
-  PUBLIC_API_URL  Base API URL (default https://odia-panchang.onrender.com)
+  PUBLIC_API_URL      Base API URL (default https://odia-panchang.onrender.com)
+  TWEET_CRON_SECRET   Required for tweet command (Bearer token)
 """
 
 from __future__ import annotations
@@ -35,11 +36,15 @@ def http_json(
     url: str,
     *,
     timeout: float = 60.0,
+    headers: dict[str, str] | None = None,
 ) -> tuple[int, Any]:
     """Minimal HTTP JSON client (stdlib only — no httpx required in CI)."""
     req = Request(url, method=method.upper())
     req.add_header("Accept", "application/json")
     req.add_header("User-Agent", "odia-panchang-free-tier-ops/1.0")
+    if headers:
+        for k, v in headers.items():
+            req.add_header(k, v)
     try:
         with urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8", errors="replace")
@@ -103,18 +108,34 @@ def post_tweet(
     Exit codes: 0 success (posted or logged), 1 hard failure.
     """
     api = base_url(url)
+    secret = (os.getenv("TWEET_CRON_SECRET") or "").strip()
+    if not secret:
+        print(
+            "[tweet] TWEET_CRON_SECRET is not set. "
+            "Add it as a GitHub Actions secret and on the Render web service."
+        )
+        return 1
+
     if wake_first and not wake_service(api):
-        # still try tweet — wake might have partially worked
         print("[tweet] continuing despite wake failure")
 
     endpoint = f"{api}/tweet/post"
-    print(f"[tweet] POST {endpoint}")
+    auth_headers = {"Authorization": f"Bearer {secret}"}
+    print(f"[tweet] POST {endpoint} (with cron secret)")
     last_status = "unknown"
     for attempt in range(1, max_attempts + 1):
-        code, data = http_json("POST", endpoint, timeout=request_timeout)
+        code, data = http_json(
+            "POST", endpoint, timeout=request_timeout, headers=auth_headers
+        )
         print(f"[tweet] attempt {attempt}/{max_attempts}: HTTP {code}")
         if isinstance(data, dict):
             print(json.dumps(data, indent=2, ensure_ascii=False)[:2500])
+        if code == 401:
+            print("[tweet] unauthorized — check TWEET_CRON_SECRET matches Render")
+            return 1
+        if code == 503:
+            print("[tweet] server missing TWEET_CRON_SECRET configuration")
+            return 1
         result = (data or {}).get("result") if isinstance(data, dict) else {}
         last_status = (result or {}).get("status", "unknown")
 
@@ -128,7 +149,6 @@ def post_tweet(
                 )
             return 0
         if code == 200 and last_status == "error":
-            # App handled the job but Twitter failed — do not infinite-retry forever
             print("[tweet] application returned error status (check Render logs / Twitter keys)")
             return 1
 

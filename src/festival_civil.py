@@ -4,32 +4,27 @@ Tier A civil-date festival overrides (Jagannath / Puri cycle).
 Why this exists
 ---------------
 Tithi rules (Ashadha Shukla 2 → Rath, Jyeshtha Shukla 15 → Snana) are correct
-in non-adhika years under our Lahiri + Purnimanta map. In some years (notably
-2025) public authorities place the Puri cycle about one lunar month earlier
-than pure engine masa names, because commercial Odia panji / temple calendars
-apply adhika-masa naming that this engine does not yet fully model.
+in non-adhika years under our Lahiri + Purnimanta map. In some years public
+authorities place the Puri cycle about one lunar month earlier than pure
+engine masa names (adhika / nija-Ashadha naming this engine does not model).
 
 Product rule (spec / eval.md):
-  - On conflict between engine masa labels and Tier A public civil dates for
-    **Puri festival days**, prefer Tier A civil dates for *festival attachment*.
+  - Prefer Tier A civil dates for *festival attachment*.
   - Do not invent a second ephemeris or silently rename months.
-  - Document sources; never “fix” evals to match the bug.
+  - Expose civil_override + source on the wire; never “fix” evals to match the bug.
 
 Sources
 -------
-2025 table: Odisha Tourism — Rath Yatra 2025
-  https://odishatourism.gov.in/content/tourism/en/experience/event/ratha-jatra-2025.html
-  (retrieved 2026-08-10): Deba Snana 11 Jun · Rath 27 Jun · Bahuda 5 Jul ·
-  Suna Besha 6 Jul · Adharapana 7 Jul · Niladri Bije 8 Jul.
-Cross-check: Wikipedia Ratha Yatra (Puri) 2025 = 27 June; Snana Yatra 2025 = 11 June.
+- A1 Odisha Tourism Rath Yatra pages (year-specific)
+- A2 Wikipedia Ratha Yatra (Puri) multi-year table
 """
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
 
-# Festival name_en values whose *tithi rules* are suppressed in years that
-# have a full civil override set (so we do not double-fire on wrong months).
+
 _SUPPRESS_IN_OVERRIDE_YEARS: frozenset[str] = frozenset(
     {
         "Snana Purnima",
@@ -45,138 +40,197 @@ _SUPPRESS_IN_OVERRIDE_YEARS: frozenset[str] = frozenset(
     }
 )
 
-# year → date_iso → list of festival dicts (pre-story; match_festivals attaches)
-# Each dict: name_en, name_or, tradition, description, source_tier, source_note
+
+def _row(
+    name_en: str,
+    name_or: str,
+    tradition: str,
+    description: str,
+    *,
+    source_tier: str,
+    source_note: str,
+) -> dict[str, str]:
+    return {
+        "name_en": name_en,
+        "name_or": name_or,
+        "tradition": tradition,
+        "description": description,
+        "source_tier": source_tier,
+        "source_note": source_note,
+    }
+
+
+def _build_puri_cycle(
+    *,
+    snana: date,
+    rath: date,
+    bahuda: date,
+    source_label: str,
+    primary_tier: str = "A2",
+    late_cycle: bool = True,
+) -> dict[str, list[dict[str, str]]]:
+    """
+    Build a year map of civil festivals from core civil dates.
+
+    late_cycle: when True, attach Suna/Adhara/Niladri as Bahuda+1/+2/+3
+    (Tourism 2025 pattern). When False, only core + Hera (+3 from Rath).
+    """
+    out: dict[str, list[dict[str, str]]] = {}
+
+    def add(d: date, *rows: dict[str, str]) -> None:
+        key = d.isoformat()
+        out.setdefault(key, []).extend(rows)
+
+    note = source_label
+    tier = primary_tier
+    tier_d = f"{primary_tier}-derived"
+
+    add(
+        snana,
+        _row(
+            "Snana Purnima",
+            "ସ୍ନାନ ପୂର୍ଣ୍ଣିମା",
+            "common",
+            f"Deba Snana Purnima — civil date per {note}",
+            source_tier=tier,
+            source_note=f"{note} — Snana Purnima",
+        ),
+        _row(
+            "Snana Yatra",
+            "ସ୍ନାନ ଯାତ୍ରା",
+            "jagannath",
+            f"Puri Snana Yatra — civil date per {note}",
+            source_tier=tier,
+            source_note=f"{note} — Snana Yatra",
+        ),
+    )
+
+    pre = rath - timedelta(days=1)
+    add(
+        pre,
+        _row(
+            "Nava Jaubana Darshan",
+            "ନବ ଯୌବନ ଦର୍ଶନ",
+            "jagannath",
+            f"Day before Rath (derived from civil Rath; {note})",
+            source_tier=tier_d,
+            source_note=f"Day before civil Rath ({rath.isoformat()})",
+        ),
+        _row(
+            "Gundicha Marjana",
+            "ଗୁଣ୍ଡିଚା ମାର୍ଜନ",
+            "jagannath",
+            f"Gundicha cleaning day before Rath (derived; {note})",
+            source_tier=tier_d,
+            source_note=f"Day before civil Rath ({rath.isoformat()})",
+        ),
+    )
+
+    add(
+        rath,
+        _row(
+            "Rath Yatra",
+            "ରଥ ଯାତ୍ରା",
+            "common",
+            f"Puri Rath Yatra — civil date per {note}",
+            source_tier=tier,
+            source_note=f"{note} — Rath Yatra {rath.isoformat()}",
+        ),
+    )
+
+    hera = rath + timedelta(days=3)
+    add(
+        hera,
+        _row(
+            "Hera Panchami",
+            "ହେର ପଞ୍ଚମୀ",
+            "jagannath",
+            f"Hera Panchami (Rath+3; derived from civil Rath; {note})",
+            source_tier=tier_d,
+            source_note=f"Civil Rath {rath.isoformat()} + 3 days",
+        ),
+    )
+
+    add(
+        bahuda,
+        _row(
+            "Bahuda Yatra",
+            "ବାହୁଡ଼ା ଯାତ୍ରା",
+            "common",
+            f"Bahuda (return) Yatra — civil date per {note}",
+            source_tier=tier,
+            source_note=f"{note} — Bahuda Yatra {bahuda.isoformat()}",
+        ),
+    )
+
+    if late_cycle:
+        add(
+            bahuda + timedelta(days=1),
+            _row(
+                "Suna Besha",
+                "ସୁନା ବେଶ",
+                "jagannath",
+                f"Suna Besha (Bahuda+1; derived; {note})",
+                source_tier=tier_d,
+                source_note=f"Civil Bahuda {bahuda.isoformat()} + 1 day",
+            ),
+        )
+        add(
+            bahuda + timedelta(days=2),
+            _row(
+                "Adhara Pana",
+                "ଅଧର ପଣା",
+                "jagannath",
+                f"Adhara Pana (Bahuda+2; derived; {note})",
+                source_tier=tier_d,
+                source_note=f"Civil Bahuda {bahuda.isoformat()} + 2 days",
+            ),
+        )
+        add(
+            bahuda + timedelta(days=3),
+            _row(
+                "Niladri Bije",
+                "ନୀଳାଦ୍ରି ବିଜେ",
+                "jagannath",
+                f"Niladri Bije (Bahuda+3; derived; {note})",
+                source_tier=tier_d,
+                source_note=f"Civil Bahuda {bahuda.isoformat()} + 3 days",
+            ),
+        )
+
+    return out
+
+
+# year → date_iso → festival rows
 CIVIL_OVERRIDE_YEARS: dict[int, dict[str, list[dict[str, str]]]] = {
-    2025: {
-        "2025-06-11": [
-            {
-                "name_en": "Snana Purnima",
-                "name_or": "ସ୍ନାନ ପୂର୍ଣ୍ଣିମା",
-                "tradition": "common",
-                "description": (
-                    "108-pot ritual bathing of Lord Jagannath; Anavasara begins "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Deba Snana Purnima",
-            },
-            {
-                "name_en": "Snana Yatra",
-                "name_or": "ସ୍ନାନ ଯାତ୍ରା",
-                "tradition": "jagannath",
-                "description": (
-                    "Public Snana Yatra darshan at Puri before Anavasara "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Deba Snana Purnima",
-            },
-        ],
-        "2025-06-26": [
-            {
-                "name_en": "Nava Jaubana Darshan",
-                "name_or": "ନବ ଯୌବନ ଦର୍ଶନ",
-                "tradition": "jagannath",
-                "description": (
-                    "Rejuvenated darshan after Anavasara, day before Rath Yatra "
-                    "(derived: day before Tourism Rath 27 Jun 2025)"
-                ),
-                "source_tier": "A1-derived",
-                "source_note": "Day before Odisha Tourism Rath Yatra 2025",
-            },
-            {
-                "name_en": "Gundicha Marjana",
-                "name_or": "ଗୁଣ୍ଡିଚା ମାର୍ଜନ",
-                "tradition": "jagannath",
-                "description": (
-                    "Ritual cleaning of Gundicha Temple before the Lord's arrival "
-                    "(derived: day before Tourism Rath 27 Jun 2025)"
-                ),
-                "source_tier": "A1-derived",
-                "source_note": "Day before Odisha Tourism Rath Yatra 2025",
-            },
-        ],
-        "2025-06-27": [
-            {
-                "name_en": "Rath Yatra",
-                "name_or": "ରଥ ଯାତ୍ରା",
-                "tradition": "common",
-                "description": (
-                    "Chariot festival of Lord Jagannath, Balabhadra and Subhadra; "
-                    "chariots pulled to Gundicha Temple "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Rath Yatra 27 June",
-            },
-        ],
-        "2025-06-30": [
-            {
-                "name_en": "Hera Panchami",
-                "name_or": "ହେର ପଞ୍ଚମୀ",
-                "tradition": "jagannath",
-                "description": (
-                    "Lakshmi’s search for Jagannath during Gundicha stay "
-                    "(derived: Ashadha Shukla Panchami = Rath + 3 days from Tourism date)"
-                ),
-                "source_tier": "A1-derived",
-                "source_note": "Rath 27 Jun 2025 + 3 days (Shukla 2 → Shukla 5)",
-            },
-        ],
-        "2025-07-05": [
-            {
-                "name_en": "Bahuda Yatra",
-                "name_or": "ବାହୁଡ଼ା ଯାତ୍ରା",
-                "tradition": "common",
-                "description": (
-                    "Return chariot festival from Gundicha "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Bahuda Yatra",
-            },
-        ],
-        "2025-07-06": [
-            {
-                "name_en": "Suna Besha",
-                "name_or": "ସୁନା ବେଶ",
-                "tradition": "jagannath",
-                "description": (
-                    "Gold adornment of the deities on the chariots "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Suna Besha",
-            },
-        ],
-        "2025-07-07": [
-            {
-                "name_en": "Adhara Pana",
-                "name_or": "ଅଧର ପଣା",
-                "tradition": "jagannath",
-                "description": (
-                    "Special pana offering on the chariots "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Adharapana",
-            },
-        ],
-        "2025-07-08": [
-            {
-                "name_en": "Niladri Bije",
-                "name_or": "ନୀଳାଦ୍ରି ବିଜେ",
-                "tradition": "jagannath",
-                "description": (
-                    "Re-entry into the main temple after Rath Yatra "
-                    "(civil date per Odisha Tourism 2025)"
-                ),
-                "source_tier": "A1",
-                "source_note": "Odisha Tourism Rath Yatra 2025 — Niladri Bije",
-            },
-        ],
-    },
+    # A2 Wikipedia Ratha Yatra (Puri): Rath 1 Jul / Bahuda 9 Jul 2022
+    # Snana = Purnima ~16d before Rath under engine sample (2022-06-14)
+    2022: _build_puri_cycle(
+        snana=date(2022, 6, 14),
+        rath=date(2022, 7, 1),
+        bahuda=date(2022, 7, 9),
+        source_label="Wikipedia Ratha Yatra (Puri) 2022 table (A2)",
+        primary_tier="A2",
+        late_cycle=True,
+    ),
+    # A2: Rath 20 Jun / Bahuda 28 Jun 2023; Snana engine Purnima 2023-06-04
+    2023: _build_puri_cycle(
+        snana=date(2023, 6, 4),
+        rath=date(2023, 6, 20),
+        bahuda=date(2023, 6, 28),
+        source_label="Wikipedia Ratha Yatra (Puri) 2023 table (A2)",
+        primary_tier="A2",
+        late_cycle=True,
+    ),
+    # A1 Odisha Tourism 2025 full table (authoritative for that year)
+    2025: _build_puri_cycle(
+        snana=date(2025, 6, 11),
+        rath=date(2025, 6, 27),
+        bahuda=date(2025, 7, 5),
+        source_label="Odisha Tourism Rath Yatra 2025 (A1)",
+        primary_tier="A1",
+        late_cycle=True,
+    ),
 }
 
 
@@ -187,7 +241,6 @@ def override_year(year: int | None) -> dict[str, list[dict[str, str]]] | None:
 
 
 def suppressed_rule_names(year: int | None) -> frozenset[str]:
-    """Tithi-rule names to skip when a civil override year is active."""
     if year is not None and year in CIVIL_OVERRIDE_YEARS:
         return _SUPPRESS_IN_OVERRIDE_YEARS
     return frozenset()
@@ -220,9 +273,57 @@ def civil_festivals_for_date(date_iso: str | None) -> list[dict[str, Any]]:
     return out
 
 
+def lookup_civil_meta(date_iso: str | None, name_en: str | None) -> dict[str, Any] | None:
+    """Look up civil override metadata for a stored festival row (by date + name)."""
+    if not date_iso or not name_en:
+        return None
+    for row in civil_festivals_for_date(date_iso):
+        if row["name_en"] == name_en:
+            return {
+                "civil_override": True,
+                "source_tier": row.get("source_tier", "A"),
+                "source_note": row.get("source_note", ""),
+            }
+    return None
+
+
+def civil_why_today(source_note: str) -> dict[str, str]:
+    """
+    Honest why_today for civil-override festivals.
+    Must not claim engine masa name (e.g. Ashadha) when labels may differ.
+    Odia field must stay pure Odia script (no Latin source strings).
+    """
+    note = (source_note or "public civil calendar (Tier A)").strip()
+    return {
+        "en": (
+            f"Civil festival date per {note}. "
+            "The engine lunar month label may differ until full adhika-masa naming "
+            "is implemented; festival attachment follows public authority dates."
+        ),
+        "or": (
+            "ଏହି ପର୍ବ ସରକାରୀ କିମ୍ବା ପାଞ୍ଜିର ନାଗରିକ ତାରିଖ ଅନୁସାରେ ପାଳିତ। "
+            "ଅଧିକ ମାସ ନାମକରଣ ସମ୍ପୂର୍ଣ୍ଣ ହେବା ପର୍ଯ୍ୟନ୍ତ ଇଞ୍ଜିନର ଚାନ୍ଦ୍ର ମାସ ନାମ "
+            "ଭିନ୍ନ ହୋଇପାରେ; ପର୍ବ ସଂଯୋଜନା ଜନସାଧାରଣ ଅଧିକାରୀ ତାରିଖକୁ ଅନୁସରଣ କରେ।"
+        ),
+    }
+
+
 def authority_notes() -> list[dict[str, str]]:
-    """Human-readable authority notes for eval / docs."""
     return [
+        {
+            "year": "2022",
+            "topic": "Puri Rath Yatra cycle",
+            "authority_civil": "Rath 2022-07-01; Bahuda 2022-07-09 (Wikipedia A2); Snana 2022-06-14 (Purnima before Rath)",
+            "engine_without_override": "Rath ~2022-07-30 (engine Ashadha Shukla 2)",
+            "product_resolution": "CIVIL_OVERRIDE_YEARS[2022]",
+        },
+        {
+            "year": "2023",
+            "topic": "Puri Rath Yatra cycle",
+            "authority_civil": "Rath 2023-06-20; Bahuda 2023-06-28 (Wikipedia A2); Snana 2023-06-04",
+            "engine_without_override": "Rath ~2023-07-19 (engine Ashadha Shukla 2)",
+            "product_resolution": "CIVIL_OVERRIDE_YEARS[2023]",
+        },
         {
             "year": "2025",
             "topic": "Puri Rath Yatra cycle",
@@ -231,14 +332,8 @@ def authority_notes() -> list[dict[str, str]]:
                 "(Odisha Tourism A1; Wikipedia A2 agrees on Rath)"
             ),
             "engine_without_override": (
-                "Snana lands ~2025-07-10 (engine Jyeshtha Purnima); "
-                "Rath ~2025-07-26 (engine Ashadha Shukla 2) — "
-                "masa naming lacks full adhika handling"
+                "Snana ~2025-07-10; Rath ~2025-07-26 under engine masa labels"
             ),
-            "product_resolution": (
-                "Attach festivals via CIVIL_OVERRIDE_YEARS[2025]; "
-                "suppress rule-based Snana/Rath cycle names for 2025; "
-                "do not rewrite engine masa labels to fake Ashadha on 27 Jun"
-            ),
-        }
+            "product_resolution": "CIVIL_OVERRIDE_YEARS[2025]; do not fake Ashadha on engine labels",
+        },
     ]

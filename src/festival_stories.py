@@ -845,6 +845,19 @@ def attach_story(festival: dict) -> dict:
     festival["story_kind"] = s["kind"]
     festival["story_sources"] = s["sources"]
     festival["story_complete"] = s["complete"]
+
+    # Civil-override days: do not claim engine masa (e.g. Ashadha) when labels differ
+    if festival.get("civil_override"):
+        from src.festival_civil import civil_why_today
+
+        note = festival.get("source_note") or "public civil calendar (Tier A)"
+        festival["why_today"] = civil_why_today(str(note))
+        # Keep curated narrative story; sources list gains authority note
+        srcs = list(festival.get("story_sources") or [])
+        if note not in srcs:
+            srcs.append(str(note))
+        festival["story_sources"] = srcs
+
     return festival
 
 

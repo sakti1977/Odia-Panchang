@@ -12,6 +12,9 @@ from src.translations import (
     TITHIS, NAKSHATRAS, YOGAS, KARANAS, SOURA_MASA, CHANDRA_MASA, VARAS, PAKSHA,
 )
 
+# Bump when masa/tithi/anchor formula changes so seed/start can force reseed.
+ENGINE_VERSION = "lahiri_purnimanta_v2"
+
 # Location — configurable via environment variables
 # Default: Bhubaneswar, capital of Odisha
 _LOCATION_NAME = os.getenv("LOCATION_NAME", "Bhubaneswar")

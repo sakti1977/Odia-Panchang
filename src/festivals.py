@@ -207,10 +207,13 @@ def match_festivals(panchang_day: dict) -> list[dict]:
             continue
         seen.add(key)
         results.append(attach_story({
-            "name_en":     f["name_en"],
-            "name_or":     f["name_or"],
-            "tradition":   f["tradition"],
-            "description": f["description"],
+            "name_en":         f["name_en"],
+            "name_or":         f["name_or"],
+            "tradition":       f["tradition"],
+            "description":     f["description"],
+            "civil_override":  True,
+            "source_tier":     f.get("source_tier", "A"),
+            "source_note":     f.get("source_note", ""),
         }))
 
     return results
