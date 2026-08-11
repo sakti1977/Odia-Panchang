@@ -154,15 +154,29 @@ def _filter_festivals(festivals: list, tradition: str | None) -> list:
     return festivals
 
 
-def _build_meta(place: dict, tradition: str) -> dict:
+def _build_meta(place: dict, tradition: str, *, anchor: str | None = None) -> dict:
+    anchor = anchor or "local_sunrise"
     return {
         "engine": "lahiri_swiss_ephemeris",
         "engine_version": ENGINE_VERSION,
         "masa_system": "purnimanta_odia_default",
-        # Honesty (#21): tithi/masa/nakshatra share one IST sample; city only moves sun times.
-        "day_elements_anchor": "approx_06:00_IST_lahiri",
-        "day_elements_scope": "shared_ist_sample",
-        "place_affects": ["sunrise", "sunset", "meta.city", "meta.lat", "meta.lon"],
+        # Path A: day elements at local sunrise for the resolved place
+        "day_elements_anchor": anchor,
+        "day_elements_scope": "local_sunrise",
+        "place_affects": [
+            "sunrise",
+            "sunset",
+            "tithi",
+            "nakshatra",
+            "yoga",
+            "karana",
+            "chandra_masa",
+            "soura_masa",
+            "paksha",
+            "meta.city",
+            "meta.lat",
+            "meta.lon",
+        ],
         "biraja_civil_status": "rule_only",  # no print-panji civil goldens yet (E-DUAL-004)
         "tradition": tradition or "all",
         "city": place.get("key") or place.get("name", "").lower(),
@@ -171,13 +185,76 @@ def _build_meta(place: dict, tradition: str) -> dict:
         "tz": "Asia/Kolkata" if float(place.get("tz", 5.5)) == 5.5 else place.get("tz"),
         "disclaimer": (
             "Lahiri/Swiss Ephemeris day elements (tithi, masa, nakshatra, yoga, karana) "
-            "are computed at a shared ~06:00 IST sample — not local-sunrise panji. "
-            "Requested city currently changes sunrise/sunset (and labels), not those elements. "
+            "are computed at local sunrise for the requested place. "
             "Festival overlays follow tradition rules and Tier A civil tables where present. "
             "Not a digital reprint of commercial Khadiratna or Biraja tables. "
             "Biraja peetha civil dates are rule_only until print/panji fixtures exist."
         ),
     }
+
+
+def _live_for_place(d: date, place: dict) -> dict:
+    """Full sunrise-anchored compute for a place."""
+    return compute_panchang(
+        d,
+        lat=place["lat"],
+        lon=place["lon"],
+        tz_hours=place.get("tz", 5.5),
+    )
+
+
+def _festivals_for_live(live: dict, tradition: str | None) -> list:
+    """Tithi + civil festivals for a live engine day; include sankranti if month flips."""
+    from datetime import timedelta
+
+    from src.festivals import get_sankranti_festivals, match_festivals
+
+    day_in = {
+        "date": live["date"],
+        "paksha_en": live["paksha_en"],
+        "tithi_num": live["tithi_num"],
+        "chandra_masa_en": live["chandra_masa_en"],
+        "soura_masa_en": live["soura_masa_en"],
+    }
+    results = match_festivals(day_in)
+    # Sankranti when solar month differs from previous civil day
+    try:
+        d = date.fromisoformat(live["date"])
+        prev = compute_panchang(
+            d - timedelta(days=1),
+            lat=live.get("lat"),
+            lon=live.get("lon"),
+        )
+        if prev["soura_masa_en"] != live["soura_masa_en"]:
+            results.extend(get_sankranti_festivals(live["soura_masa_en"]))
+    except Exception:
+        pass
+
+    # Normalize to API shape (nested name)
+    out = []
+    for f in results:
+        out.append(
+            {
+                "name": {"en": f.get("name_en", ""), "or": f.get("name_or", "")},
+                "tradition": f.get("tradition"),
+                "description": f.get("description"),
+                "story": f.get("story"),
+                "why_today": f.get("why_today"),
+                "story_kind": f.get("story_kind"),
+                "story_sources": f.get("story_sources"),
+                "story_complete": f.get("story_complete"),
+                **(
+                    {
+                        "civil_override": True,
+                        "source_tier": f.get("source_tier"),
+                        "source_note": f.get("source_note"),
+                    }
+                    if f.get("civil_override")
+                    else {}
+                ),
+            }
+        )
+    return _filter_festivals(out, tradition)
 
 
 def _day_to_dict(
@@ -188,27 +265,70 @@ def _day_to_dict(
     tradition: str = "all",
     sunrise: str | None = None,
     sunset: str | None = None,
+    live: dict | None = None,
+    recompute_festivals: bool = False,
 ) -> dict:
+    """
+    Serialize a DB day. Prefer live sunrise-anchored `live` compute for elements.
+    If recompute_festivals and live is set, festivals come from live match.
+    """
     if place is None:
         place = resolve_city(tradition="common")
+
+    if live is None:
+        try:
+            live = _live_for_place(date.fromisoformat(day.date), place)
+        except Exception:
+            live = None
+
+    if live and recompute_festivals:
+        festivals = _festivals_for_live(live, tradition)
+
+    anchor = (live or {}).get("day_elements_anchor") or "local_sunrise"
+    src = live  # prefer live fields
+
+    def _b(en_key, or_key, db_en, db_or):
+        if src:
+            return {"en": src[en_key], "or": src[or_key]}
+        return {"en": db_en, "or": db_or}
+
+    tithi = (
+        {
+            "num": src["tithi_num"],
+            "en": src["tithi_en"],
+            "or": src["tithi_or"],
+        }
+        if src
+        else {"num": day.tithi_num, "en": day.tithi_en, "or": day.tithi_or}
+    )
+
     return {
-        "meta":            _build_meta(place, tradition),
-        "date":            day.date,
-        "vara":            {"en": day.vara_en,         "or": day.vara_or},
-        "soura_masa":      {"en": day.soura_masa_en,   "or": day.soura_masa_or},
-        "chandra_masa":    {"en": day.chandra_masa_en, "or": day.chandra_masa_or},
-        "paksha":          {"en": day.paksha_en,       "or": day.paksha_or},
-        "tithi": {
-            "num": day.tithi_num,
-            "en":  day.tithi_en,
-            "or":  day.tithi_or,
-        },
-        "nakshatra":       {"en": day.nakshatra_en,    "or": day.nakshatra_or},
-        "yoga":            {"en": day.yoga_en,         "or": day.yoga_or},
-        "karana":          {"en": day.karana_en,       "or": day.karana_or},
-        "sunrise":         sunrise if sunrise is not None else day.sunrise,
-        "sunset":          sunset if sunset is not None else day.sunset,
-        "festivals":       festivals,
+        "meta": _build_meta(place, tradition, anchor=anchor),
+        "date": day.date,
+        "vara": _b("vara_en", "vara_or", day.vara_en, day.vara_or),
+        "soura_masa": _b(
+            "soura_masa_en", "soura_masa_or", day.soura_masa_en, day.soura_masa_or
+        ),
+        "chandra_masa": _b(
+            "chandra_masa_en",
+            "chandra_masa_or",
+            day.chandra_masa_en,
+            day.chandra_masa_or,
+        ),
+        "paksha": _b("paksha_en", "paksha_or", day.paksha_en, day.paksha_or),
+        "tithi": tithi,
+        "nakshatra": _b(
+            "nakshatra_en", "nakshatra_or", day.nakshatra_en, day.nakshatra_or
+        ),
+        "yoga": _b("yoga_en", "yoga_or", day.yoga_en, day.yoga_or),
+        "karana": _b("karana_en", "karana_or", day.karana_en, day.karana_or),
+        "sunrise": (src or {}).get("sunrise")
+        if src
+        else (sunrise if sunrise is not None else day.sunrise),
+        "sunset": (src or {}).get("sunset")
+        if src
+        else (sunset if sunset is not None else day.sunset),
+        "festivals": festivals,
     }
 
 
@@ -221,12 +341,7 @@ def _resolve_place_or_400(city: str | None, tradition: str | None) -> dict:
 
 def _place_sun(d: date, place: dict) -> tuple[str | None, str | None]:
     """Sunrise/sunset for place without mutating global env."""
-    live = compute_panchang(
-        d,
-        lat=place["lat"],
-        lon=place["lon"],
-        tz_hours=place.get("tz", 5.5),
-    )
+    live = _live_for_place(d, place)
     return live.get("sunrise"), live.get("sunset")
 
 
@@ -445,14 +560,12 @@ def get_today(
     db = SessionLocal()
     try:
         day = _get_day(db, today.isoformat())
-        festivals = _filter_festivals(
-            [_festival_to_dict(f) for f in day.festivals],
-            tradition,
-        )
-        sr, ss = _place_sun(today, place)
         result = _day_to_dict(
-            day, festivals, place=place, tradition=tradition or "all",
-            sunrise=sr, sunset=ss,
+            day,
+            [],
+            place=place,
+            tradition=tradition or "all",
+            recompute_festivals=True,
         )
         if enriched:
             result["enrichment"] = _build_enrichment(result)
@@ -478,7 +591,7 @@ def get_panchang_insights(
     Same city/tradition semantics as GET /panchang/{date}.
     """
     try:
-        d = date.fromisoformat(date_str)
+        date.fromisoformat(date_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
 
@@ -486,14 +599,12 @@ def get_panchang_insights(
     db = SessionLocal()
     try:
         day = _get_day(db, date_str)
-        festivals = _filter_festivals(
-            [_festival_to_dict(f) for f in day.festivals],
-            tradition,
-        )
-        sr, ss = _place_sun(d, place)
         result = _day_to_dict(
-            day, festivals, place=place, tradition=tradition or "all",
-            sunrise=sr, sunset=ss,
+            day,
+            [],
+            place=place,
+            tradition=tradition or "all",
+            recompute_festivals=True,
         )
         result["enrichment"] = _build_enrichment(result)
         return result
@@ -526,14 +637,12 @@ def get_panchang_by_date(
     db = SessionLocal()
     try:
         day = _get_day(db, date_str)
-        festivals = _filter_festivals(
-            [_festival_to_dict(f) for f in day.festivals],
-            tradition,
-        )
-        sr, ss = _place_sun(d, place)
         result = _day_to_dict(
-            day, festivals, place=place, tradition=tradition or "all",
-            sunrise=sr, sunset=ss,
+            day,
+            [],
+            place=place,
+            tradition=tradition or "all",
+            recompute_festivals=True,
         )
         if enriched:
             result["enrichment"] = _build_enrichment(result)
@@ -576,16 +685,13 @@ def get_panchang_by_month(
             )
         out = []
         for day in days:
-            d = date.fromisoformat(day.date)
-            festivals = _filter_festivals(
-                [_festival_to_dict(f) for f in day.festivals],
-                tradition,
-            )
-            sr, ss = _place_sun(d, place)
             out.append(
                 _day_to_dict(
-                    day, festivals, place=place, tradition=tradition or "all",
-                    sunrise=sr, sunset=ss,
+                    day,
+                    [],
+                    place=place,
+                    tradition=tradition or "all",
+                    recompute_festivals=True,
                 )
             )
         return out
@@ -680,14 +786,12 @@ def get_panchang_for_city_today(
     try:
         day = db.get(PanchangDay, today.isoformat())
         if day:
-            festivals = _filter_festivals(
-                [_festival_to_dict(f) for f in day.festivals],
-                tradition,
-            )
-            sr, ss = _place_sun(today, place)
             result = _day_to_dict(
-                day, festivals, place=place, tradition=tradition or "all",
-                sunrise=sr, sunset=ss,
+                day,
+                [],
+                place=place,
+                tradition=tradition or "all",
+                recompute_festivals=True,
             )
         else:
             p = compute_panchang(
@@ -766,16 +870,13 @@ def download_monthly_panchang(
 
         panchang_data = []
         for drow in days:
-            d = date.fromisoformat(drow.date)
-            fests = _filter_festivals(
-                [_festival_to_dict(f) for f in drow.festivals],
-                tradition,
-            )
-            sr, ss = _place_sun(d, place)
             panchang_data.append(
                 _day_to_dict(
-                    drow, fests, place=place, tradition=tradition or "all",
-                    sunrise=sr, sunset=ss,
+                    drow,
+                    [],
+                    place=place,
+                    tradition=tradition or "all",
+                    recompute_festivals=True,
                 )
             )
     finally:

@@ -596,6 +596,259 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         "puranic_tradition",
         ["Prabodhini / Utthana Ekadashi"],
     ),
+    # ── Monthly vratas: named Ekadashi, Pradosha, Sankashti ────────────────
+    "Kamada Ekadashi": _short(
+        "Kamada Ekadashi is the Chaitra bright-fortnight Vishnu fast. Devotees keep the day for "
+        "righteous wishes and simple satvik food after the fast, according to family custom.",
+        "କାମଦା ଏକାଦଶୀ ଚୈତ୍ର ଶୁକ୍ଳ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ। ଭକ୍ତମାନେ ଧାର୍ମିକ କାମନା ପୂରଣ ପାଇଁ "
+        "ଏହି ଦିନ ଉପବାସ କରନ୍ତି ଓ ପରିବାର ରୀତି ଅନୁସାରେ ସାତ୍ତ୍ୱିକ ଖାଦ୍ୟ ଗ୍ରହଣ କରନ୍ତି।",
+        "Chaitra Shukla Ekadashi — Kamada.",
+        "ଚୈତ୍ର ଶୁକ୍ଳ ଏକାଦଶୀ — କାମଦା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Papamochani Ekadashi": _short(
+        "Papamochani Ekadashi falls in Chaitra’s dark fortnight. The name points to release from "
+        "sins through Vishnu remembrance and restraint.",
+        "ପାପମୋଚନୀ ଏକାଦଶୀ ଚୈତ୍ର କୃଷ୍ଣ ପକ୍ଷରେ ପଡ଼େ। ବିଷ୍ଣୁ ସ୍ମରଣ ଓ ସଂଯମ ଦ୍ୱାରା ପାପମୁକ୍ତିର "
+        "ଭାବ ଏହି ନାମରେ ଲୁଚିଛି।",
+        "Chaitra Krishna Ekadashi — Papamochani.",
+        "ଚୈତ୍ର କୃଷ୍ଣ ଏକାଦଶୀ — ପାପମୋଚନୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Mohini Ekadashi": _short(
+        "Mohini Ekadashi is Vaishakha’s bright-fortnight fast. Many remember Vishnu’s Mohini form "
+        "and keep a calm day of prayer and light food.",
+        "ମୋହିନୀ ଏକାଦଶୀ ବୈଶାଖ ଶୁକ୍ଳ ପକ୍ଷର ଉପବାସ। ଅନେକେ ବିଷ୍ଣୁଙ୍କ ମୋହିନୀ ରୂପ ସ୍ମରଣ କରି "
+        "ଶାନ୍ତ ଦିନ ଓ ଲଘୁ ଖାଦ୍ୟ ପାଳନ୍ତି।",
+        "Vaishakha Shukla Ekadashi — Mohini.",
+        "ବୈଶାଖ ଶୁକ୍ଳ ଏକାଦଶୀ — ମୋହିନୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Varuthini Ekadashi": _short(
+        "Varuthini Ekadashi is the dark-fortnight Vishnu fast of Vaishakha. It is kept for protection "
+        "and steady devotion in the Vaishnava calendar.",
+        "ବରୂଥିନୀ ଏକାଦଶୀ ବୈଶାଖ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ। ବୈଷ୍ଣବ ପାଞ୍ଜିରେ ରକ୍ଷା ଓ ସ୍ଥିର "
+        "ଭକ୍ତି ପାଇଁ ଏହା ପାଳିତ ହୁଏ।",
+        "Vaishakha Krishna Ekadashi — Varuthini.",
+        "ବୈଶାଖ କୃଷ୍ଣ ଏକାଦଶୀ — ବରୂଥିନୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Nirjala Ekadashi": _short(
+        "Nirjala Ekadashi in Jyeshtha is among the strictest Vishnu fasts — traditionally without "
+        "water. Those who cannot keep it fully often keep a lighter form with devotion.",
+        "ଜ୍ୟେଷ୍ଠ ନିର୍ଜଳା ଏକାଦଶୀ ସବୁଠାରୁ କଠିନ ବିଷ୍ଣୁ ଉପବାସ ମଧ୍ୟରୁ ଗୋଟିଏ — ପରମ୍ପରାରେ ଜଳ "
+        "ବିନା। ଯେଉଁମାନେ ସମ୍ପୂର୍ଣ୍ଣ ପାଳିପାରନ୍ତି ନାହିଁ, ସେମାନେ ଭକ୍ତି ସହିତ ଲଘୁ ରୂପ ପାଳନ୍ତି।",
+        "Jyeshtha Shukla Ekadashi — Nirjala (waterless).",
+        "ଜ୍ୟେଷ୍ଠ ଶୁକ୍ଳ ଏକାଦଶୀ — ନିର୍ଜଳା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list", "Nirjala tradition"],
+    ),
+    "Apara Ekadashi": _short(
+        "Apara Ekadashi is Jyeshtha’s dark-fortnight fast, kept for merit and ancestral well-being "
+        "in many Vaishnava households.",
+        "ଅପରା ଏକାଦଶୀ ଜ୍ୟେଷ୍ଠ କୃଷ୍ଣ ପକ୍ଷର ଉପବାସ। ଅନେକ ବୈଷ୍ଣବ ଘରେ ପୁଣ୍ୟ ଓ ପିତୃମାନଙ୍କ "
+        "କଲ୍ୟାଣ ପାଇଁ ଏହା ପାଳିତ।",
+        "Jyeshtha Krishna Ekadashi — Apara.",
+        "ଜ୍ୟେଷ୍ଠ କୃଷ୍ଣ ଏକାଦଶୀ — ଅପରା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Devshayani / Padma Ekadashi": _short(
+        "Devshayani (Padma) Ekadashi opens Chaturmasya: tradition says Vishnu enters yogic rest. "
+        "Many begin four months of extra restraint and Vishnu worship.",
+        "ଦେବଶୟନୀ ବା ପଦ୍ମା ଏକାଦଶୀରେ ଚାତୁର୍ମାସ୍ୟ ଆରମ୍ଭ। ପରମ୍ପରାରେ ବିଷ୍ଣୁ ଯୋଗନିଦ୍ରାରେ "
+        "ପ୍ରବେଶ କରନ୍ତି। ଅନେକେ ଚାରି ମାସ ଅତିରିକ୍ତ ସଂଯମ ଓ ବିଷ୍ଣୁ ପୂଜା ଆରମ୍ଭ କରନ୍ତି।",
+        "Ashadha Shukla Ekadashi — start of Chaturmasya.",
+        "ଆଷାଢ଼ ଶୁକ୍ଳ ଏକାଦଶୀ — ଚାତୁର୍ମାସ୍ୟ ଆରମ୍ଭ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list", "Chaturmasya"],
+    ),
+    "Yogini Ekadashi": _short(
+        "Yogini Ekadashi is Ashadha’s dark-fortnight Vishnu fast during early Chaturmasya.",
+        "ଯୋଗିନୀ ଏକାଦଶୀ ଆଷାଢ଼ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଚାତୁର୍ମାସ୍ୟର ପ୍ରାରମ୍ଭିକ କାଳରେ।",
+        "Ashadha Krishna Ekadashi — Yogini.",
+        "ଆଷାଢ଼ କୃଷ୍ଣ ଏକାଦଶୀ — ଯୋଗିନୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Putrada Ekadashi": _short(
+        "Putrada Ekadashi is Shravana’s bright-fortnight fast. In Odisha the same tithi often opens "
+        "Jhulana Yatra in the Jagannath calendar.",
+        "ପୁତ୍ରଦା ଏକାଦଶୀ ଶ୍ରାବଣ ଶୁକ୍ଳ ପକ୍ଷର ଉପବାସ। ଓଡ଼ିଶାରେ ଏହି ତିଥିରେ ଜଗନ୍ନାଥ ପାଞ୍ଜିରେ "
+        "ଝୁଲଣ ଯାତ୍ରା ମଧ୍ୟ ଆରମ୍ଭ ହୋଇପାରେ।",
+        "Shravana Shukla Ekadashi — Putrada.",
+        "ଶ୍ରାବଣ ଶୁକ୍ଳ ଏକାଦଶୀ — ପୁତ୍ରଦା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Kamika Ekadashi": _short(
+        "Kamika Ekadashi is the dark-fortnight Vishnu fast of Shravana, kept with quiet devotion "
+        "in the monsoon calendar.",
+        "କାମିକା ଏକାଦଶୀ ଶ୍ରାବଣ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ବର୍ଷାକାଳୀନ ପାଞ୍ଜିରେ ଶାନ୍ତ "
+        "ଭକ୍ତି ସହିତ ପାଳିତ।",
+        "Shravana Krishna Ekadashi — Kamika.",
+        "ଶ୍ରାବଣ କୃଷ୍ଣ ଏକାଦଶୀ — କାମିକା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Parsva / Aja Ekadashi": _short(
+        "Parsva (Aja) Ekadashi falls in Bhadrapada bright fortnight. Tradition links it with "
+        "Vishnu’s turning in cosmic rest during Chaturmasya.",
+        "ପାର୍ଶ୍ୱ ବା ଅଜା ଏକାଦଶୀ ଭାଦ୍ରବ ଶୁକ୍ଳ ପକ୍ଷରେ ପଡ଼େ। ଚାତୁର୍ମାସ୍ୟରେ ବିଷ୍ଣୁଙ୍କ "
+        "ପାର୍ଶ୍ୱ ପରିବର୍ତ୍ତନ ସହିତ ଏହା ଯୋଡ଼ା।",
+        "Bhadrapada Shukla Ekadashi — Parsva / Aja.",
+        "ଭାଦ୍ରବ ଶୁକ୍ଳ ଏକାଦଶୀ — ପାର୍ଶ୍ୱ / ଅଜା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Indira Ekadashi": _short(
+        "Indira Ekadashi in Bhadrapada’s dark fortnight is often kept for ancestral merit along "
+        "with Vishnu fasting.",
+        "ଇନ୍ଦିରା ଏକାଦଶୀ ଭାଦ୍ରବ କୃଷ୍ଣ ପକ୍ଷରେ — ବିଷ୍ଣୁ ଉପବାସ ସହିତ ପିତୃପୁଣ୍ୟ ପାଇଁ "
+        "ଅନେକେ ଏହା ପାଳନ୍ତି।",
+        "Bhadrapada Krishna Ekadashi — Indira.",
+        "ଭାଦ୍ରବ କୃଷ୍ଣ ଏକାଦଶୀ — ଇନ୍ଦିରା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Papankusha Ekadashi": _short(
+        "Papankusha Ekadashi is Ashwina’s bright-fortnight Vishnu fast near the autumn goddess season.",
+        "ପାପାଙ୍କୁଶ ଏକାଦଶୀ ଆଶ୍ୱିନ ଶୁକ୍ଳ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଶାରଦୀୟ ଦେବୀ ଋତୁର ନିକଟରେ।",
+        "Ashwina Shukla Ekadashi — Papankusha.",
+        "ଆଶ୍ୱିନ ଶୁକ୍ଳ ଏକାଦଶୀ — ପାପାଙ୍କୁଶ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Rama Ekadashi": _short(
+        "Rama Ekadashi is the dark-fortnight Vishnu fast of Ashwina, kept with quiet prayer in "
+        "many homes.",
+        "ରାମା ଏକାଦଶୀ ଆଶ୍ୱିନ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଅନେକ ଘରେ ଶାନ୍ତ ପ୍ରାର୍ଥନା ସହିତ "
+        "ପାଳିତ।",
+        "Ashwina Krishna Ekadashi — Rama.",
+        "ଆଶ୍ୱିନ କୃଷ୍ଣ ଏକାଦଶୀ — ରାମା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Prabodhini / Devutthana Ekadashi": _short(
+        "Prabodhini (Devutthana) Ekadashi ends Chaturmasya: Vishnu is said to awaken. In the Puri "
+        "calendar the same tithi is Utthana Ekadashi with resumed full rites.",
+        "ପ୍ରବୋଧିନୀ ବା ଦେବୋତ୍ଥାନ ଏକାଦଶୀରେ ଚାତୁର୍ମାସ୍ୟ ଶେଷ; ପରମ୍ପରାରେ ବିଷ୍ଣୁ ଉଠନ୍ତି। "
+        "ପୁରୀ ପାଞ୍ଜିରେ ଏହି ତିଥି ଉତ୍ଥାନ ଏକାଦଶୀ ଭାବେ ପୂର୍ଣ୍ଣ ନୀତି ପୁନରାରମ୍ଭ କରେ।",
+        "Kartika Shukla Ekadashi — end of Chaturmasya.",
+        "କାର୍ତ୍ତିକ ଶୁକ୍ଳ ଏକାଦଶୀ — ପ୍ରବୋଧିନୀ / ଦେବୋତ୍ଥାନ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list", "Prabodhini / Utthana"],
+    ),
+    "Utpanna Ekadashi": _short(
+        "Utpanna Ekadashi is Kartika’s dark-fortnight fast. Some lists treat it as the year’s first "
+        "Ekadashi in the cycle of named days.",
+        "ଉତ୍ପନ୍ନା ଏକାଦଶୀ କାର୍ତ୍ତିକ କୃଷ୍ଣ ପକ୍ଷର ଉପବାସ। କେତେକ ତାଲିକାରେ ଏହା ବର୍ଷର "
+        "ପ୍ରଥମ ନାମିତ ଏକାଦଶୀ ଭାବେ ଗଣାଯାଏ।",
+        "Kartika Krishna Ekadashi — Utpanna.",
+        "କାର୍ତ୍ତିକ କୃଷ୍ଣ ଏକାଦଶୀ — ଉତ୍ପନ୍ନା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Mokshada Ekadashi": _short(
+        "Mokshada Ekadashi in Margashira bright fortnight is widely linked with Gita Jayanti and "
+        "prayer for liberation.",
+        "ମୋକ୍ଷଦା ଏକାଦଶୀ ମାର୍ଗଶୀର ଶୁକ୍ଳ ପକ୍ଷରେ — ଗୀତା ଜୟନ୍ତୀ ଓ ମୋକ୍ଷ ପ୍ରାର୍ଥନା ସହିତ "
+        "ବ୍ୟାପକ ଭାବେ ଯୋଡ଼ା।",
+        "Margashira Shukla Ekadashi — Mokshada / Gita association.",
+        "ମାର୍ଗଶୀର ଶୁକ୍ଳ ଏକାଦଶୀ — ମୋକ୍ଷଦା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list", "Gita Jayanti association"],
+    ),
+    "Saphala Ekadashi": _short(
+        "Saphala Ekadashi is Margashira’s dark-fortnight Vishnu fast, kept for fruitful spiritual effort.",
+        "ସଫଳା ଏକାଦଶୀ ମାର୍ଗଶୀର କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ସାଧନାର ସଫଳତା ପାଇଁ ପାଳିତ।",
+        "Margashira Krishna Ekadashi — Saphala.",
+        "ମାର୍ଗଶୀର କୃଷ୍ଣ ଏକାଦଶୀ — ସଫଳା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Pausha Putrada Ekadashi": _short(
+        "Pausha Putrada Ekadashi is the bright-fortnight Vishnu fast of Pausha, distinct in name "
+        "from the Shravana Putrada day.",
+        "ପୌଷ ପୁତ୍ରଦା ଏକାଦଶୀ ପୌଷ ଶୁକ୍ଳ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଶ୍ରାବଣ ପୁତ୍ରଦାଠାରୁ "
+        "ନାମରେ ପୃଥକ।",
+        "Pausha Shukla Ekadashi — Pausha Putrada.",
+        "ପୌଷ ଶୁକ୍ଳ ଏକାଦଶୀ — ପୌଷ ପୁତ୍ରଦା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Shattila Ekadashi": _short(
+        "Shattila Ekadashi in Pausha dark fortnight is linked with sesame (tila) charity and food "
+        "in winter Vaishnava practice.",
+        "ଷଟ୍ଟିଲା ଏକାଦଶୀ ପୌଷ କୃଷ୍ଣ ପକ୍ଷରେ — ଶୀତକାଳୀନ ବୈଷ୍ଣବ ପ୍ରଥାରେ ତିଳ ଦାନ ଓ "
+        "ଖାଦ୍ୟ ସହିତ ଯୋଡ଼ା।",
+        "Pausha Krishna Ekadashi — Shattila (sesame).",
+        "ପୌଷ କୃଷ୍ଣ ଏକାଦଶୀ — ଷଟ୍ଟିଲା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Jaya Ekadashi": _short(
+        "Jaya Ekadashi is Magha’s bright-fortnight Vishnu fast, kept for victory of dharma and "
+        "inner strength.",
+        "ଜୟା ଏକାଦଶୀ ମାଘ ଶୁକ୍ଳ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଧର୍ମର ବିଜୟ ଓ ଅନ୍ତର ଶକ୍ତି ପାଇଁ "
+        "ପାଳିତ।",
+        "Magha Shukla Ekadashi — Jaya.",
+        "ମାଘ ଶୁକ୍ଳ ଏକାଦଶୀ — ଜୟା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Vijaya Ekadashi": _short(
+        "Vijaya Ekadashi is Magha’s dark-fortnight Vishnu fast, named for spiritual victory.",
+        "ବିଜୟା ଏକାଦଶୀ ମାଘ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଆଧ୍ୟାତ୍ମିକ ବିଜୟର ନାମ।",
+        "Magha Krishna Ekadashi — Vijaya.",
+        "ମାଘ କୃଷ୍ଣ ଏକାଦଶୀ — ବିଜୟା।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Amalaki Ekadashi": _short(
+        "Amalaki Ekadashi in Phalguna bright fortnight is associated with the amla (Amalaki) tree "
+        "and spring Vishnu worship.",
+        "ଆମଳକୀ ଏକାଦଶୀ ଫାଲ୍ଗୁନ ଶୁକ୍ଳ ପକ୍ଷରେ — ଆମଳକୀ ବୃକ୍ଷ ଓ ବସନ୍ତକାଳୀନ ବିଷ୍ଣୁ "
+        "ପୂଜା ସହିତ ଯୋଡ଼ା।",
+        "Phalguna Shukla Ekadashi — Amalaki.",
+        "ଫାଲ୍ଗୁନ ଶୁକ୍ଳ ଏକାଦଶୀ — ଆମଳକୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Papamochani Ekadashi (Phalguna)": _short(
+        "The Phalguna dark-fortnight Papamochani Ekadashi closes the named year of Ekadashis with "
+        "Vishnu fasting for release from faults.",
+        "ଫାଲ୍ଗୁନ କୃଷ୍ଣ ପକ୍ଷର ପାପମୋଚନୀ ଏକାଦଶୀରେ ବର୍ଷର ନାମିତ ଏକାଦଶୀ ଚକ୍ର ସମାପ୍ତ "
+        "ହୁଏ — ପାପମୁକ୍ତି ପାଇଁ ବିଷ୍ଣୁ ଉପବାସ।",
+        "Phalguna Krishna Ekadashi — Papamochani.",
+        "ଫାଲ୍ଗୁନ କୃଷ୍ଣ ଏକାଦଶୀ — ପାପମୋଚନୀ।",
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Pradosha Vrat": _short(
+        "Pradosha is the evening vrat on every Trayodashi, sacred to Shiva. Worship at twilight "
+        "is held especially meritorious; many visit Shiva temples after sunset.",
+        "ପ୍ରଦୋଷ ପ୍ରତି ତ୍ରୟୋଦଶୀ ସନ୍ଧ୍ୟାର ଶିବ ବ୍ରତ। ସନ୍ଧ୍ୟାକାଳୀନ ପୂଜା ବିଶେଷ ପୁଣ୍ୟକର "
+        "ମନେ ହୁଏ; ଅନେକେ ସୂର୍ଯ୍ୟାସ୍ତ ପରେ ଶିବ ମନ୍ଦିର ଯାଆନ୍ତି।",
+        "Trayodashi evening — monthly Pradosha for Shiva.",
+        "ତ୍ରୟୋଦଶୀ ସନ୍ଧ୍ୟା — ମାସିକ ପ୍ରଦୋଷ ଶିବ ବ୍ରତ।",
+        "ritual_observance",
+        ["Pradosha Vrat / Shaiva panji custom"],
+    ),
+    "Sankashti Chaturthi": _short(
+        "Sankashti (Sankatahara) Chaturthi is the monthly Ganesha vrat on Krishna Chaturthi. "
+        "Devotees fast and break it after moonrise, seeking relief from obstacles.",
+        "ସଙ୍କଷ୍ଟି ଚତୁର୍ଥୀ ପ୍ରତି କୃଷ୍ଣ ଚତୁର୍ଥୀରେ ଗଣେଶ ବ୍ରତ। ଭକ୍ତମାନେ ଉପବାସ କରି "
+        "ଚନ୍ଦ୍ରୋଦୟ ପରେ ପାରଣ କରନ୍ତି — ବିଘ୍ନ ଦୂରୀକରଣ ପାଇଁ।",
+        "Krishna Chaturthi — monthly Sankashti for Ganesha.",
+        "କୃଷ୍ଣ ଚତୁର୍ଥୀ — ମାସିକ ସଙ୍କଷ୍ଟି ଗଣେଶ ବ୍ରତ।",
+        "ritual_observance",
+        ["Sankashti / Sankatahara Chaturthi"],
+    ),
     "Pancha Uka Osha": _short(
         "Pancha Uka Osha is an Odia Lakshmi-oriented vrat across days in Margashira, kept especially by women.",
         "ପଞ୍ଚ ଉକ ଓଷା ମାର୍ଗଶୀରରେ ପାଳିତ ଓଡ଼ିଆ ଲକ୍ଷ୍ମୀ-ସମ୍ବନ୍ଧୀୟ ଓଷା — ବିଶେଷକରି ନାରୀମାନେ ପାଳନ୍ତି।",

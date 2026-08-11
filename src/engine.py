@@ -13,7 +13,7 @@ from src.translations import (
 )
 
 # Bump when masa/tithi/anchor formula changes so seed/start can force reseed.
-ENGINE_VERSION = "lahiri_purnimanta_v2"
+ENGINE_VERSION = "lahiri_purnimanta_v3_sunrise"
 
 # Location — configurable via environment variables
 # Default: Bhubaneswar, capital of Odisha
@@ -140,6 +140,54 @@ def _chandra_masa_index(sun_lon: float, moon_lon: float) -> int:
     return int(sun_at_closing_purnima / 30) % 12
 
 
+def _jd_to_local_hhmm(jd: float, tz_hours: float) -> str:
+    """Format a UT Julian Day as local HH:MM."""
+    ist = timezone(timedelta(hours=tz_hours))
+    yr, mo, dy, hr = swe.revjul(jd)
+    hour = int(hr)
+    minute = int((hr % 1) * 60)
+    # Handle floating second rounding into next minute
+    if minute >= 60:
+        hour += 1
+        minute -= 60
+    dt = datetime(
+        int(yr), int(mo), int(dy), hour % 24, minute, 0, tzinfo=timezone.utc
+    ).astimezone(ist)
+    return dt.strftime("%H:%M")
+
+
+def _get_sunrise_sunset_jd(
+    d: date,
+    lat: float = PURI_LAT,
+    lon: float = PURI_LON,
+    tz_hours: float = PURI_TZ,
+) -> tuple[float | None, float | None, str | None, str | None]:
+    """
+    Return (jd_sunrise, jd_sunset, sunrise_hhmm, sunset_hhmm) for lat/lon/tz.
+    JD values are UT (Swiss Ephemeris convention).
+    """
+    # Search from ~previous evening UT so the next sunrise is civil date's morning
+    jd_start = _date_to_jd(d, -6.0)
+    geopos = (lon, lat, 0.0)
+    try:
+        res_rise = swe.rise_trans(jd_start, swe.SUN, swe.CALC_RISE, geopos)
+        jd_rise = float(res_rise[1][0])
+        res_set = swe.rise_trans(jd_start, swe.SUN, swe.CALC_SET, geopos)
+        jd_set = float(res_set[1][0])
+        # Prefer set after rise; if set came before rise, re-search set from rise
+        if jd_set < jd_rise:
+            res_set = swe.rise_trans(jd_rise, swe.SUN, swe.CALC_SET, geopos)
+            jd_set = float(res_set[1][0])
+        return (
+            jd_rise,
+            jd_set,
+            _jd_to_local_hhmm(jd_rise, tz_hours),
+            _jd_to_local_hhmm(jd_set, tz_hours),
+        )
+    except Exception:
+        return None, None, None, None
+
+
 def _get_sunrise_sunset(
     d: date,
     lat: float = PURI_LAT,
@@ -147,41 +195,8 @@ def _get_sunrise_sunset(
     tz_hours: float = PURI_TZ,
 ):
     """Return (sunrise_iso, sunset_iso) in local time for lat/lon/tz."""
-    # Start search from previous noon UT
-    jd_start = _date_to_jd(d, -6.0)  # ~midnight UT (5:30 AM IST previous day)
-    geopos = (lon, lat, 0.0)
-    ist = timezone(timedelta(hours=tz_hours))
-
-    try:
-        res_rise = swe.rise_trans(
-            jd_start, swe.SUN, swe.CALC_RISE, geopos
-        )
-        jd_rise = res_rise[1][0]
-        yr, mo, dy, hr = swe.revjul(jd_rise)
-        frac, mins = divmod(int((hr % 1) * 60), 1)
-        rise_dt = datetime(
-            int(yr), int(mo), int(dy),
-            int(hr), int((hr % 1) * 60), 0,
-            tzinfo=timezone.utc
-        ).astimezone(ist)
-        rise_iso = rise_dt.strftime("%H:%M")
-
-        res_set = swe.rise_trans(
-            jd_start, swe.SUN, swe.CALC_SET, geopos
-        )
-        jd_set = res_set[1][0]
-        yr, mo, dy, hr = swe.revjul(jd_set)
-        set_dt = datetime(
-            int(yr), int(mo), int(dy),
-            int(hr), int((hr % 1) * 60), 0,
-            tzinfo=timezone.utc
-        ).astimezone(ist)
-        set_iso = set_dt.strftime("%H:%M")
-
-        return rise_iso, set_iso
-
-    except Exception:
-        return None, None
+    _, _, rise_iso, set_iso = _get_sunrise_sunset_jd(d, lat, lon, tz_hours)
+    return rise_iso, set_iso
 
 
 def compute_panchang(
@@ -191,27 +206,39 @@ def compute_panchang(
     tz_hours: float | None = None,
 ) -> dict:
     """
-    Compute full Panchang for a given date (at ~0:30 UT ≈ 06:00 IST sample).
+    Compute full Panchang for a civil date at **local sunrise** (Path A).
 
-    Optional lat/lon/tz_hours override the module default place for sunrise/sunset
-    only (tithi/masa use the same Lahiri sample for all Odisha cities).
+    Day elements (tithi, masa, nakshatra, yoga, karana) use Lahiri longitudes
+    at the place's sunrise JD. If sunrise cannot be computed, falls back to
+    ~00:30 UT (≈ 06:00 IST).
+
+    Optional lat/lon/tz_hours select the place (default LOCATION_* / Bhubaneswar).
     """
     lat = _LOC_LAT if lat is None else float(lat)
     lon = _LOC_LON if lon is None else float(lon)
     tz_hours = _LOC_TZ if tz_hours is None else float(tz_hours)
 
-    # Use 0:30 UT ≈ 6:00 AM IST for sunrise-based panchang
-    jd = _date_to_jd(d, 0.5)
+    jd_rise, jd_set, sunrise, sunset = _get_sunrise_sunset_jd(
+        d, lat=lat, lon=lon, tz_hours=tz_hours
+    )
+    if jd_rise is not None:
+        jd = jd_rise
+        anchor = "local_sunrise"
+    else:
+        # Fallback: ~00:30 UT ≈ 06:00 IST
+        jd = _date_to_jd(d, 0.5)
+        anchor = "approx_06:00_IST_fallback"
+        sunrise, sunset = _get_sunrise_sunset(d, lat=lat, lon=lon, tz_hours=tz_hours)
 
-    sun_lon  = _sun_longitude(jd)
+    sun_lon = _sun_longitude(jd)
     moon_lon = _moon_longitude(jd)
 
-    tithi_idx     = _tithi_index(moon_lon, sun_lon)
+    tithi_idx = _tithi_index(moon_lon, sun_lon)
     nakshatra_idx = _nakshatra_index(moon_lon)
-    yoga_idx      = _yoga_index(sun_lon, moon_lon)
-    karana_idx    = _karana_index(moon_lon, sun_lon)
-    soura_idx     = _soura_masa_index(sun_lon)
-    chandra_idx   = _chandra_masa_index(sun_lon, moon_lon)
+    yoga_idx = _yoga_index(sun_lon, moon_lon)
+    karana_idx = _karana_index(moon_lon, sun_lon)
+    soura_idx = _soura_masa_index(sun_lon)
+    chandra_idx = _chandra_masa_index(sun_lon, moon_lon)
 
     # Paksha: tithi 0–14 = Shukla, 15–29 = Krishna
     paksha_key = "shukla" if tithi_idx < 15 else "krishna"
@@ -221,36 +248,37 @@ def compute_panchang(
     # Vara (day of week): Python weekday() 0=Mon, we need 0=Sun
     vara_idx = (d.weekday() + 1) % 7
 
-    sunrise, sunset = _get_sunrise_sunset(d, lat=lat, lon=lon, tz_hours=tz_hours)
-
-    tithi_data     = TITHIS[tithi_idx]
+    tithi_data = TITHIS[tithi_idx]
     nakshatra_data = NAKSHATRAS[nakshatra_idx]
-    yoga_data      = YOGAS[yoga_idx]
-    karana_data    = KARANAS[karana_idx]
-    soura_data     = SOURA_MASA[soura_idx]
-    chandra_data   = CHANDRA_MASA[chandra_idx]
-    vara_data      = VARAS[vara_idx]
-    paksha_data    = PAKSHA[paksha_key]
+    yoga_data = YOGAS[yoga_idx]
+    karana_data = KARANAS[karana_idx]
+    soura_data = SOURA_MASA[soura_idx]
+    chandra_data = CHANDRA_MASA[chandra_idx]
+    vara_data = VARAS[vara_idx]
+    paksha_data = PAKSHA[paksha_key]
 
     return {
-        "date":             d.isoformat(),
-        "vara_en":          vara_data["en"],
-        "vara_or":          vara_data["or"],
-        "soura_masa_en":    soura_data["en"],
-        "soura_masa_or":    soura_data["or"],
-        "chandra_masa_en":  chandra_data["en"],
-        "chandra_masa_or":  chandra_data["or"],
-        "paksha_en":        paksha_data["en"],
-        "paksha_or":        paksha_data["or"],
-        "tithi_num":        tithi_num_in_paksha,
-        "tithi_en":         tithi_data["en"],
-        "tithi_or":         tithi_data["or"],
-        "nakshatra_en":     nakshatra_data["en"],
-        "nakshatra_or":     nakshatra_data["or"],
-        "yoga_en":          yoga_data["en"],
-        "yoga_or":          yoga_data["or"],
-        "karana_en":        karana_data["en"],
-        "karana_or":        karana_data["or"],
-        "sunrise":          sunrise,
-        "sunset":           sunset,
+        "date": d.isoformat(),
+        "vara_en": vara_data["en"],
+        "vara_or": vara_data["or"],
+        "soura_masa_en": soura_data["en"],
+        "soura_masa_or": soura_data["or"],
+        "chandra_masa_en": chandra_data["en"],
+        "chandra_masa_or": chandra_data["or"],
+        "paksha_en": paksha_data["en"],
+        "paksha_or": paksha_data["or"],
+        "tithi_num": tithi_num_in_paksha,
+        "tithi_en": tithi_data["en"],
+        "tithi_or": tithi_data["or"],
+        "nakshatra_en": nakshatra_data["en"],
+        "nakshatra_or": nakshatra_data["or"],
+        "yoga_en": yoga_data["en"],
+        "yoga_or": yoga_data["or"],
+        "karana_en": karana_data["en"],
+        "karana_or": karana_data["or"],
+        "sunrise": sunrise,
+        "sunset": sunset,
+        "day_elements_anchor": anchor,
+        "lat": lat,
+        "lon": lon,
     }

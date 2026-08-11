@@ -127,12 +127,16 @@ Required meta block (names may match implementation):
     "lat": 19.8135,
     "lon": 85.8312,
     "tz": "Asia/Kolkata",
-    "disclaimer": "Lahiri day elements at shared ~06:00 IST sample; city moves sunrise/sunset. Festival overlays follow tradition rules. Not a commercial panjika reprint.",
-    "day_elements_anchor": "approx_06:00_IST_lahiri",
+    "disclaimer": "Lahiri/Swiss Ephemeris day elements (tithi, masa, nakshatra, yoga, karana) are computed at local sunrise for the requested place. Festival overlays follow tradition rules and Tier A civil tables where present. Not a commercial panjika reprint.",
+    "day_elements_anchor": "local_sunrise",
+    "day_elements_scope": "local_sunrise",
+    "place_affects": ["sunrise", "sunset", "tithi", "nakshatra", "yoga", "karana", "chandra_masa", "soura_masa", "paksha", "meta.city", "meta.lat", "meta.lon"],
     "biraja_civil_status": "rule_only"
   }
 }
 ```
+
+**Path A (shipped):** day elements are computed at **local sunrise** for the resolved place (`lat`/`lon`/`city`). Fallback if rise-transit fails: `approx_06:00_IST_fallback` (~00:30 UT).
 
 `masa_system` stays `purnimanta_odia_default` until a sourced dual-masa mode exists.
 Do not rename it to `biraja` or `khadiratna` without fixtures from those books.
@@ -349,8 +353,9 @@ GET /api/panchang/today/jajpur?tradition=biraja
     "lat": 19.8135,
     "lon": 85.8312,
     "tz": "Asia/Kolkata",
-    "disclaimer": "Lahiri day elements at shared ~06:00 IST sample; city moves sunrise/sunset. Festival overlays follow tradition rules. Not a commercial panjika reprint.",
-    "day_elements_anchor": "approx_06:00_IST_lahiri",
+    "disclaimer": "Lahiri/Swiss Ephemeris day elements at local sunrise for the requested place. Festival overlays follow tradition rules. Not a commercial panjika reprint.",
+    "day_elements_anchor": "local_sunrise",
+    "day_elements_scope": "local_sunrise",
     "biraja_civil_status": "rule_only"
   },
   "date": "2026-07-16",

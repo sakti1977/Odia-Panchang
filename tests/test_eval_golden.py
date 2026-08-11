@@ -309,12 +309,17 @@ class TestELocApiDual:
         assert meta["masa_system"] == "purnimanta_odia_default"
         assert meta["masa_system"] != "official_biraja"
         assert meta["masa_system"] != "official_khadiratna"
-        assert meta.get("day_elements_scope") == "shared_ist_sample"
+        # Path A: day elements at local sunrise for the requested place
+        assert meta.get("day_elements_scope") == "local_sunrise"
+        assert meta.get("day_elements_anchor") in (
+            "local_sunrise",
+            "approx_06:00_IST_fallback",
+        )
+        assert "tithi" in (meta.get("place_affects") or [])
         assert "sunrise" in (meta.get("place_affects") or [])
         assert meta.get("biraja_civil_status") == "rule_only"
-        assert "06:00" in meta.get("disclaimer", "") or "06:00" in meta.get(
-            "day_elements_anchor", ""
-        )
+        disc = meta.get("disclaimer", "")
+        assert "sunrise" in disc.lower()
 
     def test_e_dual_004_biraja_fixture_opt_in(self):
         """
