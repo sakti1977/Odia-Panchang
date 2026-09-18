@@ -45,6 +45,23 @@ def test_post_daily_test_mode(monkeypatch, tmp_path):
     assert main([]) == 0
 
 
+def test_post_daily_platforms_facebook_only(monkeypatch):
+    monkeypatch.setenv("TEST_MODE", "false")
+    monkeypatch.setenv("PANJIKA_DATE", "2026-08-10")
+    monkeypatch.setenv("PLATFORMS", "facebook")
+    seen = {}
+
+    def fake_bundle(panchang, enrichment, platforms=None, **kwargs):
+        seen["platforms"] = platforms
+        return {"status": "posted", "platforms": {"facebook": {"status": "posted"}}}
+
+    monkeypatch.setattr("src.meta_poster.post_meta_bundle", fake_bundle)
+    from scripts.post_daily import main
+
+    assert main([]) == 0
+    assert seen["platforms"] == ["facebook"]
+
+
 def test_post_daily_missing_date(monkeypatch):
     monkeypatch.setenv("TEST_MODE", "true")
     monkeypatch.setenv("PANJIKA_DATE", "1900-01-01")

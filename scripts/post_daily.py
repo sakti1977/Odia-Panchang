@@ -9,6 +9,7 @@ Env:
   META_PAGE_ID, META_PAGE_ACCESS_TOKEN   required to publish
   META_IG_USER_ID                        optional (discovered from the Page)
   INSTAGRAM_AS_STORY                     default true
+  PLATFORMS                              comma list, default facebook,instagram
   TEST_MODE=true                         generate caption + cards, do not publish
   PANJIKA_DATE=YYYY-MM-DD                override IST today
   DATABASE_URL                           default sqlite:///./data/panchang.db
@@ -49,6 +50,16 @@ def main(argv: list[str] | None = None) -> int:
     _load_dotenv()
     test_mode = os.getenv("TEST_MODE", "false").lower() in ("1", "true", "yes", "on")
     date_override = (os.getenv("PANJIKA_DATE") or "").strip() or None
+    platforms = [
+        p.strip().lower()
+        for p in (os.getenv("PLATFORMS") or "facebook,instagram").split(",")
+        if p.strip()
+    ]
+    allowed = {"facebook", "instagram"}
+    platforms = [p for p in platforms if p in allowed]
+    if not platforms:
+        logger.error("PLATFORMS must include facebook and/or instagram")
+        return 1
 
     from src.local_day import DayNotFound, load_panchang_day, rule_enrichment
     from src.tweet_generator import generate_social_caption
@@ -67,17 +78,18 @@ def main(argv: list[str] | None = None) -> int:
     from src.social_card import generate_daily_card, generate_story_card
 
     card = generate_daily_card(panchang, enrichment)
-    story = generate_story_card(panchang, enrichment, feed_path=card)
     logger.info("Feed card: %s", card)
-    logger.info("Story card: %s", story)
+    if "instagram" in platforms:
+        story = generate_story_card(panchang, enrichment, feed_path=card)
+        logger.info("Story card: %s", story)
 
     if test_mode:
-        logger.info("TEST_MODE: not publishing to Facebook/Instagram")
+        logger.info("TEST_MODE: not publishing (platforms=%s)", ",".join(platforms))
         return 0
 
     from src.meta_poster import post_meta_bundle
 
-    result = post_meta_bundle(panchang, enrichment, platforms=["facebook", "instagram"])
+    result = post_meta_bundle(panchang, enrichment, platforms=platforms)
     status = result.get("status")
     logger.info("Social status=%s platforms=%s", status, result.get("platforms"))
     if status != "posted":
