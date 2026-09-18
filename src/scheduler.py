@@ -1,11 +1,11 @@
 """
-Daily 5 AM IST scheduler for Odia Panchang tweets.
-Uses APScheduler. Posts via Tweepy if TWITTER_* keys are set in .env,
-otherwise writes generated tweets to logs/daily_tweets.log.
+Daily 5 AM IST scheduler for Odia Panjika social posts.
 
-When PUBLIC_API_URL is set, the scheduler fetches panchang data from the
-public Render API instead of computing locally — this reduces server load
-on the web service.
+Primary: Facebook Page + Instagram (Meta Graph API).
+Optional leftover: Twitter/X if TWITTER_* keys are set.
+
+Daily production path: GitHub Actions runs scripts/post_daily.py against
+the repo SQLite DB. This in-process scheduler is only for an always-on API.
 """
 
 import os
@@ -252,11 +252,11 @@ async def run_daily_social(platforms: list[str] | None = None):
 
 
 async def run_daily_all_channels():
-    """Tweet + Facebook + Instagram for free-tier cron (one wake)."""
-    tweet = await run_daily_tweet()
+    """Facebook + Instagram first; Twitter/X only if still configured."""
     social = await run_daily_social(["facebook", "instagram"])
+    tweet = await run_daily_tweet()
     return {
-        "date": tweet.get("date") or social.get("date"),
+        "date": social.get("date") or tweet.get("date"),
         "twitter": tweet.get("result") if "result" in tweet else tweet,
         "tweet_bundle": tweet.get("bundle"),
         "social": social.get("social") if "social" in social else social,
@@ -267,11 +267,11 @@ def create_scheduler() -> AsyncIOScheduler:
     """Create and configure the APScheduler instance."""
     scheduler = AsyncIOScheduler(timezone=IST)
     scheduler.add_job(
-        run_daily_tweet,
+        run_daily_social,
         trigger=CronTrigger(hour=5, minute=0, timezone=IST),
-        id="daily_tweet",
-        name="Daily 5 AM Odia Panchang Tweet",
+        id="daily_social",
+        name="Daily 5 AM Odia Panjika Facebook + Instagram",
         replace_existing=True,
-        misfire_grace_time=300,  # allow 5 min late start
+        misfire_grace_time=300,
     )
     return scheduler

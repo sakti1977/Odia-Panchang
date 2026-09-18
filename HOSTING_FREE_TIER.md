@@ -1,183 +1,76 @@
-# Free-tier hosting (Render Free + GitHub Actions)
+# Hosting: GitHub Actions (no Render)
 
-Stay on **Render Free** without paying $7 for always-on. Daily tweets and optional keep-warm run from **GitHub Actions**.
-
-## Architecture
+Daily Facebook + Instagram posting runs **inside GitHub Actions**. There is no
+web service to keep warm and nothing to pay Render for.
 
 ```text
-Users / browsers ──► Render Free web (FastAPI + SQLite)
-                           ▲
-                           │ wake + POST /tweet/post
-GitHub Actions ────────────┘
-  daily-tweet.yml   05:00 IST
-  keep-warm.yml     every 12 min (optional)
+GitHub Actions (05:00 IST)
+  checkout + fonts + pip
+  python scripts/post_daily.py
+       │
+       ├─ SQLite  data/panchang.db  (in this repo)
+       ├─ JPEG cards
+       └─ Meta Graph API ──► Facebook Page + Instagram Story
 ```
 
-| Component | Role |
-|-----------|------|
-| Render Free web | Serves API + UI; holds `TWITTER_*` secrets |
-| GitHub Actions daily tweet | Wakes service, posts tweet |
-| GitHub Actions keep-warm | Optional: reduces cold starts |
-| In-process APScheduler | **Off by default** (`ENABLE_INPROCESS_SCHEDULER=false`) |
+The FastAPI site (`main.py`) is optional. GitHub cannot host it. If Render is
+charging you, **delete or suspend the Render service** — posting will keep
+working from Actions.
 
 ## One-time setup
 
-### 1. Render dashboard (web service)
+### 1. GitHub secrets (Settings → Secrets and variables → Actions)
 
-Confirm env vars (or apply `render.yaml`):
-
-| Key | Value |
-|-----|--------|
-| `DATABASE_URL` | `sqlite:///./data/panchang.db` |
-| `LOCATION_*` | Bhubaneswar (not Bangalore) |
-| `ENABLE_INPROCESS_SCHEDULER` | `false` |
-| `PUBLIC_API_URL` | your `https://….onrender.com` |
-| `TWITTER_API_KEY` / `_SECRET` / `ACCESS_TOKEN` / `ACCESS_SECRET` | same Twitter app |
-| `TWEET_CRON_SECRET` | **Required** for `POST /tweet/post` (Bearer). Same value in GH Actions secret |
-| Optional | `TWITTER_BEARER_TOKEN`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY` |
-
-Redeploy after env changes. Check logs for:
-
-```text
-In-process scheduler OFF (free-tier default)
-```
-
-### 2. GitHub repository
-
-1. **Settings → Secrets and variables → Actions → Variables**  
-   - Optional: `PUBLIC_API_URL` = `https://your-service.onrender.com`
-2. **Settings → Secrets → Actions → Secrets**  
-   - **Required:** `TWEET_CRON_SECRET` = long random string (**same** as Render env `TWEET_CRON_SECRET`)
-3. Ensure workflows are enabled (**Actions** tab).
-4. Run **Manual Tweet Trigger** once to verify wake + post (needs secret on both sides).
-5. Optional: enable **Keep-warm free Render** if you want fewer cold starts  
-   (uses free instance hours; one always-warm service ≈ 720 h/mo vs 750 free hours).
-
-### 3. Verify
-
-```bash
-# Local ops script (no deps)
-python scripts/free_tier_ops.py health --url https://odia-panchang.onrender.com
-python scripts/free_tier_ops.py wake  --url https://odia-panchang.onrender.com
-python scripts/free_tier_ops.py tweet --url https://odia-panchang.onrender.com
-
-# API status
-curl -s https://odia-panchang.onrender.com/api/status | jq .scheduler
-```
-
-Expect `scheduler.inprocess: false` and `recommended: github_actions`.
-
-`GET /api` returns **200** only if today’s panji row exists; otherwise **503 degraded**
-(so keep-warm / monitors can notice a missing seed).
-
-## Daily tweet timeline (IST)
-
-| Time | What |
-|------|------|
-| ~04:59–05:00 | GH Actions starts (cron `30 23 * * *` UTC) |
-| | Wake `GET /api` (retries for cold start) |
-| | `POST /tweet/post` |
-| | Preview `GET /tweet/today` |
-
-Twitter credentials must be on **Render**, not GitHub (the server posts via Tweepy).
-
-## Cold starts
-
-| Situation | Experience |
-|-----------|------------|
-| Idle > 15 min, no keep-warm | First request ~30–60s |
-| keep-warm every 12 min | Usually warm |
-| Free instance hours exhausted | Service suspended until next month |
-
-### Keep-warm decision (P2 default)
-
-**Recommendation: leave Keep-warm enabled** for public UX (fewer 30–60s cold
-starts on first API/UI hit). Free workspaces get ~750 instance-hours/month;
-always-warm ≈ 720h. If Render suspends mid-month:
-
-1. Disable **Keep-warm free Render** first (Actions → workflow → Disable).
-2. Keep **Daily Odia Panjika Tweet** (one wake/day is enough for tweets).
-3. Re-enable keep-warm next billing cycle if needed.
-
-Do **not** turn on `ENABLE_INPROCESS_SCHEDULER` on Free — it does not wake a sleeping dyno.
-
-## Database reseed policy
-
-`start.sh` runs `python seed.py --ensure-engine`:
-
-| Condition | Action |
-|-----------|--------|
-| `data/.engine_version` ≠ `ENGINE_VERSION` in `src/engine.py` | **Force reseed** astronomy + festivals for 2020–2030 |
-| Versions match | Festival-only refresh (civil overrides / rules stay current) |
-| Stories only (`festival_stories.py`) | No reseed — attach at API read time |
-
-Manual:
-
-```bash
-python seed.py --force --start 2020 --end 2030   # full rewrite
-python seed.py --refresh-festivals                 # festivals only
-python seed.py --ensure-engine                     # same as start.sh
-```
-
-Bump `ENGINE_VERSION` whenever masa/tithi/anchor formula changes.
-
-After reseed: `pytest tests/test_db_parity.py tests/test_eval_golden.py -q`.
-
-## Tweet cron auth (required)
-
-```http
-POST /tweet/post
-Authorization: Bearer <TWEET_CRON_SECRET>
-```
-
-Without secret → **401**. Without secret configured on server → **503**.
-Rate limit: **5/hour** per IP.
-
-## Facebook & Instagram (Meta)
-
-See **`SOCIAL_META.md`** for full Meta app setup.
-
-| Env | Purpose |
-|-----|---------|
+| Secret | Purpose |
+|--------|---------|
 | `META_PAGE_ID` | Facebook Page ID |
 | `META_PAGE_ACCESS_TOKEN` | Long-lived Page token |
-| `META_IG_USER_ID` | Instagram Business user ID |
-| `PUBLIC_API_URL` | Required for IG (public HTTPS card URL) |
+| `META_IG_USER_ID` | Optional; discovered from the Page if omitted |
+
+How to mint the Page token: **`SOCIAL_META.md`** / `python scripts/extend_meta_token.py`.
+
+Do **not** put tokens in the repo or in Actions logs. The workflow only
+forwards `secrets.*` into the job environment.
+
+### 2. Enable the workflow
+
+Actions → **Daily Odia Panjika** → enable. It fires at 05:00 IST
+(`cron: 30 23 * * *` UTC) and can be run manually (dry-run checkbox).
+
+### 3. Stop Render (this is what ends the bill)
+
+1. Disable **Keep-warm free Render** (already disabled in this repo).
+2. In the [Render dashboard](https://dashboard.render.com/): suspend or delete
+   `odia-panjika-api`.
+3. Remove any Render credit card / paid instance.
+
+`render.yaml` stays in the repo only as a leftover blueprint if you ever want
+a public API again. It is not required for daily posts.
+
+## Local dry run
 
 ```bash
-# Preview card + captions
-curl -s "$PUBLIC_API_URL/social/preview" | jq .
-
-# Publish FB + IG
-python scripts/free_tier_ops.py social --url "$PUBLIC_API_URL"
-
-# X + FB + IG
-python scripts/free_tier_ops.py all --url "$PUBLIC_API_URL"
+pip install -r requirements-social.txt
+TEST_MODE=true python scripts/post_daily.py
+# or a specific date:
+TEST_MODE=true PANJIKA_DATE=2026-08-10 python scripts/post_daily.py
 ```
 
-Daily GH workflow posts X, then FB/IG (`continue-on-error` if Meta not configured).
+Needs `data/panchang.db` (already in the repo). No Meta keys in dry run.
 
-## What not to do on Free
+## What GitHub cannot replace
 
-- Rely on in-process APScheduler for 5 AM tweets (process is asleep).
-- Pay for Render Cron **and** free web that sleeps (use GH Actions instead).
-- Leave `LOCATION_*` as Bangalore (fixed in `render.yaml`).
-
-## Always-on later
-
-If you upgrade to Render Starter or another always-on host:
-
-```env
-ENABLE_INPROCESS_SCHEDULER=true
-```
-
-Or keep GitHub Actions as the only tweet trigger (simpler, still works).
+| Need | On GitHub? |
+|------|------------|
+| Daily Facebook + Instagram | Yes (this workflow) |
+| Public FastAPI / web UI | No — use a free host later, or drop it |
+| GitHub Pages static site | Possible later; not wired yet |
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---------|--------|
-| Workflow green but no tweet | Render logs; `TWITTER_*` on web service; `/tweet/today` → `twitter_configured` |
-| Workflow fails wake | Service suspended / hours exhausted; open Render dashboard |
-| 401/403 from Twitter | Same app keys; OAuth 1.0a write; see `TWITTER_AUTH_GUIDE.md` |
-| Wrong sunrise | `LOCATION_*` Bhubaneswar or request `?city=puri` |
+| Workflow red, Graph 190 | Token expired — `python scripts/extend_meta_token.py`, update the GitHub secret |
+| Workflow green, nothing on the Page | Secrets not set; re-run **Manual Panjika Post** with dry run off |
+| Odia looks like boxes on the card | `fonts-lohit-orya` step failed |
+| Missing date | `data/panchang.db` not in the checkout; reseed and commit |

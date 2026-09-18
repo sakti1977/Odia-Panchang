@@ -1,9 +1,7 @@
 # Free-tier friendly blueprint.
-# Daily tweets: prefer GitHub Actions (.github/workflows/daily-tweet.yml)
-# rather than a paid/always-on Render Cron + in-process APScheduler.
-#
-# Do NOT set ENABLE_INPROCESS_SCHEDULER on free web — the dyno sleeps.
-# Put TWITTER_* on the web service so POST /tweet/post can publish.
+# OPTIONAL leftover. Daily Facebook + Instagram posting runs in GitHub
+# Actions (scripts/post_daily.py) and does not need this service.
+# Keep this file only if you still want a public FastAPI site.
 
 services:
   - type: web
@@ -54,7 +52,9 @@ services:
       - key: META_IG_USER_ID
         sync: false
       - key: META_GRAPH_VERSION
-        value: "v21.0"
+        value: "v22.0"
+      - key: INSTAGRAM_AS_STORY
+        value: "true"
 
 # Optional: if you later pay for always-on + Render Cron, uncomment and set secrets.
 # Prefer GitHub Actions while on Free plan.

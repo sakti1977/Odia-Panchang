@@ -1,5 +1,8 @@
 """
-Generate a daily Odia Panjika share card (PNG) for Instagram / Facebook.
+Daily Odia Panjika share cards for Facebook / Instagram.
+
+Instagram feed accepts JPEG at 4:5 (1080×1350). Instagram Stories require
+9:16 (1080×1920). Facebook Page photos accept the same 4:5 JPEG.
 Uses system Noto Sans Oriya when available.
 """
 
@@ -15,9 +18,16 @@ _CARD_DIR = Path("static/social/cards")
 _FONT_CANDIDATES = [
     Path("/usr/share/fonts/truetype/noto/NotoSansOriya-Regular.ttf"),
     Path("/usr/share/fonts/truetype/noto/NotoSansOriya-Bold.ttf"),
+    Path("/usr/share/fonts/truetype/lohit-orya/Lohit-Odia.ttf"),
+    Path("/usr/share/fonts/truetype/lohit-oriya/Lohit-Oriya.ttf"),
     Path("assets/fonts/NotoSansOriya-Regular.ttf"),
     Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
 ]
+
+IMAGE_WIDTH = 1080
+IMAGE_HEIGHT = 1350
+STORY_WIDTH = 1080
+STORY_HEIGHT = 1920
 
 
 def _find_font(size: int):
@@ -69,25 +79,10 @@ def _line(panchang: dict, enrichment: dict | None = None) -> list[str]:
     return lines
 
 
-def generate_daily_card(
-    panchang: dict,
-    enrichment: dict | None = None,
-    *,
-    out_dir: Path | None = None,
-) -> Path:
-    """
-    Render a 1080×1350 portrait card (IG-friendly 4:5).
-    Returns local filesystem path under static/social/cards/.
-    """
+def _paint_feed_card(panchang: dict, enrichment: dict | None = None):
     from PIL import Image, ImageDraw
 
-    out_dir = out_dir or _CARD_DIR
-    out_dir.mkdir(parents=True, exist_ok=True)
-    day = panchang.get("date") or date.today().isoformat()
-    out_path = out_dir / f"panjika_{day}.png"
-
-    W, H = 1080, 1350
-    # Deep temple-inspired gradient base
+    W, H = IMAGE_WIDTH, IMAGE_HEIGHT
     img = Image.new("RGB", (W, H), (18, 32, 56))
     draw = ImageDraw.Draw(img)
     for y in range(H):
@@ -95,12 +90,10 @@ def generate_daily_card(
         r = int(18 + (120 - 18) * t * 0.35)
         g = int(32 + (40 - 32) * t)
         b = int(56 + (20 - 56) * t * 0.2)
-        # saffron wash toward bottom
         r2 = int(r + (180 - r) * (t**2) * 0.45)
         g2 = int(g + (90 - g) * (t**2) * 0.35)
         draw.line([(0, y), (W, y)], fill=(r2, g2, b))
 
-    # Gold frame
     margin = 48
     draw.rounded_rectangle(
         [margin, margin, W - margin, H - margin],
@@ -123,7 +116,6 @@ def generate_daily_card(
     y = 160
     for i, text in enumerate(lines):
         font = title_font if i < 2 else (small_font if i == len(lines) - 1 else body_font)
-        # center text
         bbox = draw.textbbox((0, 0), text, font=font)
         tw = bbox[2] - bbox[0]
         x = (W - tw) // 2
@@ -132,18 +124,64 @@ def generate_daily_card(
             color = (200, 180, 120)
         draw.text((x, y), text, font=font, fill=color)
         y += (bbox[3] - bbox[1]) + (36 if i < 2 else 28)
+    return img
 
-    img.save(out_path, format="PNG", optimize=True)
+
+def generate_daily_card(
+    panchang: dict,
+    enrichment: dict | None = None,
+    *,
+    out_dir: Path | None = None,
+) -> Path:
+    """
+    Render a 1080×1350 portrait JPEG (IG-friendly 4:5).
+    Returns local filesystem path under static/social/cards/.
+    """
+    out_dir = out_dir or _CARD_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    day = panchang.get("date") or date.today().isoformat()
+    out_path = out_dir / f"panjika_{day}.jpg"
+
+    img = _paint_feed_card(panchang, enrichment)
+    img.save(out_path, format="JPEG", quality=90, optimize=True)
     logger.info("[SocialCard] wrote %s", out_path)
     return out_path
 
 
+def generate_story_card(
+    panchang: dict,
+    enrichment: dict | None = None,
+    *,
+    feed_path: Path | None = None,
+    out_dir: Path | None = None,
+) -> Path:
+    """Pad the 4:5 card onto a 9:16 canvas for Instagram Stories."""
+    from PIL import Image
+
+    out_dir = out_dir or _CARD_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    day = panchang.get("date") or date.today().isoformat()
+    out_path = out_dir / f"panjika_{day}_story.jpg"
+
+    if feed_path is None or not Path(feed_path).is_file():
+        feed_path = generate_daily_card(panchang, enrichment, out_dir=out_dir)
+
+    canvas = Image.new("RGB", (STORY_WIDTH, STORY_HEIGHT), (18, 32, 56))
+    with Image.open(feed_path) as raw:
+        card = raw.convert("RGB")
+        card = card.resize((IMAGE_WIDTH, IMAGE_HEIGHT), Image.Resampling.LANCZOS)
+    top = (STORY_HEIGHT - IMAGE_HEIGHT) // 2
+    canvas.paste(card, (0, top))
+    canvas.save(out_path, format="JPEG", quality=90, optimize=True)
+    logger.info("[SocialCard] wrote story %s", out_path)
+    return out_path
+
+
 def public_card_url(local_path: Path, public_base: str | None = None) -> str:
-    """Map static path to public URL for Instagram Graph API."""
+    """Map static path to public URL (preview only — Instagram ingest uses FB CDN)."""
     import os
 
     base = (public_base or os.getenv("PUBLIC_API_URL") or "").rstrip("/")
-    # Prefer path relative to static/
     s = str(local_path).replace("\\", "/")
     if "/static/" in s:
         rel = "static/" + s.split("/static/", 1)[1]

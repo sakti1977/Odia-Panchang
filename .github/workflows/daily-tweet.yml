@@ -1,8 +1,7 @@
-name: Daily Odia Panjika Tweet
+name: Daily Odia Panjika
 
-# Free-tier path: wake Render Free web service, then POST /tweet/post.
-# Twitter keys live on Render (web service env), not in GitHub.
-# Optional repo Variable: PUBLIC_API_URL
+# Runs in GitHub Actions. Does not call Render.
+# Meta secrets live in this repo (Settings → Secrets → Actions).
 
 on:
   schedule:
@@ -10,22 +9,30 @@ on:
     - cron: "30 23 * * *"
   workflow_dispatch:
     inputs:
-      api_url:
-        description: "API base URL (leave empty to use vars.PUBLIC_API_URL or default)"
+      test_mode:
+        description: "Dry run only (do not publish to Facebook/Instagram)"
+        required: false
+        type: boolean
+        default: false
+      date:
+        description: "Override date YYYY-MM-DD (leave empty for IST today)"
         required: false
         default: ""
 
 concurrency:
-  group: daily-tweet
+  group: daily-panjika
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
 jobs:
-  daily-tweet:
-    name: Wake free tier + post tweet
+  daily-social:
+    name: Post Facebook + Instagram
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    permissions:
-      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,50 +41,81 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-social.txt
 
-      - name: Resolve API URL
-        id: url
+      - name: Install Odia fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-lohit-orya fonts-noto-core
+
+      - name: Install posting dependencies
+        run: pip install -r requirements-social.txt
+
+      - name: Compute today's date key (IST)
+        id: datekey
         run: |
-          U="${{ github.event.inputs.api_url }}"
-          if [ -z "$U" ]; then U="${{ vars.PUBLIC_API_URL }}"; fi
-          if [ -z "$U" ]; then U="https://odia-panchang.onrender.com"; fi
-          echo "url=$U" >> "$GITHUB_OUTPUT"
-          echo "Using API: $U"
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE="${{ github.event.inputs.date }}"
+          else
+            DATE=$(TZ=Asia/Kolkata date +%Y-%m-%d)
+          fi
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
 
-      - name: Wake service (free-tier cold start)
-        env:
-          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
-        run: python scripts/free_tier_ops.py wake --url "$PUBLIC_API_URL"
+      - name: Check whether today was already posted
+        id: cache-restore
+        if: github.event.inputs.test_mode != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .state/posted.marker
+          key: panjika-posted-${{ steps.datekey.outputs.date }}
 
-      - name: Post daily tweet (X)
-        env:
-          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
-          TWEET_CRON_SECRET: ${{ secrets.TWEET_CRON_SECRET }}
-        run: python scripts/free_tier_ops.py tweet --url "$PUBLIC_API_URL" --no-wake
+      - name: Skip notice
+        if: steps.cache-restore.outputs.cache-hit == 'true'
+        run: echo "Already posted ${{ steps.datekey.outputs.date }} IST — skipping. Re-run as a dry run to preview."
 
       - name: Post Facebook + Instagram
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         env:
-          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
-          TWEET_CRON_SECRET: ${{ secrets.TWEET_CRON_SECRET }}
-        run: python scripts/free_tier_ops.py social --url "$PUBLIC_API_URL" --no-wake
-        # Continues even if Meta keys not configured (returns logged)
-        continue-on-error: true
+          TEST_MODE: ${{ github.event.inputs.test_mode }}
+          PANJIKA_DATE: ${{ steps.datekey.outputs.date }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
+          INSTAGRAM_AS_STORY: "true"
+        run: python scripts/post_daily.py
 
-      - name: Preview tweet + social
-        if: always()
+      - name: Save posted-day marker to cache
+        if: steps.cache-restore.outputs.cache-hit != 'true' && github.event.inputs.test_mode != 'true' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: .state/posted.marker
+          key: panjika-posted-${{ steps.datekey.outputs.date }}
+
+      - name: File/update failure alert issue
+        if: failure()
         env:
-          PUBLIC_API_URL: ${{ steps.url.outputs.url }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python - <<'EOF'
-          import json, os, urllib.request
-          api = os.environ["PUBLIC_API_URL"].rstrip("/")
-          for path in ("/tweet/today", "/social/preview"):
-              url = f"{api}{path}"
-              try:
-                  with urllib.request.urlopen(url, timeout=90) as r:
-                      data = json.loads(r.read().decode())
-                  print("===", path, "===")
-                  print(json.dumps(data, indent=2, ensure_ascii=False)[:2500])
-              except Exception as e:
-                  print(path, "preview failed:", e)
-          EOF
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="The scheduled Odia panjika Facebook/Instagram post failed. See the run log: $RUN_URL"
+          gh label create bot-failure --color B60205 --description "Daily panjika post failed" 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --label bot-failure --state open --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body "$BODY"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "🔴 Daily panjika post failed" \
+              --label bot-failure --body "$BODY"
+          fi
+
+      - name: Close failure alert issue on recovery
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for num in $(gh issue list --repo "${{ github.repository }}" \
+              --label bot-failure --state open --json number --jq '.[].number'); do
+            gh issue comment "$num" --repo "${{ github.repository }}" \
+              --body "✅ Resolved — today's panjika posted successfully."
+            gh issue close "$num" --repo "${{ github.repository }}"
+          done

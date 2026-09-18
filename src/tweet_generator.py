@@ -1,12 +1,18 @@
 """
-Tweet generator for Odia Panjika daily posts.
-Formats panjika data into Twitter/X-ready content (≤280 chars main tweet + thread).
+Tweet / social caption generator for Odia Panjika daily posts.
+
+Twitter/X: ≤280 chars main tweet + thread.
+Facebook + Instagram: one caption capped at Instagram's 2200 characters.
 """
 
 from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Instagram caption hard limit. Facebook allows more; we cap at Instagram
+# so the same caption can go to both platforms.
+CAPTION_MAX_LEN = 2200
 
 # Hashtags — using Panjika (ପଞ୍ଜିକା), not Panchang
 _BASE_TAGS = "#OdiaPanjika #Jagannath #Odisha"
@@ -220,6 +226,193 @@ def generate_thread_tweet(panchang: dict, enrichment: dict | None = None) -> str
         else:
             break
     return thread
+
+
+def _truncate_at_word_boundary(text: str, max_len: int, min_keep: int = 20) -> str:
+    """Hard cap at max_len, breaking at the last space. Ellipsis counts in budget."""
+    if len(text) <= max_len:
+        return text
+    ellipsis = "…"
+    if max_len <= len(ellipsis):
+        return text[:max_len]
+    truncated = text[: max_len - len(ellipsis)]
+    last_space = truncated.rfind(" ")
+    if last_space > min_keep:
+        truncated = truncated[:last_space]
+    return truncated + ellipsis
+
+
+def _fit_hashtags(hashtags: str, budget: int) -> str:
+    if not hashtags or budget <= 0:
+        return ""
+    if len(hashtags) <= budget:
+        return hashtags
+    fitted: list[str] = []
+    used = 0
+    for tag in hashtags.split():
+        extra = len(tag) + (1 if fitted else 0)
+        if used + extra > budget:
+            break
+        fitted.append(tag)
+        used += extra
+    return " ".join(fitted)
+
+
+def _odia_civil_date(panchang: dict) -> str:
+    d = date.fromisoformat(panchang["date"])
+    months = [
+        "ଜାନୁଆରୀ", "ଫେବ୍ରୁଆରୀ", "ମାର୍ଚ୍ଚ", "ଏପ୍ରିଲ", "ମଇ", "ଜୁନ",
+        "ଜୁଲାଇ", "ଅଗଷ୍ଟ", "ସେପ୍ଟେମ୍ବର", "ଅକ୍ଟୋବର", "ନଭେମ୍ବର", "ଡିସେମ୍ବର",
+    ]
+    return f"{d.day} {months[d.month - 1]} {d.year}"
+
+
+def _with_festival_stories(panchang: dict) -> dict:
+    festivals = panchang.get("festivals") or []
+    if not festivals:
+        return panchang
+    from src.festival_stories import attach_story
+
+    enriched_fests = []
+    for f in festivals:
+        row = dict(f)
+        if "name_en" not in row and isinstance(row.get("name"), dict):
+            row["name_en"] = row["name"].get("en", "")
+            row["name_or"] = row["name"].get("or", "")
+        if not row.get("story"):
+            row = attach_story(row)
+            if "name" not in row or not isinstance(row.get("name"), dict):
+                row["name"] = {
+                    "en": row.get("name_en", ""),
+                    "or": row.get("name_or", ""),
+                }
+        enriched_fests.append(row)
+    return {**panchang, "festivals": enriched_fests}
+
+
+def caption_fingerprint(text: str) -> str:
+    """Date-bearing header used to detect a duplicate day's post."""
+    for line in (text or "").split("\n"):
+        if "ଓଡ଼ିଆ ପଞ୍ଜିକା" in line:
+            return line.strip()
+    return (text or "").split("\n", 1)[0].strip()
+
+
+def generate_social_caption(
+    panchang: dict,
+    enrichment: dict | None = None,
+    *,
+    max_len: int = CAPTION_MAX_LEN,
+) -> str:
+    """
+    Facebook Page + Instagram caption (≤ max_len, Instagram's 2200).
+
+    Core panji lines always come from the panchang dict, never from Layer 2.
+    Festival stories are curated (`festival_stories.py`). Hashtags lose first
+    if the budget is tight.
+    """
+    panchang = _with_festival_stories(panchang)
+    enrichment = enrichment or {}
+    date_or = _odia_civil_date(panchang)
+    astro = enrichment.get("astronomical") or {}
+    special_day = astro.get("special_day_type", "normal")
+    emoji = _SPECIAL_EMOJIS.get(special_day, "🌸")
+    muhurtas = astro.get("muhurtas") or {}
+    cultural = enrichment.get("cultural") or {}
+
+    tithi_or = panchang["tithi"]["or"]
+    nakshatra_or = panchang["nakshatra"]["or"]
+    chandra_or = panchang["chandra_masa"]["or"]
+    paksha_or = panchang["paksha"]["or"]
+    vara_or = panchang["vara"]["or"]
+    yoga_or = panchang["yoga"]["or"]
+
+    place = ""
+    meta = panchang.get("meta") or {}
+    city_key = meta.get("city") or panchang.get("city") or ""
+    if isinstance(city_key, str) and city_key.strip():
+        place = city_key.strip().replace("_", " ").title()
+
+    header_lines = [
+        "🙏 ଜୟ ଜଗନ୍ନାଥ 🙏",
+        f"{emoji} ଓଡ଼ିଆ ପଞ୍ଜିକା | {date_or}",
+        f"{vara_or} | {chandra_or} {paksha_or} {tithi_or}",
+        f"ନକ୍ଷତ୍ର {nakshatra_or}",
+        f"ଯୋଗ {yoga_or}",
+    ]
+    if place:
+        header_lines.append(f"📍 {place}")
+    sunrise = panchang.get("sunrise") or ""
+    sunset = panchang.get("sunset") or ""
+    if sunrise and sunset:
+        header_lines.append(f"🌅 ସୂର୍ଯ୍ୟୋଦୟ {sunrise} / ଅସ୍ତ {sunset}")
+
+    blocks: list[str] = ["\n".join(header_lines)]
+
+    muhurta_lines = []
+    rahu = muhurtas.get("rahu_kalam") or ""
+    abhijit = muhurtas.get("abhijit_muhurta") or ""
+    if rahu:
+        muhurta_lines.append(f"ରାହୁ କାଳ: {rahu}")
+    if abhijit:
+        muhurta_lines.append(f"ଅଭିଜିତ (ଶୁଭ): {abhijit}")
+    if muhurta_lines:
+        blocks.append("\n".join(muhurta_lines))
+
+    for f in panchang.get("festivals") or []:
+        name_or = (f.get("name") or {}).get("or") or f.get("name_or") or ""
+        story = f.get("story") or {}
+        why = f.get("why_today") or {}
+        body = (story.get("or") or why.get("or") or story.get("en") or why.get("en") or "").strip()
+        body = " ".join(body.split())
+        if body:
+            body = _truncate_at_word_boundary(body, 500)
+        if name_or and body:
+            blocks.append(f"🎉 {name_or}\n{body}")
+        elif name_or:
+            blocks.append(f"🎉 {name_or}")
+
+    jagannath_or = (cultural.get("jagannath_significance") or {}).get("or", "")
+    if jagannath_or:
+        blocks.append(f"🛕 {jagannath_or.strip()}")
+    fasting = cultural.get("fasting_guidance") or {}
+    if fasting.get("recommended"):
+        desc = (fasting.get("description_or") or fasting.get("description") or "").strip()
+        if desc:
+            blocks.append(f"🍃 {desc}")
+    proverb_or = (cultural.get("odia_proverb") or {}).get("text_or", "")
+    if proverb_or:
+        blocks.append(f"📜 {proverb_or.strip()}")
+
+    tags = _BASE_TAGS
+    fest_tags = _festival_hashtags(panchang.get("festivals") or [])
+    if fest_tags:
+        tags = f"{tags} {fest_tags}"
+
+    # Assemble: keep core panji; drop hashtags first, then cultural extras.
+    def join(parts: list[str], hashtags: str) -> str:
+        body = "\n\n".join(p for p in parts if p)
+        if hashtags:
+            return f"{body}\n\n{hashtags}"
+        return body
+
+    caption = join(blocks, tags)
+    if len(caption) <= max_len:
+        return caption
+
+    leftover = max_len - len(join(blocks, "")) - 2
+    fitted = _fit_hashtags(tags, leftover)
+    caption = join(blocks, fitted)
+    if len(caption) <= max_len:
+        return caption
+
+    # Drop optional cultural blocks from the end (keep header + muhurta + festivals)
+    while len(caption) > max_len and len(blocks) > 2:
+        blocks.pop()
+        caption = join(blocks, "")
+    if len(caption) > max_len:
+        caption = _truncate_at_word_boundary(caption, max_len)
+    return caption
 
 
 def generate_tweet_bundle(panchang: dict, enrichment: dict | None = None) -> dict:

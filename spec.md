@@ -422,19 +422,27 @@ Ship API shape even if some Biraja civil goldens are still `rule_only`.
 
 ---
 
-## Twitter / X (optional)
+## Facebook / Instagram (primary daily post)
 
-- Summary of computed panji for a **stated place** (default Bhubaneswar or configured).
+- Same computed panji as the API, for a **stated place** (default Bhubaneswar or configured).
+- Caption is Odia, capped at Instagram’s 2200 characters. Core tithi/masa/nakshatra come from the engine, never Layer 2.
+- Facebook: Page feed photo (4:5 JPEG) + caption. Instagram: Story (9:16) by default.
 - Must not claim “per Biraja panjika” or “per Khadiratna” unless that source was used.
+- Credentials missing → log only, and the daily job must **fail** (never pretend success).
+- Prefer GitHub Actions (`scripts/post_daily.py`) over a paid always-on host.
+- Do not retry publishes; fingerprint recent captions so a partial retry does not double-post.
+
+## Twitter / X (optional leftover)
+
+- Same rules as above if still enabled. Not the daily path.
 - Credentials missing → log only. Never pretend success.
-- Prefer external cron over sleep-prone free-tier in-process schedulers.
 
 ---
 
 ## Data lifecycle
 
 ```
-seed.py (engine → SQLite) → API reads SQLite + festival rules → UI/tweet present
+seed.py (engine → SQLite) → API reads SQLite + festival rules → UI / Facebook / Instagram present
 ```
 
 - Supported seed range: at least current year−1 through current year+4 (repo may ship 2020–2030).
@@ -469,7 +477,7 @@ A change is done only when:
 2. ~~DB lag~~ — reseed after masa fix (2020–2030).
 3. ~~Deploy Bangalore~~ — `render.yaml` defaults to Bhubaneswar.
 4. **AI layer** can still fabricate culture text if keys set and prompts weaken.
-5. **Hosting** — Render free tier may sleep/suspend; prefer always-on host + `.github/workflows/daily-tweet.yml`.
+5. **Hosting** — daily social posts run in GitHub Actions; Render is optional for the API site only.
 6. ~~Day API `tradition` + `meta`~~ — wired on `/today`, `/panchang/{date}`, city today.
 7. **Biraja peetha civil dates** need printed-panji / peetha sources year by year; rule-only until sourced.
 8. **Commercial print 1-day edges** between Khadiratna and Biraja books are out of scope until digitized.

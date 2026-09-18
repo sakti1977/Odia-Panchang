@@ -62,9 +62,9 @@ _meta_page_ready = bool(
 _meta_ig_ready = _meta_page_ready and bool((os.getenv("META_IG_USER_ID") or "").strip())
 print(f"[Panchang] Layer 1 (Groq/Llama):   {'✅ active — llama-3.3-70b-versatile' if _groq_ready else '⚠️  GROQ_API_KEY not set — using rule-based fallback'}")
 print(f"[Panchang] Layer 2 (Claude Haiku):  {'✅ active — claude-haiku-4-5' if _claude_ready else '⚠️  ANTHROPIC_API_KEY not set — using rule-based fallback'}")
-print(f"[Panchang] Twitter/X posting:       {'✅ active' if _twitter_ready else '⚠️  TWITTER_* keys not set — tweets will be logged to logs/daily_tweets.log'}")
-print(f"[Panchang] Facebook Page posting:   {'✅ active' if _meta_page_ready else '⚠️  META_PAGE_ID / META_PAGE_ACCESS_TOKEN not set'}")
-print(f"[Panchang] Instagram posting:       {'✅ active' if _meta_ig_ready else '⚠️  META_IG_USER_ID not set (needs Page token + IG Business)'}")
+print(f"[Panchang] Facebook Page posting:   {'✅ active' if _meta_page_ready else '⚠️  META_PAGE_ID / META_PAGE_ACCESS_TOKEN not set — daily social will log only'}")
+print(f"[Panchang] Instagram posting:       {'✅ active' if _meta_ig_ready else '⚠️  META_IG_USER_ID unset — will discover from Page if linked'}")
+print(f"[Panchang] Twitter/X posting:       {'✅ optional leftover' if _twitter_ready else '⚠️  TWITTER_* not set — X is optional after Meta migration'}")
 
 # Additional Twitter diagnostic
 if _twitter_ready:
@@ -94,12 +94,12 @@ async def lifespan(app: FastAPI):
     if _ENABLE_INPROCESS_SCHEDULER:
         scheduler = create_scheduler()
         scheduler.start()
-        print("[Panchang] In-process scheduler ON — daily tweet at 05:00 IST")
+        print("[Panchang] In-process scheduler ON — daily Facebook/Instagram at 05:00 IST")
     else:
         print(
             "[Panchang] In-process scheduler OFF (free-tier default). "
-            "Use GitHub Actions workflow 'Daily Odia Panjika Tweet' or external cron → POST /tweet/post. "
-            "Set ENABLE_INPROCESS_SCHEDULER=true to re-enable APScheduler."
+            "Use GitHub Actions workflow 'Daily Odia Panjika' (scripts/post_daily.py). "
+            "Set ENABLE_INPROCESS_SCHEDULER=true only on an always-on API host."
         )
     yield
     if scheduler is not None:
@@ -112,7 +112,7 @@ app = FastAPI(
         "Free public bilingual (Odia + English) Panjika API covering tithi, nakshatra, yoga, "
         "karana, soura masa, and festivals for Jagannath (Puri) and Biraja (Jajpur) traditions. "
         "AI-powered enrichment: muhurtas, cultural significance, fasting guidance. "
-        "Daily tweet: GitHub Actions → POST /tweet/post (recommended on free tier). "
+        "Daily Facebook + Instagram: GitHub Actions → POST /social/post (recommended on free tier). "
         "No API key required for basic endpoints."
     ),
     version="2.0.0",
@@ -518,17 +518,17 @@ def ai_status():
         },
         "twitter": {
             "configured": _twitter_ready,
-            "note": "Keys must be set on the web service for POST /tweet/post to publish",
+            "note": "Optional leftover. Daily path is Facebook + Instagram (POST /social/post).",
             "cron_auth_required": True,
             "cron_secret_configured": tweet_secret_set,
         },
         "facebook": {
             "configured": _meta_page_ready,
-            "note": "META_PAGE_ID + META_PAGE_ACCESS_TOKEN for POST /social/post",
+            "note": "Primary. META_PAGE_ID + META_PAGE_ACCESS_TOKEN for POST /social/post",
         },
         "instagram": {
-            "configured": _meta_ig_ready,
-            "note": "META_IG_USER_ID + Page token; needs public HTTPS card URL via PUBLIC_API_URL",
+            "configured": _meta_ig_ready or _meta_page_ready,
+            "note": "Primary. Page token required; META_IG_USER_ID optional (discovered from Page). Stories by default.",
         },
         "engine_version": ENGINE_VERSION,
         "scheduler": {
@@ -1043,7 +1043,7 @@ def preview_social(request: Request):
         "instagram_configured": meta_configured(need_ig=True),
         "note": (
             "POST /social/post with Bearer TWEET_CRON_SECRET to publish. "
-            "Instagram needs a public HTTPS image_url (PUBLIC_API_URL)."
+            "Instagram ingest uses the Facebook photo CDN (no PUBLIC_API_URL required)."
         ),
     }
 
@@ -1111,7 +1111,7 @@ async def post_all_channels(
     _: None = Depends(_require_tweet_secret),
 ):
     """
-    One wake: post X + Facebook + Instagram (free-tier daily cron).
+    One wake: post Facebook + Instagram, then optional X.
     Requires TWEET_CRON_SECRET.
     """
     try:

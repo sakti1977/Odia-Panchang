@@ -139,12 +139,12 @@ checking `eval.md` sources — some “fixes” were overfit to single dates.
 4. Keep bilingual en+or where user-facing
 ```
 
-### Hosting / tweet reliability
+### Hosting / social reliability
 
 ```
 1. Panji correctness is independent of host
 2. Prefer external cron over in-process scheduler on sleep-prone free tiers
-3. Do not spend accuracy budget on Twitter retries
+3. Daily path is Facebook + Instagram (POST /social/post); do not retry publishes
 ```
 
 ---
@@ -187,7 +187,11 @@ python test_app.py
 | `seed.py` | Compile engine → SQLite |
 | `data/panchang.db` | Compiled store (must match engine) |
 | `main.py` | FastAPI |
-| `render.yaml` | Host config (verify LOCATION_*) |
+| `src/meta_poster.py` | Facebook Page + Instagram Graph client |
+| `src/social_card.py` | 4:5 feed JPEG + 9:16 story JPEG |
+| `src/local_day.py` | SQLite day loader for GitHub Actions (no FastAPI) |
+| `scripts/post_daily.py` | Daily FB+IG entrypoint |
+| `render.yaml` | Optional API host leftover (verify LOCATION_*) |
 
 ---
 

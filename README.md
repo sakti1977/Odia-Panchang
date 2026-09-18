@@ -86,6 +86,8 @@ Add `?enriched=true` to any daily endpoint, or use `/panchang/{date}/insights` f
 | `GET` | `/api/panchang/monthly/{year}/{month}/download` | Download monthly Panchang as text file |
 | `GET` | `/festivals/{year}` | All festivals for a year |
 | `GET` | `/festivals/{year}?tradition=jagannath` | Filter by tradition (`jagannath`, `biraja`, `common`, `all`) |
+| `GET` | `/social/preview` | Today's Facebook/Instagram caption + card (no publish) |
+| `POST` | `/social/post` | Publish Facebook + Instagram (Bearer `TWEET_CRON_SECRET`) |
 
 ---
 
@@ -193,89 +195,20 @@ Pana Sankranti (Odia New Year), Kumar Purnima, Prathamastami, Gamha Purnima, Boi
 
 ---
 
-## 🐦 Twitter Auto-Posting (free-tier friendly)
+## Facebook + Instagram (daily path)
 
-**Recommended on Render Free:** GitHub Actions wakes the service and calls `POST /tweet/post` at 05:00 IST.  
-Do **not** rely on in-process APScheduler while the free web service sleeps.
+GitHub Actions runs `python scripts/post_daily.py` at 05:00 IST against the
+SQLite DB in this repo. **Render is not required.** See
+**[SOCIAL_META.md](SOCIAL_META.md)** and **[HOSTING_FREE_TIER.md](HOSTING_FREE_TIER.md)**.
 
-See full setup: **[HOSTING_FREE_TIER.md](HOSTING_FREE_TIER.md)**
+```bash
+# Dry run locally
+pip install -r requirements-social.txt
+TEST_MODE=true python scripts/post_daily.py
+```
 
-### Setup Twitter Integration
-
-1. **Create Twitter API credentials** at [developer.twitter.com](https://developer.twitter.com)
-   - Apply for **Elevated access** or **Basic tier** (required for posting tweets)
-   - Note: Free tier typically only allows read operations
-
-2. **Add credentials on the Render web service** (not only GitHub):
-   ```env
-   TWITTER_API_KEY=your_api_key
-   TWITTER_API_SECRET=your_api_secret
-   TWITTER_ACCESS_TOKEN=your_access_token
-   TWITTER_ACCESS_SECRET=your_access_secret
-   # Optional but recommended for improved authentication:
-   TWITTER_BEARER_TOKEN=your_bearer_token
-   ENABLE_INPROCESS_SCHEDULER=false
-   ```
-
-3. **Enable GitHub Actions** workflow `Daily Odia Panjika Tweet` (and optional `Keep-warm free Render`).
-
-4. **Verify setup** — Check startup logs for:
-   ```
-   [Panchang] Twitter/X posting: ✅ active
-   [Panchang] In-process scheduler OFF (free-tier default)
-   ```
-
-### Troubleshooting Twitter Posts
-
-If tweets aren't posting:
-
-1. **Check the startup logs** — Look for warning messages:
-   - `⚠️ TWITTER_* keys not set` → Credentials missing
-   - `❌ NOT INSTALLED` → Tweepy not installed
-   - `✅ active` → Credentials found
-
-2. **Test credentials** — Run the test script:
-   ```bash
-   python test_twitter_credentials.py
-   ```
-
-3. **Common 401 Unauthorized issues**:
-   - All 4 credentials must be from the SAME Twitter app
-   - If you regenerated API keys, you must also regenerate access tokens
-   - OAuth 1.0a must be enabled in app settings
-   - See [TWITTER_AUTH_GUIDE.md](TWITTER_AUTH_GUIDE.md) for detailed troubleshooting
-
-4. **Check application logs** for detailed errors:
-   ```
-   [Twitter] Missing credentials: consumer_key, access_token
-   [Twitter] ❌ Post failed: Forbidden: 403 Forbidden
-   ```
-
-3. **Common issues**:
-   - **403 Forbidden** → Twitter API access level insufficient (need Elevated/Basic tier)
-   - **401 Unauthorized** → Incorrect credentials or expired tokens
-   - **"Client not available"** → Credentials not set or tweepy import failed
-   - **Tweets logged but not posted** → Check `logs/daily_tweets.log` — means fallback mode active
-
-4. **Manual trigger** to test:
-   ```bash
-   curl -X POST https://your-api.onrender.com/tweet/post
-   ```
-
-5. **Preview without posting**:
-   ```bash
-   curl https://your-api.onrender.com/tweet/today
-   ```
-
-### Twitter API Access Levels
-
-| Tier | Can Post? | Cost | Notes |
-|------|-----------|------|-------|
-| Free | ❌ No | $0 | Read-only access |
-| Basic | ✅ Yes | $100/mo | Required for posting |
-| Elevated | ✅ Yes | Free (limited) | Need to apply |
-
-If posting fails with 403 errors, verify your Twitter developer account has write permissions.
+Put `META_PAGE_ID` and `META_PAGE_ACCESS_TOKEN` in GitHub Actions secrets.
+If Render is still running and charging, suspend or delete that service.
 
 ---
 

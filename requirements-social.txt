@@ -1,0 +1,5 @@
+# Minimal deps for GitHub Actions daily Facebook/Instagram posting.
+# Does not need FastAPI, Swiss Ephemeris, Groq, or Anthropic.
+python-dotenv
+sqlalchemy
+Pillow

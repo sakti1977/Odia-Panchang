@@ -1,33 +1,16 @@
-name: Keep-warm free Render (optional)
+name: Keep-warm free Render (disabled)
 
-# Decision (default): KEEP ENABLED for public UX (fewer cold starts).
-# Free workspaces get ~750 instance-hours/month; always-warm ≈ 720h.
-# If hours run out mid-month: disable this workflow first; keep daily-tweet.
-# See HOSTING_FREE_TIER.md § Keep-warm decision.
+# Disabled. Daily panjika posting now runs inside GitHub Actions and does
+# not need a Render web service. A 12-minute ping was keeping Render billed.
 #
-# Disable: Actions → Keep-warm free Render → Disable workflow
+# Do not re-enable this unless you deliberately host the FastAPI site again.
 
 on:
-  schedule:
-    - cron: "*/12 * * * *"
   workflow_dispatch:
-
-concurrency:
-  group: keep-warm
-  cancel-in-progress: true
 
 jobs:
   ping:
+    if: false
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Health ping
-        env:
-          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://odia-panchang.onrender.com' }}
-        run: python scripts/free_tier_ops.py health --url "$PUBLIC_API_URL"
-        # health failure should not spam email if service is intentionally down
-        continue-on-error: true
+      - run: echo "keep-warm is disabled"

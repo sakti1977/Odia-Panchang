@@ -4,8 +4,8 @@ Free-tier ops helpers for Odia-Panchang on Render Free + GitHub Actions.
 
 Usage:
   python scripts/free_tier_ops.py wake    [--url URL]
-  python scripts/free_tier_ops.py tweet   [--url URL]
   python scripts/free_tier_ops.py social  [--url URL] [--platforms facebook,instagram]
+  python scripts/free_tier_ops.py tweet   [--url URL]   # optional leftover X
   python scripts/free_tier_ops.py all     [--url URL]
   python scripts/free_tier_ops.py health  [--url URL]
 
@@ -212,11 +212,13 @@ def post_social(
             return 1
         if code == 200 and isinstance(data, dict):
             st = data.get("status")
-            if st in ("posted", "partial", "logged"):
-                print(f"[social] done status={st}")
-                return 0 if st != "error" else 1
-            if st == "error":
-                return 1
+            print(f"[social] done status={st}")
+            # posted = both sides ok (or skipped as already_posted)
+            # logged = Meta keys missing — fail so the daily job stays red
+            # partial = one side failed — fail so the next run can finish it
+            if st == "posted":
+                return 0
+            return 1
         if attempt < max_attempts:
             wait = initial_wait * attempt
             print(f"[social] retry in {wait:.0f}s…")
@@ -252,10 +254,10 @@ def post_all_channels(
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Free-tier wake / tweet / social ops")
+    p = argparse.ArgumentParser(description="Free-tier wake / social / optional tweet ops")
     p.add_argument(
         "command",
-        choices=["wake", "tweet", "social", "all", "health"],
+        choices=["wake", "social", "tweet", "all", "health"],
     )
     p.add_argument("--url", default=None, help="API base URL")
     p.add_argument("--no-wake", action="store_true", help="Skip wake before post")

@@ -1,16 +1,21 @@
-name: Manual Tweet Trigger
+name: Manual Panjika Post
 
 on:
   workflow_dispatch:
     inputs:
-      api_url:
-        description: "Base URL of the Odia Panchang API"
+      test_mode:
+        description: "Dry run only (do not publish)"
         required: false
-        default: "https://odia-panchang.onrender.com"
+        type: boolean
+        default: true
+      date:
+        description: "Override date YYYY-MM-DD (leave empty for IST today)"
+        required: false
+        default: ""
 
 jobs:
-  trigger-tweet:
-    name: Wake + tweet
+  trigger-post:
+    name: Generate + optional publish
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -20,15 +25,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Wake + post
+          cache: pip
+          cache-dependency-path: requirements-social.txt
+      - name: Install Odia fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-lohit-orya fonts-noto-core
+      - name: Install posting dependencies
+        run: pip install -r requirements-social.txt
+      - name: Run
         env:
-          PUBLIC_API_URL: ${{ github.event.inputs.api_url }}
-          TWEET_CRON_SECRET: ${{ secrets.TWEET_CRON_SECRET }}
-        run: |
-          python scripts/free_tier_ops.py wake --url "$PUBLIC_API_URL"
-          python scripts/free_tier_ops.py tweet --url "$PUBLIC_API_URL" --no-wake
-      - name: Preview
-        if: always()
-        env:
-          PUBLIC_API_URL: ${{ github.event.inputs.api_url }}
-        run: python scripts/free_tier_ops.py health --url "$PUBLIC_API_URL"
+          TEST_MODE: ${{ github.event.inputs.test_mode }}
+          PANJIKA_DATE: ${{ github.event.inputs.date }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
+          INSTAGRAM_AS_STORY: "true"
+        run: python scripts/post_daily.py

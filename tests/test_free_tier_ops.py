@@ -84,6 +84,43 @@ def test_post_tweet_401_fails(monkeypatch):
             assert ops.post_tweet("https://example.com", max_attempts=1) == 1
 
 
+def test_post_social_requires_secret(monkeypatch):
+    monkeypatch.delenv("TWEET_CRON_SECRET", raising=False)
+    assert ops.post_social("https://example.com", wake_first=False) == 1
+
+
+def test_post_social_posted(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
+    with patch.object(ops, "wake_service", return_value=True):
+        with patch.object(
+            ops,
+            "http_json",
+            return_value=(200, {"status": "posted", "platforms": {"facebook": {"status": "posted"}}}),
+        ):
+            assert ops.post_social("https://example.com", wake_first=False) == 0
+
+
+def test_post_social_logged_fails(monkeypatch):
+    """Missing Meta keys must fail the daily job so it stays red."""
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
+    with patch.object(
+        ops,
+        "http_json",
+        return_value=(200, {"status": "logged"}),
+    ):
+        assert ops.post_social("https://example.com", wake_first=False, max_attempts=1) == 1
+
+
+def test_post_social_partial_fails(monkeypatch):
+    monkeypatch.setenv("TWEET_CRON_SECRET", "test-secret")
+    with patch.object(
+        ops,
+        "http_json",
+        return_value=(200, {"status": "partial"}),
+    ):
+        assert ops.post_social("https://example.com", wake_first=False, max_attempts=1) == 1
+
+
 def test_cli_health(monkeypatch):
     with patch.object(ops, "health_check", return_value=0) as h:
         assert ops.main(["health", "--url", "https://x"]) == 0

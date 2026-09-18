@@ -1,73 +1,106 @@
 # Facebook & Instagram posting (Meta Graph API)
 
-Odia Panjika can publish the daily panji to a **Facebook Page** and linked **Instagram Business** account.
+Daily Odia Panjika publishes to a **Facebook Page** (feed photo + caption) and a
+linked **Instagram professional** account (**Story** by default). Twitter/X is an
+optional leftover (`POST /tweet/post`).
+
+This matches the Bengali panjika bot: multipart JPEG upload, Instagram ingest
+via the Facebook photo CDN, duplicate-post fingerprint, no retry on publish.
 
 ## What gets posted
 
 | Platform | Content |
 |----------|---------|
-| **Facebook Page** | Caption (Odia main + story thread) + share-card image |
-| **Instagram** | Same caption + **required** public image card (4:5 PNG) |
-| **X / Twitter** | Existing `/tweet/post` flow (separate) |
+| **Facebook Page** | Caption (Odia, ≤2200 chars) + 4:5 JPEG share card |
+| **Instagram** | 9:16 Story by default (`INSTAGRAM_AS_STORY=true`). Set `false` for a feed post with the same caption. |
+| **X / Twitter** | Optional leftover `/tweet/post` — not the daily path |
 
-Card files: `static/social/cards/panjika_YYYY-MM-DD.png`  
-Instagram needs `PUBLIC_API_URL` so Meta can download `https://your-host/static/social/cards/...`.
+Card files: `static/social/cards/panjika_YYYY-MM-DD.jpg` (feed) and
+`panjika_YYYY-MM-DD_story.jpg` (story). Instagram does **not** fetch these from
+`PUBLIC_API_URL`; the server uploads the JPEG to Facebook and reuses the CDN
+URL (litterbox fallback if Meta's crawler cannot fetch the CDN).
 
 ## One-time Meta setup
 
-1. Create a [Meta developer app](https://developers.facebook.com/) with **Facebook Login** + **Instagram Graph API**.
-2. Create/connect a **Facebook Page**.
-3. Convert Instagram to **Business/Creator** and link it to that Page.
-4. Generate a **long-lived Page access token** with permissions roughly:
-   - `pages_manage_posts`, `pages_read_engagement`
-   - `instagram_basic`, `instagram_content_publish`
-5. Collect IDs:
-   - `META_PAGE_ID` — Page ID
-   - `META_PAGE_ACCESS_TOKEN` — Page token
-   - `META_IG_USER_ID` — Instagram professional account ID  
-     (`GET /{page-id}?fields=instagram_business_account`)
+Instagram's publishing API does not work with a personal Instagram account. The
+Page ↔ Instagram Professional link is required.
 
-## Env on Render
-
-```env
-PUBLIC_API_URL=https://odia-panchang.onrender.com
-TWEET_CRON_SECRET=...same as GitHub...
-META_PAGE_ID=...
-META_PAGE_ACCESS_TOKEN=...
-META_IG_USER_ID=...
-META_GRAPH_VERSION=v21.0
-```
-
-## API
+1. Create or pick a Facebook Page (for example "ଓଡ଼ିଆ ପଞ୍ଜିକା").
+2. In the Instagram app: Settings → Account type and tools → switch to **Professional** (Business or Creator).
+3. Link that Instagram account to the Facebook Page (Meta Business Suite → Pages → connected assets).
+4. Create a Meta app at [developers.facebook.com](https://developers.facebook.com/apps/) (type: Business). Add **Facebook Login for Business** and **Instagram**. Add yourself as an app admin.
+5. In [Graph API Explorer](https://developers.facebook.com/tools/explorer/):
+   - Generate a **User** token with: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, `instagram_content_publish`, `business_management`.
+6. Exchange for a long-lived User token, then a never-expiring Page token:
 
 ```bash
-# Preview (no publish)
-curl -s "$PUBLIC_API_URL/social/preview" | jq .
-
-# Publish FB + IG (cron secret required)
-curl -s -X POST "$PUBLIC_API_URL/social/post?platforms=facebook,instagram" \
-  -H "Authorization: Bearer $TWEET_CRON_SECRET" | jq .
-
-# X + FB + IG in one call
-curl -s -X POST "$PUBLIC_API_URL/social/post/all" \
-  -H "Authorization: Bearer $TWEET_CRON_SECRET" | jq .
+# put META_APP_ID, META_APP_SECRET, META_USER_ACCESS_TOKEN in .env
+python scripts/extend_meta_token.py
 ```
 
-## Free-tier ops / GitHub Actions
+The script writes `META_PAGE_ID` and `META_PAGE_ACCESS_TOKEN` into `.env` and
+prints only expiry facts, never the token.
+
+7. Confirm the linked Instagram account (optional — the poster discovers it):
 
 ```bash
-python scripts/free_tier_ops.py social --url https://odia-panchang.onrender.com
-python scripts/free_tier_ops.py all --url https://odia-panchang.onrender.com
+curl "https://graph.facebook.com/v22.0/PAGE_ID?fields=instagram_business_account&access_token=PAGE_ACCESS_TOKEN"
 ```
 
-Daily workflow posts **X**, then **Facebook + Instagram** (`continue-on-error` if Meta keys missing).
+The returned `instagram_business_account.id` is `META_IG_USER_ID`.
 
-## Status
+## Env — GitHub Actions secrets (not Render)
 
-`GET /api/status` → `facebook.configured`, `instagram.configured`.
+Daily posting runs `python scripts/post_daily.py` in GitHub Actions. Put these
+in **Settings → Secrets and variables → Actions**:
 
-## Notes
+```text
+META_PAGE_ID
+META_PAGE_ACCESS_TOKEN
+META_IG_USER_ID          # optional; discovered from the Page if omitted
+```
 
-- Without Meta env vars, posts are **logged** to `logs/daily_social.log` (status `logged`), same pattern as Twitter.
-- Instagram rejects non-HTTPS or unreachable image URLs — keep the web service awake before IG publish (wake step already runs).
-- Do not put Page tokens in GitHub secrets for client-side use; tokens stay on Render only.
+Local `.env` is fine for `python scripts/extend_meta_token.py` and a laptop dry
+run. Do not commit `.env`.
+
+Optional: `INSTAGRAM_AS_STORY=true` (workflow default).
+
+## Local / Actions commands
+
+```bash
+# Dry run (no publish)
+TEST_MODE=true python scripts/post_daily.py
+
+# Publish from this checkout (needs META_* in the environment)
+python scripts/post_daily.py
+```
+
+Daily workflow **Daily Odia Panjika** posts Facebook + Instagram at 05:00 IST.
+Use **Manual Panjika Post** with “Dry run” checked to preview in Actions logs.
+
+Duplicate-post prevention is layered:
+
+1. GitHub Actions cache keyed by IST date
+2. Recent-caption fingerprint (`🌸 ଓଡ଼ିଆ ପଞ୍ଜିକା | {date}`) so a retry after
+   Facebook succeeded and Instagram failed does not double-post to Facebook
+
+A partial failure keeps the workflow **red** so the next run can finish the
+missing side. Reads are retried; publishes are not.
+
+## Troubleshooting
+
+1. **Meta Graph API error (code 190 / OAuthException)**
+   - Re-run `python scripts/extend_meta_token.py`
+   - Update the GitHub secret `META_PAGE_ACCESS_TOKEN`
+   - Confirm the Facebook user is an admin of both the app and the Page
+2. **Instagram skipped, or `(#10) Application does not have permission`**
+   - Instagram must be a Professional account linked to the same Facebook Page
+   - Token needs `instagram_basic` and `instagram_content_publish`
+   - In Development mode, the Page admin must also have a role on the Meta app
+3. **Instagram: image_url / media container ERROR**
+   - Instagram only accepts JPEG, 4:5 to 1.91:1 (feed) or 9:16 (Stories)
+   - The poster uploads JPEG to Facebook and reuses that CDN URL
+4. **Workflow green but nothing on the Page**
+   - `META_PAGE_ID` and `META_PAGE_ACCESS_TOKEN` must be GitHub Actions secrets
+   - Re-run **Manual Panjika Post** with dry run off
+   - Check the Actions log for Graph errors (tokens are not printed)
