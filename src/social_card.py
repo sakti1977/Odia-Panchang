@@ -43,6 +43,10 @@ def _find_font(size: int):
 
 
 def _line(panchang: dict, enrichment: dict | None = None) -> list[str]:
+    """Card text lines. Odia script only — Noto Sans Oriya has no Latin
+    glyphs and no U+00B7 (middot), so both must be avoided here or the
+    rendered card shows a tofu box (□) instead of the character. Use the
+    Odia danda (।, U+0964) as a separator; it is present in the font."""
     d = date.fromisoformat(panchang["date"])
     months = [
         "ଜାନୁଆରୀ", "ଫେବ୍ରୁଆରୀ", "ମାର୍ଚ୍ଚ", "ଏପ୍ରିଲ", "ମଇ", "ଜୁନ",
@@ -54,20 +58,20 @@ def _line(panchang: dict, enrichment: dict | None = None) -> list[str]:
         "ଓଡ଼ିଆ ପଞ୍ଜିକା",
         date_or,
         f"{panchang['chandra_masa']['or']} {panchang['paksha']['or']} {panchang['tithi']['or']}",
-        f"{panchang['nakshatra']['or']} · {panchang['vara']['or']}",
+        f"{panchang['nakshatra']['or']} । {panchang['vara']['or']}",
         f"ଯୋଗ: {panchang['yoga']['or']}",
     ]
     fests = panchang.get("festivals") or []
     if fests:
-        names = " · ".join(
+        names = " । ".join(
             (f.get("name") or {}).get("or") or f.get("name_or") or ""
             for f in fests[:2]
         )
-        if names.strip(" ·"):
+        if names.strip(" ।"):
             lines.append(names)
     sr, ss = panchang.get("sunrise") or "", panchang.get("sunset") or ""
     if sr and ss:
-        lines.append(f"ସୂର୍ଯ୍ୟୋଦୟ {sr} · ଅସ୍ତ {ss}")
+        lines.append(f"ସୂର୍ଯ୍ୟୋଦୟ {sr} । ଅସ୍ତ {ss}")
     rahu = ""
     if enrichment:
         rahu = (enrichment.get("astronomical") or {}).get("muhurtas", {}).get(
@@ -75,7 +79,7 @@ def _line(panchang: dict, enrichment: dict | None = None) -> list[str]:
         )
     if rahu:
         lines.append(f"ରାହୁ କାଳ {rahu}")
-    lines.append("odiapanjika · free panji")
+    lines.append("ମାଗଣା ଦୈନିକ ପଞ୍ଜିକା")
     return lines
 
 

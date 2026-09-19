@@ -69,6 +69,22 @@ def test_generate_card_jpeg(tmp_path):
     assert "_story.jpg" in story.name
 
 
+def test_card_lines_avoid_glyphs_missing_from_noto_sans_oriya():
+    """Regression guard: Noto Sans Oriya (the card's rendering font) has no
+    Latin letters and no U+00B7 middot. Either one renders as a tofu box
+    (□) on the published card instead of the intended character — this bit
+    the daily card before (see social_card._line docstring). Use the Odia
+    danda (।) for separators and keep every card line in Odia script."""
+    from src.social_card import _line
+
+    lines = _line(_panchang(), None)
+    for text in lines:
+        assert "·" not in text, f"middot has no glyph in Noto Sans Oriya: {text!r}"
+        assert not any(c.isascii() and c.isalpha() for c in text), (
+            f"Latin letters have no glyph in Noto Sans Oriya: {text!r}"
+        )
+
+
 def test_public_card_url():
     p = Path("static/social/cards/panjika_2026-07-16.jpg")
     url = public_card_url(p, public_base="https://example.com")
