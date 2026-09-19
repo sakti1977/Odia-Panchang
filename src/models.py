@@ -25,8 +25,10 @@ class PanchangDay(Base):
     tithi_num        = Column(Integer)
     tithi_en         = Column(String)
     tithi_or         = Column(String)
+    tithi_end_ts     = Column(String)   # local ISO datetime; None if not computed
     nakshatra_en     = Column(String)
     nakshatra_or     = Column(String)
+    nakshatra_end_ts = Column(String)   # local ISO datetime; None if not computed
     yoga_en          = Column(String)
     yoga_or          = Column(String)
     karana_en        = Column(String)

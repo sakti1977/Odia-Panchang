@@ -5,7 +5,7 @@ Twitter/X: ≤280 chars main tweet + thread.
 Facebook + Instagram: one caption capped at Instagram's 2200 characters.
 """
 
-from datetime import date
+from datetime import date, datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -290,6 +290,25 @@ def _with_festival_stories(panchang: dict) -> dict:
     return {**panchang, "festivals": enriched_fests}
 
 
+def format_end_time(end_ts: str | None, ref_date_str: str) -> str:
+    """'HH:MM ପର୍ଯ୍ୟନ୍ତ' (until HH:MM) for a same-day end, or
+    'କାଲି HH:MM ପର୍ଯ୍ୟନ୍ତ' (until HH:MM tomorrow) when the tithi/nakshatra
+    runs past midnight into the next civil day — the detail that turns a
+    daily graphic into an actual panjika. Empty string if no end time was
+    computed (old DB rows, or a rare bisection miss in src/engine.py)."""
+    if not end_ts:
+        return ""
+    try:
+        dt = datetime.fromisoformat(end_ts)
+        ref = date.fromisoformat(ref_date_str)
+    except ValueError:
+        return ""
+    hhmm = dt.strftime("%H:%M")
+    if dt.date() > ref:
+        return f"କାଲି {hhmm} ପର୍ଯ୍ୟନ୍ତ"
+    return f"{hhmm} ପର୍ଯ୍ୟନ୍ତ"
+
+
 def caption_fingerprint(text: str) -> str:
     """Date-bearing header used to detect a duplicate day's post."""
     for line in (text or "").split("\n"):
@@ -321,7 +340,11 @@ def generate_social_caption(
     cultural = enrichment.get("cultural") or {}
 
     tithi_or = panchang["tithi"]["or"]
+    tithi_end = format_end_time(panchang["tithi"].get("end_ts"), panchang["date"])
     nakshatra_or = panchang["nakshatra"]["or"]
+    nakshatra_end = format_end_time(
+        panchang["nakshatra"].get("end_ts"), panchang["date"]
+    )
     chandra_or = panchang["chandra_masa"]["or"]
     paksha_or = panchang["paksha"]["or"]
     vara_or = panchang["vara"]["or"]
@@ -333,11 +356,18 @@ def generate_social_caption(
     if isinstance(city_key, str) and city_key.strip():
         place = city_key.strip().replace("_", " ").title()
 
+    tithi_line = f"{vara_or} | {chandra_or} {paksha_or} {tithi_or}"
+    if tithi_end:
+        tithi_line += f" ({tithi_end})"
+    nakshatra_line = f"ନକ୍ଷତ୍ର {nakshatra_or}"
+    if nakshatra_end:
+        nakshatra_line += f" ({nakshatra_end})"
+
     header_lines = [
         "🙏 ଜୟ ଜଗନ୍ନାଥ 🙏",
         f"{emoji} ଓଡ଼ିଆ ପଞ୍ଜିକା | {date_or}",
-        f"{vara_or} | {chandra_or} {paksha_or} {tithi_or}",
-        f"ନକ୍ଷତ୍ର {nakshatra_or}",
+        tithi_line,
+        nakshatra_line,
         f"ଯୋଗ {yoga_or}",
     ]
     if place:

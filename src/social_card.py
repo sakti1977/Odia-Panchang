@@ -53,12 +53,27 @@ def _line(panchang: dict, enrichment: dict | None = None) -> list[str]:
         "ଜୁଲାଇ", "ଅଗଷ୍ଟ", "ସେପ୍ଟେମ୍ବର", "ଅକ୍ଟୋବର", "ନଭେମ୍ବର", "ଡିସେମ୍ବର",
     ]
     date_or = f"{d.day} {months[d.month - 1]} {d.year}"
+
+    from src.tweet_generator import format_end_time
+
+    tithi_line = f"{panchang['chandra_masa']['or']} {panchang['paksha']['or']} {panchang['tithi']['or']}"
+    tithi_end = format_end_time(panchang["tithi"].get("end_ts"), panchang["date"])
+    if tithi_end:
+        tithi_line += f" । {tithi_end}"
+
+    nakshatra_line = f"{panchang['nakshatra']['or']} । {panchang['vara']['or']}"
+    nakshatra_end = format_end_time(
+        panchang["nakshatra"].get("end_ts"), panchang["date"]
+    )
+    if nakshatra_end:
+        nakshatra_line += f" । {nakshatra_end}"
+
     lines = [
         "ଜୟ ଜଗନ୍ନାଥ",
         "ଓଡ଼ିଆ ପଞ୍ଜିକା",
         date_or,
-        f"{panchang['chandra_masa']['or']} {panchang['paksha']['or']} {panchang['tithi']['or']}",
-        f"{panchang['nakshatra']['or']} । {panchang['vara']['or']}",
+        tithi_line,
+        nakshatra_line,
         f"ଯୋଗ: {panchang['yoga']['or']}",
     ]
     fests = panchang.get("festivals") or []

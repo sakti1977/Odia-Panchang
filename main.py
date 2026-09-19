@@ -297,9 +297,15 @@ def _day_to_dict(
             "num": src["tithi_num"],
             "en": src["tithi_en"],
             "or": src["tithi_or"],
+            "end_ts": src.get("tithi_end_ts"),
         }
         if src
-        else {"num": day.tithi_num, "en": day.tithi_en, "or": day.tithi_or}
+        else {
+            "num": day.tithi_num,
+            "en": day.tithi_en,
+            "or": day.tithi_or,
+            "end_ts": day.tithi_end_ts,
+        }
     )
 
     return {
@@ -317,9 +323,12 @@ def _day_to_dict(
         ),
         "paksha": _b("paksha_en", "paksha_or", day.paksha_en, day.paksha_or),
         "tithi": tithi,
-        "nakshatra": _b(
-            "nakshatra_en", "nakshatra_or", day.nakshatra_en, day.nakshatra_or
-        ),
+        "nakshatra": {
+            **_b("nakshatra_en", "nakshatra_or", day.nakshatra_en, day.nakshatra_or),
+            "end_ts": (src or {}).get("nakshatra_end_ts")
+            if src
+            else day.nakshatra_end_ts,
+        },
         "yoga": _b("yoga_en", "yoga_or", day.yoga_en, day.yoga_or),
         "karana": _b("karana_en", "karana_or", day.karana_en, day.karana_or),
         "sunrise": (src or {}).get("sunrise")
@@ -818,8 +827,17 @@ def get_panchang_for_city_today(
                 "soura_masa": {"en": p["soura_masa_en"], "or": p["soura_masa_or"]},
                 "chandra_masa": {"en": p["chandra_masa_en"], "or": p["chandra_masa_or"]},
                 "paksha": {"en": p["paksha_en"], "or": p["paksha_or"]},
-                "tithi": {"num": p["tithi_num"], "en": p["tithi_en"], "or": p["tithi_or"]},
-                "nakshatra": {"en": p["nakshatra_en"], "or": p["nakshatra_or"]},
+                "tithi": {
+                    "num": p["tithi_num"],
+                    "en": p["tithi_en"],
+                    "or": p["tithi_or"],
+                    "end_ts": p.get("tithi_end_ts"),
+                },
+                "nakshatra": {
+                    "en": p["nakshatra_en"],
+                    "or": p["nakshatra_or"],
+                    "end_ts": p.get("nakshatra_end_ts"),
+                },
                 "yoga": {"en": p["yoga_en"], "or": p["yoga_or"]},
                 "karana": {"en": p["karana_en"], "or": p["karana_or"]},
                 "sunrise": p["sunrise"],

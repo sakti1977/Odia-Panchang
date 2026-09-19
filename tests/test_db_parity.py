@@ -43,8 +43,10 @@ def test_db_engine_parity_sample_year_2026(session: Session):
             "chandra_masa_en",
             "tithi_num",
             "tithi_en",
+            "tithi_end_ts",
             "paksha_en",
             "nakshatra_en",
+            "nakshatra_end_ts",
             "soura_masa_en",
         ):
             db_val = getattr(row, field)

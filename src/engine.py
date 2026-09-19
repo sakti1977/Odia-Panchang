@@ -13,7 +13,7 @@ from src.translations import (
 )
 
 # Bump when masa/tithi/anchor formula changes so seed/start can force reseed.
-ENGINE_VERSION = "lahiri_purnimanta_v3_sunrise"
+ENGINE_VERSION = "lahiri_purnimanta_v4_sunrise_end_times"
 
 # Location — configurable via environment variables
 # Default: Bhubaneswar, capital of Odisha
@@ -32,8 +32,34 @@ PURI_LON = _LOC_LON
 PURI_TZ = _LOC_TZ
 
 swe.set_ephe_path(None)  # use built-in ephemeris
-swe.set_sid_mode(swe.SIDM_LAHIRI)  # Lahiri ayanamsa for Indian panchang
+swe.set_sid_mode(swe.SIDM_LAHIRI)  # Lahiri ayanamsa for Indian panchang — see
+# _set_lahiri_mode() below for why this alone is not enough.
 _SIDEREAL = swe.FLG_SWIEPH | swe.FLG_SIDEREAL
+
+
+def _set_lahiri_mode() -> None:
+    """
+    pyswisseph's sidereal mode is thread-local in the underlying C library,
+    not process-global. The module-level swe.set_sid_mode() call above only
+    affects the thread that imports this module. FastAPI/Starlette runs
+    every sync `def` route handler in a worker thread pool, so any live
+    (non-DB) panchang computed inside a request handler was silently
+    running under Swiss Ephemeris's *default* sidereal mode (Fagan-Bradley,
+    ~0.88° off Lahiri for the current era) instead of Lahiri — confirmed via
+    a ThreadPoolExecutor reproduction.
+
+    Absolute-longitude fields (nakshatra, soura_masa, chandra_masa, yoga —
+    yoga uses sun+moon) were affected; a constant ayanamsa offset cancels
+    out of moon-sun *differences*, so tithi and karana were unaffected.
+    The error is small enough (~0.88° of a ~13.3° nakshatra span) that it
+    rarely flips the reported name, which is why this went unnoticed — but
+    it does distort computed end-times, and would occasionally flip a name
+    right at a boundary day.
+
+    Cheap enough to call on every longitude fetch rather than relying on
+    which thread happened to import this module.
+    """
+    swe.set_sid_mode(swe.SIDM_LAHIRI)
 
 
 def _date_to_jd(d: date, hour: float = 0.0) -> float:
@@ -42,11 +68,13 @@ def _date_to_jd(d: date, hour: float = 0.0) -> float:
 
 
 def _sun_longitude(jd: float) -> float:
+    _set_lahiri_mode()
     pos, _ = swe.calc_ut(jd, swe.SUN, _SIDEREAL)
     return pos[0]
 
 
 def _moon_longitude(jd: float) -> float:
+    _set_lahiri_mode()
     pos, _ = swe.calc_ut(jd, swe.MOON, _SIDEREAL)
     return pos[0]
 
@@ -138,6 +166,89 @@ def _chandra_masa_index(sun_lon: float, moon_lon: float) -> int:
         sun_at_closing_purnima = (sun_lon + (29 - tithi_idx) + 15) % 360
 
     return int(sun_at_closing_purnima / 30) % 12
+
+
+def _crossing_jd(
+    jd_start: float,
+    angle_fn,
+    target_deg: float,
+    *,
+    max_hours: float = 48.0,
+    tol_seconds: float = 20.0,
+) -> float | None:
+    """
+    Find the first JD after jd_start where a monotonically-increasing
+    (mod 360) angle quantity reaches target_deg. Used to find exactly when
+    the current tithi/nakshatra ends — e.g. angle_fn = moon-sun separation,
+    target_deg = the next 12° tithi boundary.
+
+    target_deg may be up to 360 (the *next* cycle's 0°, e.g. Amavasya →
+    Shukla Pratipada, or Revati → Ashwini) — handled by unwrapping angle_fn
+    relative to its starting value rather than bisecting the raw %360
+    result, which would otherwise reset to ~0 right at the crossing and
+    break monotonicity.
+
+    Returns None if no crossing is found within max_hours (should not
+    happen for real tithi/nakshatra durations, which run ~19-27h; this is
+    a safety cap, not an expected outcome).
+    """
+    start_val = angle_fn(jd_start)
+
+    def unwrapped(jd: float) -> float:
+        raw = angle_fn(jd)
+        if raw < start_val - 180.0:
+            raw += 360.0
+        return raw
+
+    step_hours = 2.0
+    jd_hi = jd_start
+    val_hi = start_val
+    hours_elapsed = 0.0
+    while val_hi < target_deg and hours_elapsed < max_hours:
+        jd_hi += step_hours / 24.0
+        hours_elapsed += step_hours
+        val_hi = unwrapped(jd_hi)
+    if val_hi < target_deg:
+        return None
+
+    jd_lo = jd_hi - step_hours / 24.0
+    while (jd_hi - jd_lo) * 86400.0 > tol_seconds:
+        jd_mid = (jd_lo + jd_hi) / 2.0
+        if unwrapped(jd_mid) < target_deg:
+            jd_lo = jd_mid
+        else:
+            jd_hi = jd_mid
+    return jd_hi
+
+
+def _tithi_end_jd(jd_ref: float, tithi_idx: int) -> float | None:
+    target = (tithi_idx + 1) * 12.0
+
+    def angle_fn(jd: float) -> float:
+        return (_moon_longitude(jd) - _sun_longitude(jd)) % 360
+
+    return _crossing_jd(jd_ref, angle_fn, target)
+
+
+def _nakshatra_end_jd(jd_ref: float, nakshatra_idx: int) -> float | None:
+    target = (nakshatra_idx + 1) * (360.0 / 27.0)
+
+    def angle_fn(jd: float) -> float:
+        return _moon_longitude(jd) % 360
+
+    return _crossing_jd(jd_ref, angle_fn, target)
+
+
+def _jd_to_local_iso(jd: float, tz_hours: float) -> str:
+    """Format a UT Julian Day as a full local ISO datetime (date + time +
+    offset) — unlike _jd_to_local_hhmm, this keeps the date so a caller can
+    tell a same-day end time from one that falls on the next civil day."""
+    ist = timezone(timedelta(hours=tz_hours))
+    yr, mo, dy, hr = swe.revjul(jd)
+    dt_utc = datetime(int(yr), int(mo), int(dy), tzinfo=timezone.utc) + timedelta(
+        hours=hr
+    )
+    return dt_utc.astimezone(ist).replace(microsecond=0).isoformat()
 
 
 def _jd_to_local_hhmm(jd: float, tz_hours: float) -> str:
@@ -235,6 +346,14 @@ def compute_panchang(
 
     tithi_idx = _tithi_index(moon_lon, sun_lon)
     nakshatra_idx = _nakshatra_index(moon_lon)
+
+    tithi_end_jd = _tithi_end_jd(jd, tithi_idx)
+    tithi_end_ts = _jd_to_local_iso(tithi_end_jd, tz_hours) if tithi_end_jd else None
+    nakshatra_end_jd = _nakshatra_end_jd(jd, nakshatra_idx)
+    nakshatra_end_ts = (
+        _jd_to_local_iso(nakshatra_end_jd, tz_hours) if nakshatra_end_jd else None
+    )
+
     yoga_idx = _yoga_index(sun_lon, moon_lon)
     karana_idx = _karana_index(moon_lon, sun_lon)
     soura_idx = _soura_masa_index(sun_lon)
@@ -270,8 +389,10 @@ def compute_panchang(
         "tithi_num": tithi_num_in_paksha,
         "tithi_en": tithi_data["en"],
         "tithi_or": tithi_data["or"],
+        "tithi_end_ts": tithi_end_ts,
         "nakshatra_en": nakshatra_data["en"],
         "nakshatra_or": nakshatra_data["or"],
+        "nakshatra_end_ts": nakshatra_end_ts,
         "yoga_en": yoga_data["en"],
         "yoga_or": yoga_data["or"],
         "karana_en": karana_data["en"],
