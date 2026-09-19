@@ -75,8 +75,10 @@ TEST_MODE=true python scripts/post_daily.py
 python scripts/post_daily.py
 ```
 
-Daily workflow **Daily Odia Panjika** posts Facebook + Instagram at 05:00 IST.
-Use **Manual Panjika Post** with “Dry run” checked to preview in Actions logs.
+Daily workflow **Daily Odia Panjika** posts Facebook + Instagram at 05:17 IST,
+with catch-up attempts at 07:17 and 09:17 IST if the primary run failed
+outright. Use **Manual Panjika Post** with “Dry run” checked to preview in
+Actions logs.
 
 Duplicate-post prevention is layered:
 

@@ -5,8 +5,18 @@ name: Daily Odia Panjika
 
 on:
   schedule:
-    # 05:00 IST = 23:30 UTC previous calendar day
-    - cron: "30 23 * * *"
+    # GitHub deprioritizes runs scheduled on the hour/half-hour (everyone
+    # picks those minutes) — observed drift on :00/:30 crons has been
+    # 2-4 hours late. Odd minutes get scheduled far more reliably.
+    # Primary: 05:17 IST = 23:47 UTC previous calendar day.
+    - cron: "47 23 * * *"
+    # Catch-up runs. Harmless if the primary already posted: the workflow's
+    # own cache check skips instantly, and a Facebook retry is separately
+    # guarded by the caption-fingerprint check in src/meta_poster.py. Only
+    # fires real work when the primary run failed outright (e.g. an
+    # expired token) and nothing was actually posted yet.
+    - cron: "47 1 * * *"   # 07:17 IST catch-up
+    - cron: "47 3 * * *"   # 09:17 IST catch-up
   workflow_dispatch:
     inputs:
       test_mode:
@@ -33,6 +43,11 @@ jobs:
     name: Post Facebook + Instagram
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      # Optional: a free ntfy.sh topic (https://ntfy.sh) so a failure
+      # reaches your phone instead of only a GitHub issue. Set the
+      # NTFY_TOPIC secret to enable; every step below is a no-op without it.
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,6 +122,17 @@ jobs:
               --title "🔴 Daily panjika post failed" \
               --label bot-failure --body "$BODY"
           fi
+
+      - name: Push alert (ntfy.sh)
+        if: failure() && env.NTFY_TOPIC != ''
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s \
+            -H "Title: Odia Panjika post failed" \
+            -H "Priority: high" \
+            -H "Tags: rotating_light" \
+            -d "Daily Facebook/Instagram post failed for ${{ steps.datekey.outputs.date }}. $RUN_URL" \
+            "https://ntfy.sh/$NTFY_TOPIC" || true
 
       - name: Close failure alert issue on recovery
         if: success()

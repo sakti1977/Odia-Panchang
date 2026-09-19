@@ -4,7 +4,7 @@ Daily Facebook + Instagram posting runs **inside GitHub Actions**. There is no
 web service to keep warm and nothing to pay Render for.
 
 ```text
-GitHub Actions (05:00 IST)
+GitHub Actions (05:17 IST, with 07:17/09:17 IST catch-ups)
   checkout + fonts + pip
   python scripts/post_daily.py
        │
@@ -34,8 +34,22 @@ forwards `secrets.*` into the job environment.
 
 ### 2. Enable the workflow
 
-Actions → **Daily Odia Panjika** → enable. It fires at 05:00 IST
-(`cron: 30 23 * * *` UTC) and can be run manually (dry-run checkbox).
+Actions → **Daily Odia Panjika** → enable. It fires at 05:17 IST
+(`cron: 47 23 * * *` UTC), with two same-day catch-up attempts at 07:17 and
+09:17 IST in case the primary run failed outright (e.g. an expired token —
+harmless no-ops if the primary already posted). Odd minutes avoid the
+2-4 hour scheduling drift GitHub Actions shows on `:00`/`:30` crons. Can
+also be run manually (dry-run checkbox).
+
+Optional: set a `NTFY_TOPIC` repo secret (any private string, e.g. a random
+slug) and subscribe to that topic in the free [ntfy.sh](https://ntfy.sh) app
+to get a push notification on your phone the moment a run fails — instead of
+only a GitHub issue you have to remember to check.
+
+A separate **Meta Token Health Check** workflow runs every Monday and pings
+the Graph API with `META_PAGE_ACCESS_TOKEN`, filing the same alert issue (and
+ntfy push) if the token has gone invalid — so a dead token gets caught
+before the next daily post, not after.
 
 ### 3. Stop Render (this is what ends the bill)
 

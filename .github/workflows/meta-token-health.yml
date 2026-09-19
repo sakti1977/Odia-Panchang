@@ -1,0 +1,70 @@
+name: Meta Token Health Check
+
+# Catches an expired/invalid META_PAGE_ACCESS_TOKEN a week before it
+# silently breaks the daily post (as happened 2026-09-19: a short-lived
+# Graph Explorer token was pasted in instead of a long-lived Page token).
+# Files/reuses the same bot-failure issue as the daily workflow, plus a
+# push alert, so this doesn't need separate watching.
+
+on:
+  schedule:
+    - cron: "13 4 * * 1"   # ~09:43 IST every Monday
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-token:
+    name: Verify META_PAGE_ACCESS_TOKEN is alive
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+    steps:
+      - name: Ping Graph API with the Page token
+        id: probe
+        env:
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$META_PAGE_ACCESS_TOKEN" ]; then
+            echo "::error::META_PAGE_ACCESS_TOKEN secret is not set"
+            exit 1
+          fi
+          RESPONSE=$(curl -s "https://graph.facebook.com/v22.0/me?fields=id,name" \
+            -H "Authorization: Bearer $META_PAGE_ACCESS_TOKEN")
+          echo "$RESPONSE" | grep -q '"error"' && {
+            MESSAGE=$(echo "$RESPONSE" | grep -o '"message":"[^"]*"' | head -1)
+            echo "::error::Meta token check failed: $MESSAGE"
+            exit 1
+          }
+          echo "Token is valid ($(echo "$RESPONSE" | grep -o '"name":"[^"]*"' | head -1))"
+
+      - name: File/update failure alert issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="Weekly Meta token health check failed — META_PAGE_ACCESS_TOKEN is expired or invalid. Fix before the next daily post: run \`python scripts/extend_meta_token.py\` locally and update the GitHub secret. Run log: $RUN_URL"
+          gh label create bot-failure --color B60205 --description "Daily panjika post failed" 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --label bot-failure --state open --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body "$BODY"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "🔴 Meta access token expired" \
+              --label bot-failure --body "$BODY"
+          fi
+
+      - name: Push alert (ntfy.sh)
+        if: failure() && env.NTFY_TOPIC != ''
+        run: |
+          curl -s \
+            -H "Title: Odia Panjika: Meta token expired" \
+            -H "Priority: high" \
+            -H "Tags: warning" \
+            -d "META_PAGE_ACCESS_TOKEN is invalid. Run scripts/extend_meta_token.py and update the secret before the next daily post." \
+            "https://ntfy.sh/$NTFY_TOPIC" || true
