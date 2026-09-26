@@ -473,7 +473,7 @@ A change is done only when:
 
 ## Known debt (do not paper over)
 
-1. ~~Chandra masa `+2`~~ — fixed: closing-Purnima Purnimanta; see `tests/test_chandra_masa.py`.
+1. ~~Chandra masa `+2`~~ / ~~closing-Purnima heuristic~~ — fixed: Amanta month named by the sankranti inside it, Adhika when none, Purnimanta labels (`src/lunar_calendar.py`); matches Drik labels and Tier A festival dates. See eval.md § E-FEST-REFERENCE.
 2. ~~DB lag~~ — reseed after masa fix (2020–2030).
 3. ~~Deploy Bangalore~~ — `render.yaml` defaults to Bhubaneswar.
 4. **AI layer** can still fabricate culture text if keys set and prompts weaken.
@@ -481,7 +481,8 @@ A change is done only when:
 6. ~~Day API `tradition` + `meta`~~ — wired on `/today`, `/panchang/{date}`, city today.
 7. **Biraja peetha civil dates** need printed-panji / peetha sources year by year; rule-only until sourced.
 8. **Commercial print 1-day edges** between Khadiratna and Biraja books are out of scope until digitized.
-9. **2025 Rath civil date** — Wikipedia 27 Jun vs engine Ashadha Shukla 2 = 26 Jul (adhika/authority); documented in tests.
+9. ~~2025 Rath civil date~~ — fixed by the masa rule; no civil overrides remain (`src/festival_civil.py` is Tier A metadata + a reviewed correction register).
+10. **Festival days** come from `src/festival_calendar.py` (tithi interval + observance time + Adhika skip); every date is audited against an independent reference and Tier A sources. Festivals without independent confirmation are served by the API but **not announced** in social posts (`festival_audit.prepare_for_publish`).
 
 ---
 

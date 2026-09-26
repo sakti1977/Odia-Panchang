@@ -70,13 +70,7 @@ def test_rath_yatra_story_mentions_gundicha_or_chariot():
 
 
 def test_match_festivals_attaches_story():
-    day = {
-        "paksha_en": "Shukla",
-        "tithi_num": 2,
-        "chandra_masa_en": "Ashadha",
-        "soura_masa_en": "Mithuna",
-    }
-    fests = match_festivals(day)
+    fests = match_festivals({"date": "2026-07-16"})  # Rath Yatra (Tier A)
     assert fests
     rath = next(f for f in fests if "Rath" in f["name_en"])
     assert rath["story"]["en"]

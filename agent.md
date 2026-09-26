@@ -124,10 +124,21 @@ checking `eval.md` sources — some “fixes” were overfit to single dates.
 ### Bug: wrong festival date
 
 ```
-1. Check tithi+masa on that civil date (engine)
-2. Check rule tuple in festivals.py
-3. Check Tier A civil date in eval.md
-4. Fix rule or masa; never hardcode a single Gregorian date unless sankranti/solar
+1. python scripts/audit_festivals.py            (which festivals/years disagree)
+2. Check the rule tuple (festivals.py, Purnimanta month) and its kala (festival_calendar.KALA)
+3. Check Tier A (tests/fixtures/golden_festivals.json) and the Drik reference fixture
+4. Fix the rule / kala with a classical justification — never tune to one year
+5. Knife-edge disagreement with a source → festival_civil.DATE_CORRECTIONS (cited)
+6. python seed.py --refresh-festivals; pytest tests/test_festival_dates.py
+```
+
+### Festival-date upkeep (yearly — see eval.md § E-FEST-REFERENCE)
+
+```
+January        Odisha Government holiday list → Tier A rows (A1)
+Before Snana   Temple / Tourism Puri schedule → Tier A rows
+By 1 October   python scripts/fetch_festival_reference.py --start Y --end Y+4; review diff
+Any time       festival-confirm issue → confirm from a panjika, add a Tier A row
 ```
 
 ### Feature: new API field
@@ -189,6 +200,11 @@ python test_app.py
 | `main.py` | FastAPI |
 | `src/meta_poster.py` | Facebook Page + Instagram Graph client |
 | `src/social_card.py` | 4:5 feed JPEG + 9:16 story JPEG |
+| `src/lunar_calendar.py` | New moons, Amanta months + Adhika, Purnimanta labels, sankranti instants |
+| `src/festival_calendar.py` | Festival civil day per year/place (tithi interval, kala, Adhika, sankranti cutoff) |
+| `src/festival_audit.py` | Audit vs reference + Tier A; publication gate for social posts |
+| `src/festival_civil.py` | Tier A metadata + reviewed DATE_CORRECTIONS (no overrides) |
+| `src/odisha_heritage.py` | Curated "ଜାଣନ୍ତୁ ଓଡ଼ିଶା" daily heritage entries (sourced, Odia-validated) |
 | `src/local_day.py` | SQLite day loader for GitHub Actions (no FastAPI) |
 | `scripts/post_daily.py` | Daily FB+IG entrypoint |
 | `render.yaml` | Optional API host leftover (verify LOCATION_*) |

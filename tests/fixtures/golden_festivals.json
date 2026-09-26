@@ -1,0 +1,415 @@
+{
+ "meta": {
+  "purpose": "Tier A civil festival dates (Jagannath / Puri cycle and Odia-specific days) with citations. Human-maintained: add a row only with a source you have read. Never generate from the engine or from Drik (Drik is the separate Tier B reference in festival_reference/).",
+  "tiers": "A1 = Odisha Tourism / Shree Jagannath Temple Administration; A2 = Wikipedia Ratha Yatra (Puri) table; A3 = dated news / temple event listing for that year",
+  "maintenance": "Each year, before Snana Purnima: add Snana / Rath / Hera / Bahuda (and Suna Besha, Niladri Bije when published) from the temple or Tourism schedule. tests/test_festival_dates.py fails when a seeded year within the look-ahead window has no Tier A Rath row. Each January, add the Odisha Government holiday list for the year (A1) — it is the civil authority for Odia festival days."
+ },
+ "rows": [
+  {
+   "id": "E-FEST-2020-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2020-06-23",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2020 row (held without devotees under Supreme Court order)"
+  },
+  {
+   "id": "E-FEST-2021-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2021-07-12",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2021 row"
+  },
+  {
+   "id": "E-FEST-2022-SNANA",
+   "name_en": "Snana Purnima",
+   "date": "2022-06-14",
+   "tier": "A2",
+   "source": "Jyeshtha Purnima before the 2022 Rath (Wikipedia A2); carried from eval.md E-FEST-MULTIYEAR-RATH"
+  },
+  {
+   "id": "E-FEST-2022-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2022-07-01",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2022 row"
+  },
+  {
+   "id": "E-FEST-2022-HERA",
+   "name_en": "Hera Panchami",
+   "date": "2022-07-05",
+   "tier": "A3",
+   "source": "shreeraghunathtemple.org event listing 'Hera Panchami 2022 (2022-07-05)'; fifth day of Rath Yatra"
+  },
+  {
+   "id": "E-FEST-2022-BAHUDA",
+   "name_en": "Bahuda Yatra",
+   "date": "2022-07-09",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2022 row"
+  },
+  {
+   "id": "E-FEST-2023-SNANA",
+   "name_en": "Snana Purnima",
+   "date": "2023-06-04",
+   "tier": "A2",
+   "source": "Jyeshtha Purnima before the 2023 Rath (Wikipedia A2); carried from eval.md"
+  },
+  {
+   "id": "E-FEST-2023-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2023-06-20",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2023 row"
+  },
+  {
+   "id": "E-FEST-2023-BAHUDA",
+   "name_en": "Bahuda Yatra",
+   "date": "2023-06-28",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2023 row"
+  },
+  {
+   "id": "E-FEST-2024-SNANA",
+   "name_en": "Snana Purnima",
+   "date": "2024-06-22",
+   "tier": "A2",
+   "source": "eval.md E-FEST-2024-SNANA (Puri lists + Drik cross-check)"
+  },
+  {
+   "id": "E-FEST-2024-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2024-07-07",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2024 row"
+  },
+  {
+   "id": "E-FEST-2024-HERA",
+   "name_en": "Hera Panchami",
+   "date": "2024-07-11",
+   "tier": "A3",
+   "source": "The Daily Jagran, 'Hera Panchami 11 July 2024'; LatestLY Hera Panchami 2024"
+  },
+  {
+   "id": "E-FEST-2024-PRATHAMASTAMI",
+   "name_en": "Prathamastami",
+   "date": "2024-11-23",
+   "tier": "A3",
+   "source": "Odisha Forum Odia calendar November 2024; Prathamastami 2024 news (Margashira Krishna Ashtami)"
+  },
+  {
+   "id": "E-GOV-2025-MAKARSANKRANTI",
+   "name_en": "Makar Sankranti",
+   "date": "2025-01-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-MAHASHIVARATRI",
+   "name_en": "Maha Shivaratri",
+   "date": "2025-02-26",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-DOLAPURNIMA",
+   "name_en": "Dola Purnima",
+   "date": "2025-03-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-PANASANKRANTIODIAN",
+   "name_en": "Pana Sankranti (Odia New Year)",
+   "date": "2025-04-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-BUDDHAPURNIMA",
+   "name_en": "Buddha Purnima",
+   "date": "2025-05-12",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-SAVITRIAMAVASYA",
+   "name_en": "Savitri Amavasya",
+   "date": "2025-05-27",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2025-SNANA",
+   "name_en": "Snana Purnima",
+   "date": "2025-06-11",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2025 schedule"
+  },
+  {
+   "id": "E-FEST-2025-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2025-06-27",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2025 schedule; Wikipedia A2 agrees"
+  },
+  {
+   "id": "E-FEST-2025-HERA",
+   "name_en": "Hera Panchami",
+   "date": "2025-07-01",
+   "tier": "A3",
+   "source": "ISKCON Vrindavan 'Hera Panchami | 01 July, 2025'; Pragativadi, 'fifth day of Rath Yatra'"
+  },
+  {
+   "id": "E-FEST-2025-BAHUDA",
+   "name_en": "Bahuda Yatra",
+   "date": "2025-07-05",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2025 schedule"
+  },
+  {
+   "id": "E-GOV-2025-JANMASHTAMI",
+   "name_en": "Janmashtami",
+   "date": "2025-08-15",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-GANESHCHATURTHI",
+   "name_en": "Ganesh Chaturthi",
+   "date": "2025-08-27",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-NUAKHAI",
+   "name_en": "Nuakhai",
+   "date": "2025-08-28",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-DURGASAPTAMI",
+   "name_en": "Durga Saptami",
+   "date": "2025-09-29",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-DURGAASHTAMI",
+   "name_en": "Durga Ashtami",
+   "date": "2025-09-30",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-MAHANAVAMI",
+   "name_en": "Mahanavami",
+   "date": "2025-10-01",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-DUSSEHRAVIJAYADASH",
+   "name_en": "Dussehra / Vijaya Dashami",
+   "date": "2025-10-02",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2025-KUMAR",
+   "name_en": "Kumar Purnima",
+   "date": "2025-10-07",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post) — 07.10.2025"
+  },
+  {
+   "id": "E-GOV-2025-DIWALILAKSHMIPUJA",
+   "name_en": "Diwali / Lakshmi Puja",
+   "date": "2025-10-21",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2025-KARTIKPURNIMABOITA",
+   "name_en": "Kartik Purnima / Boita Bandana",
+   "date": "2025-11-05",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2025 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2025-PRATHAMASTAMI",
+   "name_en": "Prathamastami",
+   "date": "2025-11-12",
+   "tier": "A3",
+   "source": "The Statesman, 'Prathamastami 2025' (Margashira Krishna Ashtami, eight days after Kartika Purnima)"
+  },
+  {
+   "id": "E-GOV-2026-MAKARSANKRANTI",
+   "name_en": "Makar Sankranti",
+   "date": "2026-01-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-DOLAPURNIMA",
+   "name_en": "Dola Purnima",
+   "date": "2026-03-03",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-RAMANAVAMI",
+   "name_en": "Rama Navami",
+   "date": "2026-03-27",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-PANASANKRANTIODIAN",
+   "name_en": "Pana Sankranti (Odia New Year)",
+   "date": "2026-04-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-BUDDHAPURNIMA",
+   "name_en": "Buddha Purnima",
+   "date": "2026-05-01",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-SAVITRIAMAVASYA",
+   "name_en": "Savitri Amavasya",
+   "date": "2026-05-16",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-MITHUNASANKRANTIRA",
+   "name_en": "Mithuna Sankranti (Raja Parba)",
+   "date": "2026-06-15",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2026-SNANA",
+   "name_en": "Snana Purnima",
+   "date": "2026-06-29",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2026 (eval.md E-FEST-2026-PURISCHEDULE)"
+  },
+  {
+   "id": "E-FEST-2026-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2026-07-16",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2026; Wikipedia A2"
+  },
+  {
+   "id": "E-FEST-2026-HERA",
+   "name_en": "Hera Panchami",
+   "date": "2026-07-20",
+   "tier": "A3",
+   "source": "eval.md E-FEST-2026-PURISCHEDULE (Puri schedules); most-cited date in 2026 listings (fifth day of Rath Yatra)"
+  },
+  {
+   "id": "E-FEST-2026-BAHUDA",
+   "name_en": "Bahuda Yatra",
+   "date": "2026-07-24",
+   "tier": "A1",
+   "source": "Odisha Tourism — Ratha Jatra 2026"
+  },
+  {
+   "id": "E-FEST-2026-SUNA",
+   "name_en": "Suna Besha",
+   "date": "2026-07-25",
+   "tier": "A3",
+   "source": "eval.md E-FEST-2026-PURISCHEDULE (Puri schedules)"
+  },
+  {
+   "id": "E-GOV-2026-JANMASHTAMI",
+   "name_en": "Janmashtami",
+   "date": "2026-09-04",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-GANESHCHATURTHI",
+   "name_en": "Ganesh Chaturthi",
+   "date": "2026-09-14",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-NUAKHAI",
+   "name_en": "Nuakhai",
+   "date": "2026-09-15",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-DURGASAPTAMI",
+   "name_en": "Durga Saptami",
+   "date": "2026-10-17",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2026-DURGA-ASHTAMI",
+   "name_en": "Durga Ashtami",
+   "date": "2026-10-18",
+   "tier": "A3",
+   "source": "Confirmed by the maintainer on 2026-09-26 (Odia panji); consistent with the Odisha Government 2026 list (Mahasaptami 17 Oct, Mahanavami 19 Oct; 18 Oct is an unlisted Sunday). Drik's udaya Mahastami is 19 Oct."
+  },
+  {
+   "id": "E-FEST-2026-BIRAJA-ASHTAMI",
+   "name_en": "Maa Biraja Ashtami",
+   "date": "2026-10-18",
+   "tier": "A3",
+   "source": "Confirmed by the maintainer on 2026-09-26 (same day as Durga Ashtami 18 Oct in Odisha); Drik's udaya Mahastami is 19 Oct."
+  },
+  {
+   "id": "E-GOV-2026-MAHANAVAMI",
+   "name_en": "Mahanavami",
+   "date": "2026-10-19",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-GOV-2026-DUSSEHRAVIJAYADASH",
+   "name_en": "Dussehra / Vijaya Dashami",
+   "date": "2026-10-20",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2026-KUMAR",
+   "name_en": "Kumar Purnima",
+   "date": "2026-10-26",
+   "tier": "A3",
+   "source": "OfficeHolidays and HolidayAPI Odisha holiday listings — Kumar Purnima, Monday 26 October 2026 (Purnima at sunrise; Drik 'Sharad Purnima' 25 Oct is the moonrise rule)"
+  },
+  {
+   "id": "E-GOV-2026-KARTIKPURNIMABOITA",
+   "name_en": "Kartik Purnima / Boita Bandana",
+   "date": "2026-11-24",
+   "tier": "A1",
+   "source": "Odisha Government holiday list 2026 (Revenue & Disaster Management Dept. notification, as published by Sakshi Post)"
+  },
+  {
+   "id": "E-FEST-2026-PRATHAMASTAMI",
+   "name_en": "Prathamastami",
+   "date": "2026-12-01",
+   "tier": "A3",
+   "source": "BhaktiBharat — Prathamastami 2026 Date, Tuesday 1 December 2026 (Margashira Krishna Ashtami at sunrise)"
+  },
+  {
+   "id": "E-FEST-2027-RATH",
+   "name_en": "Rath Yatra",
+   "date": "2027-07-05",
+   "tier": "A2",
+   "source": "Wikipedia — Ratha Yatra (Puri), 2027 row"
+  }
+ ]
+}

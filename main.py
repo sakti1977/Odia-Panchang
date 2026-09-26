@@ -204,31 +204,11 @@ def _live_for_place(d: date, place: dict) -> dict:
 
 
 def _festivals_for_live(live: dict, tradition: str | None) -> list:
-    """Tithi + civil festivals for a live engine day; include sankranti if month flips."""
-    from datetime import timedelta
+    """Festivals for a live engine day at its place (src/festival_calendar.py)."""
+    from src.festivals import match_festivals
 
-    from src.festivals import get_sankranti_festivals, match_festivals
-
-    day_in = {
-        "date": live["date"],
-        "paksha_en": live["paksha_en"],
-        "tithi_num": live["tithi_num"],
-        "chandra_masa_en": live["chandra_masa_en"],
-        "soura_masa_en": live["soura_masa_en"],
-    }
-    results = match_festivals(day_in)
-    # Sankranti when solar month differs from previous civil day
-    try:
-        d = date.fromisoformat(live["date"])
-        prev = compute_panchang(
-            d - timedelta(days=1),
-            lat=live.get("lat"),
-            lon=live.get("lon"),
-        )
-        if prev["soura_masa_en"] != live["soura_masa_en"]:
-            results.extend(get_sankranti_festivals(live["soura_masa_en"]))
-    except Exception:
-        pass
+    # Calendar-based: the place's own sunrise/sunset, sankrantis included
+    results = match_festivals(live)
 
     # Normalize to API shape (nested name)
     out = []
@@ -245,11 +225,12 @@ def _festivals_for_live(live: dict, tradition: str | None) -> list:
                 "story_complete": f.get("story_complete"),
                 **(
                     {
-                        "civil_override": True,
+                        "civil_override": bool(f.get("civil_override")),
+                        "tier_a_confirmed": bool(f.get("tier_a_confirmed")),
                         "source_tier": f.get("source_tier"),
                         "source_note": f.get("source_note"),
                     }
-                    if f.get("civil_override")
+                    if f.get("source_tier")
                     else {}
                 ),
             }
@@ -380,8 +361,9 @@ def _festival_to_dict(f: Festival) -> dict:
         "story_sources":  payload.get("story_sources"),
         "story_complete": payload.get("story_complete"),
     }
-    if payload.get("civil_override"):
-        out["civil_override"] = True
+    if payload.get("source_tier"):  # Tier A confirmed, or a reviewed correction
+        out["civil_override"] = bool(payload.get("civil_override"))
+        out["tier_a_confirmed"] = bool(payload.get("tier_a_confirmed"))
         out["source_tier"] = payload.get("source_tier")
         out["source_note"] = payload.get("source_note")
     return out

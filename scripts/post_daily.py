@@ -9,6 +9,7 @@ Env:
   META_PAGE_ID, META_PAGE_ACCESS_TOKEN   required to publish
   META_IG_USER_ID                        optional (discovered from the Page)
   INSTAGRAM_AS_STORY                     default true
+  SOCIAL_HERITAGE_CARD                   default true (second image)
   PLATFORMS                              comma list, default facebook,instagram
   TEST_MODE=true                         generate caption + cards, do not publish
   PANJIKA_DATE=YYYY-MM-DD                override IST today
@@ -70,6 +71,16 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("%s", exc)
         return 1
 
+    from src.festival_audit import PublishBlocked, prepare_for_publish
+
+    try:
+        panchang, unverified = prepare_for_publish(panchang)
+    except PublishBlocked as exc:
+        logger.error("Festival verification failed — not posting: %s", exc)
+        return 1
+    if unverified:
+        logger.warning("Not announcing unverified festivals: %s", ", ".join(unverified))
+
     enrichment = rule_enrichment(panchang)
     caption = generate_social_caption(panchang, enrichment)
     logger.info("Loaded panji for %s", panchang["date"])
@@ -82,6 +93,10 @@ def main(argv: list[str] | None = None) -> int:
     if "instagram" in platforms:
         story = generate_story_card(panchang, enrichment, feed_path=card)
         logger.info("Story card: %s", story)
+    if os.getenv("SOCIAL_HERITAGE_CARD", "true").lower() != "false":
+        from src.social_card import generate_heritage_card
+
+        logger.info("Heritage card: %s", generate_heritage_card(panchang))
 
     if test_mode:
         logger.info("TEST_MODE: not publishing (platforms=%s)", ",".join(platforms))

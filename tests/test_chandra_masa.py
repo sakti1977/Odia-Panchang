@@ -1,15 +1,15 @@
 """
-Phase 1 evals: Purnimanta chandra masa + festival civil anchors.
+Purnimanta chandra masa (Amanta-by-sankranti + Adhika) and festival anchors.
 
-Non-negotiable: Snana / Rath / Bahuda land on Odisha Tourism–aligned dates
-for non-adhika years under Lahiri + this engine.
+Non-negotiable: Snana / Rath / Bahuda land on Odisha Tourism–aligned dates in
+*every* year, Adhika years included, with no civil overrides.
 """
 
 from datetime import date, timedelta
 
 import pytest
 
-from src.engine import compute_panchang, _chandra_masa_index, _date_to_jd, _sun_longitude, _moon_longitude
+from src.engine import _chandra_masa_at, _date_to_jd, compute_panchang
 from src.festivals import match_festivals
 from src.translations import CHANDRA_MASA
 
@@ -120,7 +120,8 @@ class TestPurnimantaStructure:
         for i in range(0, 365, 7):
             d = date(2026, 1, 1) + timedelta(days=i)
             p = _p(d)
-            assert p["chandra_masa_en"] in {m["en"] for m in CHANDRA_MASA}
+            name = p["chandra_masa_en"].removeprefix("Adhika ")
+            assert name in {m["en"] for m in CHANDRA_MASA}
             assert 1 <= p["tithi_num"] <= 15
 
     def test_amavasya_is_krishna_15(self):
@@ -136,47 +137,66 @@ class TestPurnimantaStructure:
 
     def test_pure_function_stable(self):
         jd = _date_to_jd(date(2026, 7, 16), 0.5)
-        sun, moon = _sun_longitude(jd), _moon_longitude(jd)
-        a = _chandra_masa_index(sun, moon)
-        b = _chandra_masa_index(sun, moon)
-        assert a == b
-        assert CHANDRA_MASA[a]["en"] == "Ashadha"
+        a = _chandra_masa_at(jd)
+        assert a == _chandra_masa_at(jd)
+        assert CHANDRA_MASA[a[0]]["en"] == "Ashadha" and a[1] is False
 
 
-# ── 2025 authority (Tier A civil) vs engine masa labels ───────────────────
+# ── 2025: the year the old heuristic got wrong ────────────────────────────
 
 class TestYear2025Authority:
     """
-    Odisha Tourism (A1) + Wikipedia (A2): Rath 2025-06-27, Snana 2025-06-11.
-
-    Engine masa labels without adhika still name 2025-06-27 as Jyeshtha and
-    place engine Ashadha Shukla 2 on 2025-07-26. Festival *attachment* uses
-    civil overrides (festival_civil.py) so product days match Tier A.
+    Odisha Tourism (A1) + Wikipedia (A2): Snana 2025-06-11, Rath 2025-06-27,
+    Bahuda 2025-07-05. The old closing-Purnima heuristic named 2025-06-27
+    Jyeshtha and needed civil overrides; the sankranti rule names it Ashadha
+    and the tithi rules land on the Tier A dates by themselves.
     """
 
-    def test_2025_06_27_is_shukla_dwitiya(self):
+    def test_2025_06_27_is_ashadha_shukla_dwitiya(self):
         p = _p(date(2025, 6, 27))
-        assert p["paksha_en"] == "Shukla"
-        assert p["tithi_num"] == 2
+        assert (p["chandra_masa_en"], p["paksha_en"], p["tithi_num"]) == ("Ashadha", "Shukla", 2)
 
-    def test_2025_engine_ashadha_dwitiya_is_july_26_without_rath(self):
-        """Rule-based Rath suppressed in 2025; civil override is 27 Jun only."""
+    def test_2025_07_26_is_shravana_and_not_rath(self):
         p = _p(date(2025, 7, 26))
-        assert p["chandra_masa_en"] == "Ashadha"
-        assert p["paksha_en"] == "Shukla"
-        assert p["tithi_num"] == 2
+        assert p["chandra_masa_en"] == "Shravana"
         assert not any("Rath Yatra" in n for n in _fest_names(date(2025, 7, 26)))
 
-    def test_2025_06_27_not_ashadha_under_this_engine(self):
-        p = _p(date(2025, 6, 27))
-        assert p["chandra_masa_en"] != "Ashadha"
-
-    def test_2025_civil_rath_on_june_27(self):
+    def test_2025_rath_on_june_27(self):
         assert any("Rath Yatra" in n for n in _fest_names(date(2025, 6, 27)))
 
-    def test_2025_civil_snana_on_june_11(self):
+    def test_2025_snana_on_june_11(self):
         names = _fest_names(date(2025, 6, 11))
         assert any("Snana" in n for n in names), names
 
-    def test_2025_civil_bahuda_on_july_5(self):
+    def test_2025_bahuda_on_july_5(self):
         assert any("Bahuda" in n for n in _fest_names(date(2025, 7, 5)))
+
+
+# ── Adhika masa ────────────────────────────────────────────────────────────
+
+class TestAdhikaMasa:
+    """Drik Panchang (B1): Adhika Jyeshtha 2026 (≈17 May–15 Jun),
+    Adhika Shravana 2023 (≈18 Jul–16 Aug)."""
+
+    def test_e_masa_01_2026_05_10_is_jyeshtha(self):
+        """E-MASA-01: Drik B1 Purnimanta Jyeshtha — the old 'Vaishakha' lock
+        existed only because the previous formula could not match Drik and
+        Tourism at once; this one matches both."""
+        p = _p(date(2026, 5, 10))
+        assert (p["chandra_masa_en"], p["paksha_en"], p["tithi_num"]) == ("Jyeshtha", "Krishna", 8)
+
+    @pytest.mark.parametrize("d", [date(2026, 5, 20), date(2026, 5, 31), date(2026, 6, 10)])
+    def test_2026_adhika_jyeshtha(self, d):
+        p = _p(d)
+        assert p["chandra_masa_en"] == "Adhika Jyeshtha"
+        assert p["chandra_masa_or"] == "ଅଧିକ ଜ୍ୟେଷ୍ଠ"
+        assert p["adhika_masa"] is True
+
+    @pytest.mark.parametrize("d", [date(2023, 7, 25), date(2023, 8, 10)])
+    def test_2023_adhika_shravana(self, d):
+        assert _p(d)["chandra_masa_en"] == "Adhika Shravana"
+
+    def test_no_festival_in_adhika_month(self):
+        """Adhika Jyeshtha Purnima 2026-05-31 is not Snana Purnima."""
+        assert not any("Snana" in n for n in _fest_names(date(2026, 5, 31)))
+        assert _p(date(2026, 6, 29))["adhika_masa"] is False

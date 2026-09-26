@@ -374,3 +374,97 @@ class TestPostToMeta:
         paths = [call.args[0] for call in self.post.call_args_list]
         assert "/ig-from-env/media" in paths
         assert "/ig-from-env/media_publish" in paths
+
+    # ── 'ଜାଣନ୍ତୁ ଓଡ଼ିଶା' heritage card as a second image ──────────────────
+
+    def _two_jpegs(self):
+        a = tempfile.NamedTemporaryFile(suffix=".jpg")
+        b = tempfile.NamedTemporaryFile(suffix=".jpg")
+        for h in (a, b):
+            h.write(b"jpeg-bytes-not-empty")
+            h.flush()
+        return a, b
+
+    def test_facebook_two_photo_post_with_heritage_card(self):
+        self.multipart.side_effect = [{"id": "photoA"}, {"id": "photoB"}]
+        a, b = self._two_jpegs()
+        with a, b:
+            result = post_to_meta(
+                "some caption", image_path=a.name, heritage_path=b.name,
+                platforms=["facebook"],
+            )
+        assert self.multipart.call_count == 2
+        for call in self.multipart.call_args_list:
+            assert call.kwargs["fields"] == {"published": "false"}
+        feed = [c for c in self.post.call_args_list if c.args[0] == "/page1/feed"]
+        assert len(feed) == 1
+        params = feed[0].args[2]
+        assert params["message"] == "some caption"
+        assert params["attached_media[0]"] == '{"media_fbid": "photoA"}'
+        assert params["attached_media[1]"] == '{"media_fbid": "photoB"}'
+        assert result["facebook"]["photo_ids"] == ["photoA", "photoB"]
+
+    def test_facebook_falls_back_to_single_photo_if_heritage_upload_fails(self):
+        self.multipart.side_effect = [
+            {"id": "photoA"},
+            GraphAPIError("upload failed"),
+            {"id": "photo1", "post_id": "fbpost1"},
+        ]
+        a, b = self._two_jpegs()
+        with a, b:
+            result = post_to_meta(
+                "some caption", image_path=a.name, heritage_path=b.name,
+                platforms=["facebook"],
+            )
+        last = self.multipart.call_args_list[-1]
+        assert last.kwargs["fields"] == {"message": "some caption", "published": "true"}
+        assert not [c for c in self.post.call_args_list if c.args[0] == "/page1/feed"]
+        assert result["facebook"]["id"] == "photo1"
+
+    def test_instagram_second_story_for_heritage(self):
+        self.ig_linked = True
+        a, b = self._two_jpegs()
+        with a, b:
+            result = post_to_meta(
+                "some caption", image_path=a.name, story_path=a.name,
+                heritage_path=b.name, heritage_story_path=b.name,
+                platforms=["instagram"],
+            )
+        media = [c for c in self.post.call_args_list if c.args[0] == "/ig1/media"]
+        assert [c.args[2]["media_type"] for c in media] == ["STORIES", "STORIES"]
+        assert result["instagram"]["id"] == "igmedia1"
+        assert result["instagram"]["heritage_story"] == {"id": "igmedia1"}
+
+    def test_heritage_story_failure_does_not_fail_the_run(self):
+        self.ig_linked = True
+        calls = {"n": 0}
+
+        def second_media_fails(path, token, params=None):
+            if path == "/ig1/media":
+                calls["n"] += 1
+                if calls["n"] == 2:
+                    raise GraphAPIError("heritage container failed")
+            return self._post(path, token, params)
+
+        self.post.side_effect = second_media_fails
+        a, b = self._two_jpegs()
+        with a, b:
+            result = post_to_meta(
+                "some caption", image_path=a.name, story_path=a.name,
+                heritage_story_path=b.name, platforms=["instagram"],
+            )
+        assert result["instagram"]["id"] == "igmedia1"
+        assert "error" in result["instagram"]["heritage_story"]
+
+    def test_instagram_feed_mode_posts_carousel(self):
+        self.ig_linked = True
+        self.multipart.side_effect = [{"id": "photoA"}, {"id": "photoB"}]
+        a, b = self._two_jpegs()
+        with mock.patch.dict(os.environ, {"INSTAGRAM_AS_STORY": "false"}), a, b:
+            result = post_to_meta("some caption", image_path=a.name, heritage_path=b.name)
+        media = [c.args[2] for c in self.post.call_args_list if c.args[0] == "/ig1/media"]
+        assert [m.get("is_carousel_item") for m in media[:2]] == ["true", "true"]
+        assert media[2]["media_type"] == "CAROUSEL"
+        assert media[2]["children"] == "container1,container1"
+        assert media[2]["caption"] == "some caption"
+        assert result["instagram"]["id"] == "igmedia1"

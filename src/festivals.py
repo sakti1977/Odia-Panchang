@@ -4,8 +4,11 @@ Each rule matches a computed panchang day and returns festival info.
 
 Rule types:
   - tithi_rule: (chandra_masa_en, paksha, tithi_num, tradition, name_en, name_or, description)
+    chandra_masa_en is the *Purnimanta* month (Krishna paksha takes the next
+    month's name); the civil day is chosen by src/festival_calendar.py
   - sankranti_rule: (soura_masa_en, tradition, name_en, name_or, description)
-    triggered on the first day of a solar month (Sankranti)
+    on the day of the solar transit (see festival_calendar.sankranti_day)
+  - relative_rule: (anchor name_en, days, tradition, name_en, name_or, description)
 
 Tithi numbering convention used throughout:
   - Shukla paksha: 1 (Pratipad) ... 15 (Purnima)
@@ -27,6 +30,14 @@ Changelog:
     not shukla 1; corrected paksha and tithi accordingly
   - Added Naraka Chaturdashi description enrichment
   - Added Kartika Pratipad (Bali Pratipada / Govardhan Puja) entry
+  - Purnimanta consistency (festival-date audit, eval.md E-FEST-REFERENCE):
+    Krishna-paksha rules take the *next* month's name. Janmashtami is
+    Bhadrapada Krishna 8; Prathamastami is Margashira Krishna 8; the Krishna
+    Ekadashis were one month early (Amanta names) and are re-keyed; the
+    merged "Parsva / Aja" rule split into Parsva (Bhadrapada Shukla) and Aja
+    (Bhadrapada Krishna); "Papamochani Ekadashi (Phalguna)" was Vijaya.
+  - Days are chosen by src/festival_calendar.py from the tithi interval
+    (kshaya / vriddhi / kala aware) — not by one sunrise sample per day.
 """
 
 TITHI_RULES = [
@@ -54,7 +65,7 @@ TITHI_RULES = [
 
     # Shravana
     ("Shravana",   "shukla", 15,  "common", "Gamha Purnima",              "ଗହ୍ମା ପୂର୍ଣ୍ଣିମା",        "Worship and decoration of cattle; Raksha Bandhan observed; Balabhadra's birthday"),
-    ("Shravana",   "krishna",  8, "common", "Janmashtami",                "ଜନ୍ମାଷ୍ଟମୀ",              "Birthday of Lord Krishna; midnight puja, fasting and devotional music"),
+    ("Bhadrapada", "krishna",  8, "common", "Janmashtami",                "ଜନ୍ମାଷ୍ଟମୀ",              "Birthday of Lord Krishna; midnight puja, fasting and devotional music"),
 
     # Bhadrapada
     ("Bhadrapada", "shukla",  4,  "common", "Ganesh Chaturthi",           "ଗଣେଶ ଚତୁର୍ଥୀ",           "Birth of Lord Ganesha; 10-day festival with idol installation and immersion procession"),
@@ -83,7 +94,7 @@ TITHI_RULES = [
     # FIX: Boita Bandana was incorrectly placed at shukla 1; it is observed on Kartika Purnima (shukla 15)
 
     # Margashira
-    ("Margashira", "shukla",  8,  "common", "Prathamastami",              "ପ୍ରଥମାଷ୍ଟମୀ",             "Uniquely Odia festival; mothers pray for the long life and wellbeing of their first-born child"),
+    ("Margashira", "krishna", 8,  "common", "Prathamastami",              "ପ୍ରଥମାଷ୍ଟମୀ",             "Uniquely Odia festival; mothers pray for the long life and wellbeing of their first-born child"),
 
     # Pausha
     ("Pausha",     "shukla", 15,  "common", "Pausha Purnima",             "ପୌଷ ପୂର୍ଣ୍ଣିମା",         "Sacred bath at pilgrimage sites; marks end of Pausha month"),
@@ -108,20 +119,20 @@ TITHI_RULES = [
     ("Ashadha",    "krishna", 11, "common", "Yogini Ekadashi",            "ଯୋଗିନୀ ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Ashadha"),
     ("Shravana",   "shukla", 11,  "common", "Putrada Ekadashi",           "ପୁତ୍ରଦା ଏକାଦଶୀ",          "Bright-fortnight Ekadashi of Shravana (also Jhulana start day in Jagannath calendar)"),
     ("Shravana",   "krishna", 11, "common", "Kamika Ekadashi",            "କାମିକା ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Shravana"),
-    ("Bhadrapada", "shukla", 11,  "common", "Parsva / Aja Ekadashi",      "ପାର୍ଶ୍ୱ / ଅଜା ଏକାଦଶୀ",     "Bright-fortnight Ekadashi of Bhadrapada"),
-    ("Bhadrapada", "krishna", 11, "common", "Indira Ekadashi",            "ଇନ୍ଦିରା ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Bhadrapada — often linked with ancestral merit"),
+    ("Bhadrapada", "shukla", 11,  "common", "Parsva Ekadashi",            "ପାର୍ଶ୍ୱ ଏକାଦଶୀ",           "Bright-fortnight Ekadashi of Bhadrapada"),
+    ("Bhadrapada", "krishna", 11, "common", "Aja Ekadashi",               "ଅଜା ଏକାଦଶୀ",               "Dark-fortnight Ekadashi of Bhadrapada (Purnimanta)"),
     ("Ashwina",    "shukla", 11,  "common", "Papankusha Ekadashi",        "ପାପାଙ୍କୁଶ ଏକାଦଶୀ",        "Bright-fortnight Ekadashi of Ashwina"),
-    ("Ashwina",    "krishna", 11, "common", "Rama Ekadashi",              "ରାମା ଏକାଦଶୀ",              "Dark-fortnight Ekadashi of Ashwina"),
+    ("Ashwina",    "krishna", 11, "common", "Indira Ekadashi",            "ଇନ୍ଦିରା ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Ashwina (Purnimanta) — Pitru Paksha; often linked with ancestral merit"),
     ("Kartika",    "shukla", 11,  "common", "Prabodhini / Devutthana Ekadashi", "ପ୍ରବୋଧିନୀ / ଦେବୋତ୍ଥାନ ଏକାଦଶୀ", "End of Chaturmasya; Vishnu awakens — coincides with Utthana in Puri calendar"),
-    ("Kartika",    "krishna", 11, "common", "Utpanna Ekadashi",           "ଉତ୍ପନ୍ନା ଏକାଦଶୀ",          "Dark-fortnight Ekadashi of Kartika"),
+    ("Kartika",    "krishna", 11, "common", "Rama Ekadashi",              "ରାମା ଏକାଦଶୀ",              "Dark-fortnight Ekadashi of Kartika (Purnimanta), before Diwali"),
     ("Margashira", "shukla", 11,  "common", "Mokshada Ekadashi",          "ମୋକ୍ଷଦା ଏକାଦଶୀ",          "Bright-fortnight Ekadashi of Margashira — Gita Jayanti association in many lists"),
-    ("Margashira", "krishna", 11, "common", "Saphala Ekadashi",           "ସଫଳା ଏକାଦଶୀ",              "Dark-fortnight Ekadashi of Margashira"),
+    ("Margashira", "krishna", 11, "common", "Utpanna Ekadashi",           "ଉତ୍ପନ୍ନା ଏକାଦଶୀ",          "Dark-fortnight Ekadashi of Margashira (Purnimanta)"),
     ("Pausha",     "shukla", 11,  "common", "Pausha Putrada Ekadashi",    "ପୌଷ ପୁତ୍ରଦା ଏକାଦଶୀ",     "Bright-fortnight Ekadashi of Pausha"),
-    ("Pausha",     "krishna", 11, "common", "Shattila Ekadashi",          "ଷଟ୍ଟିଲା ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Pausha — sesame (tila) charity and food"),
+    ("Pausha",     "krishna", 11, "common", "Saphala Ekadashi",           "ସଫଳା ଏକାଦଶୀ",              "Dark-fortnight Ekadashi of Pausha (Purnimanta)"),
     ("Magha",      "shukla", 11,  "common", "Jaya Ekadashi",              "ଜୟା ଏକାଦଶୀ",               "Bright-fortnight Ekadashi of Magha"),
-    ("Magha",      "krishna", 11, "common", "Vijaya Ekadashi",            "ବିଜୟା ଏକାଦଶୀ",             "Dark-fortnight Ekadashi of Magha"),
+    ("Magha",      "krishna", 11, "common", "Shattila Ekadashi",          "ଷଟ୍ଟିଲା ଏକାଦଶୀ",           "Dark-fortnight Ekadashi of Magha (Purnimanta) — sesame (tila) charity and food"),
     ("Phalguna",   "shukla", 11,  "common", "Amalaki Ekadashi",           "ଆମଳକୀ ଏକାଦଶୀ",            "Bright-fortnight Ekadashi of Phalguna — amla / Amalaki association"),
-    ("Phalguna",   "krishna", 11, "common", "Papamochani Ekadashi (Phalguna)", "ଫାଲ୍ଗୁନ ପାପମୋଚନୀ ଏକାଦଶୀ", "Dark-fortnight Ekadashi of Phalguna"),
+    ("Phalguna",   "krishna", 11, "common", "Vijaya Ekadashi",            "ବିଜୟା ଏକାଦଶୀ",             "Dark-fortnight Ekadashi of Phalguna (Purnimanta)"),
 
     # Pradosha Vrat — every Trayodashi (13); evening Shiva worship
     ("Chaitra",    "shukla", 13,  "common", "Pradosha Vrat",              "ପ୍ରଦୋଷ ବ୍ରତ",              "Shukla Trayodashi evening vrat for Lord Shiva"),
@@ -169,7 +180,6 @@ TITHI_RULES = [
     ("Jyeshtha",   "shukla", 15,  "jagannath", "Snana Yatra",                  "ସ୍ନାନ ଯାତ୍ରା",               "108-pot bathing of Lord Jagannath, Balabhadra, Subhadra and Sudarshana; grand public darshan before Anavasara"),
     ("Ashadha",    "shukla",  1,  "jagannath", "Nava Jaubana Darshan",         "ନବ ଯୌବନ ଦର୍ଶନ",             "Deities appear in rejuvenated form; special darshan one day before Rath Yatra"),
     ("Ashadha",    "shukla",  1,  "jagannath", "Gundicha Marjana",             "ଗୁଣ୍ଡିଚା ମାର୍ଜନ",            "Ritual cleansing of Gundicha Temple by servitors before the Lord's arrival"),
-    ("Ashadha",    "shukla",  5,  "jagannath", "Hera Panchami",                "ହେର ପଞ୍ଚମୀ",                 "Goddess Lakshmi Devi visits Gundicha Temple to look for Lord Jagannath"),
     ("Ashadha",    "shukla", 11,  "jagannath", "Suna Besha",                   "ସୁନା ବେଶ",                    "Deities adorned with gold ornaments on chariots; spectacular darshan"),
     ("Ashadha",    "shukla", 12,  "jagannath", "Adhara Pana",                  "ଅଧର ପଣା",                    "Special sweet drink (Pana) offered to deities still seated on chariots"),
     ("Ashadha",    "shukla", 13,  "jagannath", "Niladri Bije",                 "ନୀଳାଦ୍ରି ବିଜେ",              "Re-entry of deities into Jagannath Temple; Rasagola offering to Goddess Lakshmi for reconciliation"),
@@ -223,70 +233,49 @@ SANKRANTI_RULES = [
 ]
 
 
-def match_festivals(panchang_day: dict) -> list[dict]:
-    """
-    Given a computed panchang dict, return list of matching festivals.
+# Festivals fixed relative to another festival's civil day (days offset).
+# Hera Panchami is the fifth day of the Rath Yatra (Rath + 4) — confirmed for
+# 2022, 2024, 2025 and 2026 (tests/fixtures/golden_festivals.json); the older
+# "Ashadha Shukla 5 tithi" rule and the "Rath + 3" derivation were both wrong.
+RELATIVE_RULES = [
+    ("Rath Yatra", 4, "jagannath", "Hera Panchami", "ହେର ପଞ୍ଚମୀ",
+     "Fifth day of Rath Yatra: Goddess Lakshmi visits Gundicha Temple to look for Lord Jagannath"),
+]
 
-    Expected keys in panchang_day:
-      - paksha_en (str): "shukla" or "krishna"
-      - tithi_num (int): 1-15
-      - chandra_masa_en (str): lunar month name in English
-      - soura_masa_en (str): solar month name in English
-      - date (str, optional): YYYY-MM-DD — enables Tier A civil overrides
-        (see festival_civil.py; required for correct 2025 Puri cycle)
 
-    Each result includes short description plus story / why_today (see festival_stories).
+def match_festivals(
+    panchang_day: dict,
+    *,
+    lat: float | None = None,
+    lon: float | None = None,
+    tz_hours: float | None = None,
+) -> list[dict]:
     """
-    from src.festival_civil import civil_festivals_for_date, suppressed_rule_names
+    Festivals on panchang_day["date"] at a place, with story / why_today.
+
+    Dates come from src/festival_calendar.py (tithi intervals, Adhika-aware,
+    observance-time rules, sankranti cutoff, reviewed corrections) — not from
+    this day's sunrise tithi alone. The place defaults to panchang_day's
+    lat/lon (compute_panchang output) or the engine default location.
+    """
+    from src.engine import _LOC_LAT, _LOC_LON, _LOC_TZ
+    from src.festival_calendar import festivals_on
+    from src.festival_civil import lookup_civil_meta
     from src.festival_stories import attach_story
 
-    results = []
-    seen: set[tuple[str, str]] = set()
-
-    paksha  = panchang_day["paksha_en"].lower()   # "shukla" or "krishna"
-    tithi   = panchang_day["tithi_num"]           # 1-15 (15 = Purnima or Amavasya)
-    chandra = panchang_day["chandra_masa_en"]
     date_iso = panchang_day.get("date")
-    year = None
-    if date_iso and isinstance(date_iso, str) and len(date_iso) >= 4:
-        try:
-            year = int(date_iso[:4])
-        except ValueError:
-            year = None
-    suppress = suppressed_rule_names(year)
+    if not date_iso:
+        raise ValueError("match_festivals needs panchang_day['date']")
+    lat = lat if lat is not None else panchang_day.get("lat", _LOC_LAT)
+    lon = lon if lon is not None else panchang_day.get("lon", _LOC_LON)
+    tz = tz_hours if tz_hours is not None else panchang_day.get("tz_hours", _LOC_TZ)
 
-    for rule in TITHI_RULES:
-        r_masa, r_paksha, r_tithi, tradition, name_en, name_or, desc = rule
-        if name_en in suppress:
-            continue
-        if r_masa == chandra and r_paksha == paksha and r_tithi == tithi:
-            key = (name_en, tradition)
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(attach_story({
-                "name_en":     name_en,
-                "name_or":     name_or,
-                "tradition":   tradition,
-                "description": desc,
-            }))
-
-    # Tier A civil attachments (may add festivals when masa labels disagree)
-    for f in civil_festivals_for_date(date_iso if isinstance(date_iso, str) else None):
-        key = (f["name_en"], f["tradition"])
-        if key in seen:
-            continue
-        seen.add(key)
-        results.append(attach_story({
-            "name_en":         f["name_en"],
-            "name_or":         f["name_or"],
-            "tradition":       f["tradition"],
-            "description":     f["description"],
-            "civil_override":  True,
-            "source_tier":     f.get("source_tier", "A"),
-            "source_note":     f.get("source_note", ""),
-        }))
-
+    results = []
+    for f in festivals_on(date_iso, float(lat), float(lon), float(tz)):
+        meta = lookup_civil_meta(date_iso, f["name_en"])
+        if meta:
+            f.update(meta)
+        results.append(attach_story(f))
     return results
 
 

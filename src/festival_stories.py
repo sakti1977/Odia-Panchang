@@ -187,13 +187,14 @@ _KUMAR = _story(
 
 _PRATHAMA = _story(
     "Prathamastami is uniquely Odia: mothers pray for the long life of the first-born "
-    "(or eldest child), prepare Enduri pitha, and offer puja on Margashira Shukla Ashtami.",
+    "(or eldest child), prepare Enduri pitha, and offer puja on Margashira Krishna Ashtami, "
+    "eight days after Kartika Purnima.",
     "ପ୍ରଥମାଷ୍ଟମୀ କେବଳ ଓଡ଼ିଆ ଘରର ପର୍ବ। ମା’ମାନେ ପ୍ରଥମ ସନ୍ତାନଙ୍କ ଦୀର୍ଘାୟୁ ପାଇଁ ପୂଜା କରନ୍ତି "
-    "ଓ ଏଣ୍ଡୁରି ପିଠା ତିଆରି କରନ୍ତି। ଏହା ମାର୍ଗଶୀର ଶୁକ୍ଳ ଅଷ୍ଟମୀରେ ପଡ଼େ।",
-    "Margashira Shukla Ashtami — day of blessing for the first child.",
-    "ମାର୍ଗଶୀର ଶୁକ୍ଳ ଅଷ୍ଟମୀ — ପ୍ରଥମାଷ୍ଟମୀ।",
+    "ଓ ଏଣ୍ଡୁରି ପିଠା ତିଆରି କରନ୍ତି। ଏହା କାର୍ତ୍ତିକ ପୂର୍ଣ୍ଣିମାର ଆଠ ଦିନ ପରେ ମାର୍ଗଶୀର କୃଷ୍ଣ ଅଷ୍ଟମୀରେ ପଡ଼େ।",
+    "Margashira Krishna Ashtami — day of blessing for the first child.",
+    "ମାର୍ଗଶୀର କୃଷ୍ଣ ଅଷ୍ଟମୀ — ପ୍ରଥମାଷ୍ଟମୀ।",
     "historical_cultural",
-    ["Prathamastami (Odia household tradition)"],
+    ["Prathamastami (Odia household tradition)", "Wikipedia — Prathamastami"],
 )
 
 _SAVITRI = _story(
@@ -411,14 +412,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
     ),
     "Gamha Purnima": _GAMHA,
     "Janmashtami": _short(
-        "Janmashtami celebrates Krishna’s birth at midnight of Shravana Krishna Ashtami. "
-        "Homes and temples keep vigil, fast, and sing the Bhagavata. In Odisha, many also "
-        "remember Balabhadra’s season around Gamha Purnima in the same lunar month.",
-        "ଶ୍ରାବଣ କୃଷ୍ଣ ଅଷ୍ଟମୀ ମଧ୍ୟରାତ୍ରିରେ ଜନ୍ମାଷ୍ଟମୀ — ଭଗବାନ ଶ୍ରୀକୃଷ୍ଣଙ୍କ ଜନ୍ମ ଉତ୍ସବ। "
-        "ଘର ଓ ମନ୍ଦିରରେ ଜାଗରଣ, ଉପବାସ ଓ ଭାଗବତ ଭଜନ ହୁଏ। ଓଡ଼ିଶାରେ ଏହି ମାସରେ ଗହ୍ମା ପୂର୍ଣ୍ଣିମା "
-        "ସହିତ ବଳଭଦ୍ର ଋତୁ ମଧ୍ୟ ସ୍ମରଣ କରାଯାଏ।",
-        "Shravana Krishna Ashtami — Krishna Janmashtami.",
-        "ଶ୍ରାବଣ କୃଷ୍ଣ ଅଷ୍ଟମୀ — ଜନ୍ମାଷ୍ଟମୀ।",
+        'Janmashtami celebrates Krishna’s birth at midnight of Bhadrapada Krishna Ashtami (Purnimanta; the same night is Shravana Krishna Ashtami in Amanta lists). Homes and temples keep vigil, fast, and sing the Bhagavata. In Odisha it comes eight days after Gamha Purnima, Balabhadra’s birthday.',
+        'ଭାଦ୍ରବ କୃଷ୍ଣ ଅଷ୍ଟମୀ ମଧ୍ୟରାତ୍ରିରେ ଜନ୍ମାଷ୍ଟମୀ — ଭଗବାନ ଶ୍ରୀକୃଷ୍ଣଙ୍କ ଜନ୍ମ ଉତ୍ସବ। ଘର ଓ ମନ୍ଦିରରେ ଜାଗରଣ, ଉପବାସ ଓ ଭାଗବତ ଭଜନ ହୁଏ। ଓଡ଼ିଶାରେ ଏହା ବଳଭଦ୍ରଙ୍କ ଜନ୍ମଦିନ ଗହ୍ମା ପୂର୍ଣ୍ଣିମାର ଆଠ ଦିନ ପରେ ପଡ଼େ।',
+        'Bhadrapada Krishna Ashtami — Krishna Janmashtami.',
+        'ଭାଦ୍ରବ କୃଷ୍ଣ ଅଷ୍ଟମୀ — ଜନ୍ମାଷ୍ଟମୀ।',
         "puranic_tradition",
         ["Bhagavata / Krishna birth tradition"],
     ),
@@ -695,23 +692,27 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
-    "Parsva / Aja Ekadashi": _short(
-        "Parsva (Aja) Ekadashi falls in Bhadrapada bright fortnight. Tradition links it with "
-        "Vishnu’s turning in cosmic rest during Chaturmasya.",
-        "ପାର୍ଶ୍ୱ ବା ଅଜା ଏକାଦଶୀ ଭାଦ୍ରବ ଶୁକ୍ଳ ପକ୍ଷରେ ପଡ଼େ। ଚାତୁର୍ମାସ୍ୟରେ ବିଷ୍ଣୁଙ୍କ "
-        "ପାର୍ଶ୍ୱ ପରିବର୍ତ୍ତନ ସହିତ ଏହା ଯୋଡ଼ା।",
-        "Bhadrapada Shukla Ekadashi — Parsva / Aja.",
-        "ଭାଦ୍ରବ ଶୁକ୍ଳ ଏକାଦଶୀ — ପାର୍ଶ୍ୱ / ଅଜା।",
+    "Parsva Ekadashi": _short(
+        'Parsva Ekadashi falls in Bhadrapada bright fortnight. Tradition links it with Vishnu turning to his side (parsva) in cosmic rest during Chaturmasya.',
+        'ପାର୍ଶ୍ୱ ଏକାଦଶୀ ଭାଦ୍ରବ ଶୁକ୍ଳ ପକ୍ଷରେ ପଡ଼େ। ଚାତୁର୍ମାସ୍ୟରେ ବିଷ୍ଣୁଙ୍କ ପାର୍ଶ୍ୱ ପରିବର୍ତ୍ତନ ସହିତ ଏହା ଯୋଡ଼ା।',
+        'Bhadrapada Shukla Ekadashi — Parsva.',
+        'ଭାଦ୍ରବ ଶୁକ୍ଳ ଏକାଦଶୀ — ପାର୍ଶ୍ୱ।',
+        "puranic_tradition",
+        ["Vaishnava Ekadashi list"],
+    ),
+    "Aja Ekadashi": _short(
+        'Aja Ekadashi is the dark-fortnight Vishnu fast of Bhadrapada (Purnimanta), a few days after Janmashtami.',
+        'ଅଜା ଏକାଦଶୀ ଭାଦ୍ରବ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଜନ୍ମାଷ୍ଟମୀର କିଛି ଦିନ ପରେ ପଡ଼େ।',
+        'Bhadrapada Krishna Ekadashi — Aja.',
+        'ଭାଦ୍ରବ କୃଷ୍ଣ ଏକାଦଶୀ — ଅଜା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
     "Indira Ekadashi": _short(
-        "Indira Ekadashi in Bhadrapada’s dark fortnight is often kept for ancestral merit along "
-        "with Vishnu fasting.",
-        "ଇନ୍ଦିରା ଏକାଦଶୀ ଭାଦ୍ରବ କୃଷ୍ଣ ପକ୍ଷରେ — ବିଷ୍ଣୁ ଉପବାସ ସହିତ ପିତୃପୁଣ୍ୟ ପାଇଁ "
-        "ଅନେକେ ଏହା ପାଳନ୍ତି।",
-        "Bhadrapada Krishna Ekadashi — Indira.",
-        "ଭାଦ୍ରବ କୃଷ୍ଣ ଏକାଦଶୀ — ଇନ୍ଦିରା।",
+        'Indira Ekadashi falls in Ashwina’s dark fortnight (Pitru Paksha; Bhadrapada Krishna in Amanta lists) and is often kept for ancestral merit along with Vishnu fasting.',
+        'ଇନ୍ଦିରା ଏକାଦଶୀ ଆଶ୍ୱିନ କୃଷ୍ଣ ପକ୍ଷରେ (ପିତୃପକ୍ଷ) — ବିଷ୍ଣୁ ଉପବାସ ସହିତ ପିତୃପୁଣ୍ୟ ପାଇଁ ଅନେକେ ଏହା ପାଳନ୍ତି।',
+        'Ashwina Krishna Ekadashi — Indira.',
+        'ଆଶ୍ୱିନ କୃଷ୍ଣ ଏକାଦଶୀ — ଇନ୍ଦିରା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -724,12 +725,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Vaishnava Ekadashi list"],
     ),
     "Rama Ekadashi": _short(
-        "Rama Ekadashi is the dark-fortnight Vishnu fast of Ashwina, kept with quiet prayer in "
-        "many homes.",
-        "ରାମା ଏକାଦଶୀ ଆଶ୍ୱିନ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଅନେକ ଘରେ ଶାନ୍ତ ପ୍ରାର୍ଥନା ସହିତ "
-        "ପାଳିତ।",
-        "Ashwina Krishna Ekadashi — Rama.",
-        "ଆଶ୍ୱିନ କୃଷ୍ଣ ଏକାଦଶୀ — ରାମା।",
+        'Rama Ekadashi is the dark-fortnight Vishnu fast of Kartika, a few days before Diwali, kept with quiet prayer in many homes.',
+        'ରାମା ଏକାଦଶୀ କାର୍ତ୍ତିକ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଦୀପାବଳିର କିଛି ଦିନ ଆଗରୁ, ଅନେକ ଘରେ ଶାନ୍ତ ପ୍ରାର୍ଥନା ସହିତ ପାଳିତ।',
+        'Kartika Krishna Ekadashi — Rama.',
+        'କାର୍ତ୍ତିକ କୃଷ୍ଣ ଏକାଦଶୀ — ରାମା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -744,12 +743,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Vaishnava Ekadashi list", "Prabodhini / Utthana"],
     ),
     "Utpanna Ekadashi": _short(
-        "Utpanna Ekadashi is Kartika’s dark-fortnight fast. Some lists treat it as the year’s first "
-        "Ekadashi in the cycle of named days.",
-        "ଉତ୍ପନ୍ନା ଏକାଦଶୀ କାର୍ତ୍ତିକ କୃଷ୍ଣ ପକ୍ଷର ଉପବାସ। କେତେକ ତାଲିକାରେ ଏହା ବର୍ଷର "
-        "ପ୍ରଥମ ନାମିତ ଏକାଦଶୀ ଭାବେ ଗଣାଯାଏ।",
-        "Kartika Krishna Ekadashi — Utpanna.",
-        "କାର୍ତ୍ତିକ କୃଷ୍ଣ ଏକାଦଶୀ — ଉତ୍ପନ୍ନା।",
+        'Utpanna Ekadashi is Margashira’s dark-fortnight fast, soon after Kartika Purnima. Some lists treat it as the year’s first Ekadashi in the cycle of named days.',
+        'ଉତ୍ପନ୍ନା ଏକାଦଶୀ ମାର୍ଗଶୀର କୃଷ୍ଣ ପକ୍ଷର ଉପବାସ, କାର୍ତ୍ତିକ ପୂର୍ଣ୍ଣିମା ପରେ। କେତେକ ତାଲିକାରେ ଏହା ବର୍ଷର ପ୍ରଥମ ନାମିତ ଏକାଦଶୀ ଭାବେ ଗଣାଯାଏ।',
+        'Margashira Krishna Ekadashi — Utpanna.',
+        'ମାର୍ଗଶୀର କୃଷ୍ଣ ଏକାଦଶୀ — ଉତ୍ପନ୍ନା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -764,10 +761,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Vaishnava Ekadashi list", "Gita Jayanti association"],
     ),
     "Saphala Ekadashi": _short(
-        "Saphala Ekadashi is Margashira’s dark-fortnight Vishnu fast, kept for fruitful spiritual effort.",
-        "ସଫଳା ଏକାଦଶୀ ମାର୍ଗଶୀର କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ସାଧନାର ସଫଳତା ପାଇଁ ପାଳିତ।",
-        "Margashira Krishna Ekadashi — Saphala.",
-        "ମାର୍ଗଶୀର କୃଷ୍ଣ ଏକାଦଶୀ — ସଫଳା।",
+        'Saphala Ekadashi is Pausha’s dark-fortnight Vishnu fast, kept for fruitful spiritual effort.',
+        'ସଫଳା ଏକାଦଶୀ ପୌଷ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ସାଧନାର ସଫଳତା ପାଇଁ ପାଳିତ।',
+        'Pausha Krishna Ekadashi — Saphala.',
+        'ପୌଷ କୃଷ୍ଣ ଏକାଦଶୀ — ସଫଳା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -782,12 +779,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Vaishnava Ekadashi list"],
     ),
     "Shattila Ekadashi": _short(
-        "Shattila Ekadashi in Pausha dark fortnight is linked with sesame (tila) charity and food "
-        "in winter Vaishnava practice.",
-        "ଷଟ୍ଟିଲା ଏକାଦଶୀ ପୌଷ କୃଷ୍ଣ ପକ୍ଷରେ — ଶୀତକାଳୀନ ବୈଷ୍ଣବ ପ୍ରଥାରେ ତିଳ ଦାନ ଓ "
-        "ଖାଦ୍ୟ ସହିତ ଯୋଡ଼ା।",
-        "Pausha Krishna Ekadashi — Shattila (sesame).",
-        "ପୌଷ କୃଷ୍ଣ ଏକାଦଶୀ — ଷଟ୍ଟିଲା।",
+        'Shattila Ekadashi in Magha’s dark fortnight is linked with sesame (tila) charity and food in winter Vaishnava practice.',
+        'ଷଟ୍ଟିଲା ଏକାଦଶୀ ମାଘ କୃଷ୍ଣ ପକ୍ଷରେ — ଶୀତକାଳୀନ ବୈଷ୍ଣବ ପ୍ରଥାରେ ତିଳ ଦାନ ଓ ଖାଦ୍ୟ ସହିତ ଯୋଡ଼ା।',
+        'Magha Krishna Ekadashi — Shattila (sesame).',
+        'ମାଘ କୃଷ୍ଣ ଏକାଦଶୀ — ଷଟ୍ଟିଲା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -802,10 +797,10 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         ["Vaishnava Ekadashi list"],
     ),
     "Vijaya Ekadashi": _short(
-        "Vijaya Ekadashi is Magha’s dark-fortnight Vishnu fast, named for spiritual victory.",
-        "ବିଜୟା ଏକାଦଶୀ ମାଘ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଆଧ୍ୟାତ୍ମିକ ବିଜୟର ନାମ।",
-        "Magha Krishna Ekadashi — Vijaya.",
-        "ମାଘ କୃଷ୍ଣ ଏକାଦଶୀ — ବିଜୟା।",
+        'Vijaya Ekadashi is Phalguna’s dark-fortnight Vishnu fast, named for spiritual victory.',
+        'ବିଜୟା ଏକାଦଶୀ ଫାଲ୍ଗୁନ କୃଷ୍ଣ ପକ୍ଷର ବିଷ୍ଣୁ ଉପବାସ — ଆଧ୍ୟାତ୍ମିକ ବିଜୟର ନାମ।',
+        'Phalguna Krishna Ekadashi — Vijaya.',
+        'ଫାଲ୍ଗୁନ କୃଷ୍ଣ ଏକାଦଶୀ — ବିଜୟା।',
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),
@@ -816,16 +811,6 @@ FESTIVAL_STORIES: dict[str, dict[str, Any]] = {
         "ପୂଜା ସହିତ ଯୋଡ଼ା।",
         "Phalguna Shukla Ekadashi — Amalaki.",
         "ଫାଲ୍ଗୁନ ଶୁକ୍ଳ ଏକାଦଶୀ — ଆମଳକୀ।",
-        "puranic_tradition",
-        ["Vaishnava Ekadashi list"],
-    ),
-    "Papamochani Ekadashi (Phalguna)": _short(
-        "The Phalguna dark-fortnight Papamochani Ekadashi closes the named year of Ekadashis with "
-        "Vishnu fasting for release from faults.",
-        "ଫାଲ୍ଗୁନ କୃଷ୍ଣ ପକ୍ଷର ପାପମୋଚନୀ ଏକାଦଶୀରେ ବର୍ଷର ନାମିତ ଏକାଦଶୀ ଚକ୍ର ସମାପ୍ତ "
-        "ହୁଏ — ପାପମୁକ୍ତି ପାଇଁ ବିଷ୍ଣୁ ଉପବାସ।",
-        "Phalguna Krishna Ekadashi — Papamochani.",
-        "ଫାଲ୍ଗୁନ କୃଷ୍ଣ ଏକାଦଶୀ — ପାପମୋଚନୀ।",
         "puranic_tradition",
         ["Vaishnava Ekadashi list"],
     ),

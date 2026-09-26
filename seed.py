@@ -23,7 +23,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/panchang.db")
 
 from src.engine import ENGINE_VERSION, compute_panchang
-from src.festivals import match_festivals, get_sankranti_festivals
+from src.festivals import match_festivals
 from src.models import PanchangDay, Festival, get_engine, get_session_factory, init_db
 
 
@@ -84,7 +84,6 @@ def seed(start_year: int = 2020, end_year: int = 2030, *, force: bool = False):
         wipe_range(session, start, end)
 
     batch = []
-    prev_soura = None
     current = start
     count = 0
     written = 0
@@ -129,6 +128,7 @@ def seed(start_year: int = 2020, end_year: int = 2030, *, force: bool = False):
             sunset=p["sunset"],
         )
 
+        # Tithi, sankranti and relative festivals (src/festival_calendar.py)
         for f in match_festivals(p):
             day_obj.festivals.append(
                 Festival(
@@ -140,19 +140,6 @@ def seed(start_year: int = 2020, end_year: int = 2030, *, force: bool = False):
                 )
             )
 
-        if prev_soura is not None and p["soura_masa_en"] != prev_soura:
-            for f in get_sankranti_festivals(p["soura_masa_en"]):
-                day_obj.festivals.append(
-                    Festival(
-                        date=p["date"],
-                        name_en=f["name_en"],
-                        name_or=f["name_or"],
-                        tradition=f["tradition"],
-                        description=f["description"],
-                    )
-                )
-
-        prev_soura = p["soura_masa_en"]
         batch.append(day_obj)
         count += 1
         written += 1
@@ -199,11 +186,6 @@ def refresh_festivals(start_year: int = 2020, end_year: int = 2030):
     print(f"  removed {deleted} old festival rows")
 
     current = start
-    prev_soura = None
-    if start > date(1900, 1, 1):
-        prev_row = session.get(PanchangDay, (start - timedelta(days=1)).isoformat())
-        if prev_row:
-            prev_soura = prev_row.soura_masa_en
 
     added = 0
     batch: list = []
@@ -232,20 +214,6 @@ def refresh_festivals(start_year: int = 2020, end_year: int = 2030):
             )
             added += 1
 
-        if prev_soura is not None and row.soura_masa_en != prev_soura:
-            for f in get_sankranti_festivals(row.soura_masa_en):
-                batch.append(
-                    Festival(
-                        date=row.date,
-                        name_en=f["name_en"],
-                        name_or=f["name_or"],
-                        tradition=f["tradition"],
-                        description=f["description"],
-                    )
-                )
-                added += 1
-
-        prev_soura = row.soura_masa_en
         if len(batch) >= 500:
             session.add_all(batch)
             session.commit()

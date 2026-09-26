@@ -29,7 +29,8 @@ pytest tests/ -q   # full suite including tweets, stories, masa
 Implemented in `tests/test_eval_golden.py` (+ `tests/test_tweet_content.py`,
 `tests/test_chandra_masa.py`). Each case has an ID (`E-…`). Report pass/fail by ID.
 
-**2025 Puri civil dates:** `src/festival_civil.py` (Tier A Tourism overrides).
+**Festival dates:** `tests/test_festival_dates.py` (E-FEST-REFERENCE) — every festival date
+vs an independent Tier B reference and the Tier A fixture. See the section below.
 
 ---
 
@@ -201,12 +202,12 @@ References were also checked on Drik Odia panji; re-verify if ayanamsa mode diff
 | nakshatra | Dhanishtha | B1 (manual until automated) |
 | yoga | Brahma | B1 (manual until automated) |
 | karana | Kaulava (first half / until tithi end) | B1 (manual until automated) |
-| chandra_masa (Purnimanta) | **Vaishakha** | **Engine lock (2026-08-10 decision)** |
+| chandra_masa (Purnimanta) | **Jyeshtha** | B1 (resolved 2026-09-26) |
 
-**Authority decision (2026-08-10):** Drik B1 often shows **Jyeshtha** for this civil date under its
-Purnimanta settings. Our closing-Purnima Lahiri map (kept so Snana/Rath Tourism dates
-co-pass without solar+2) reports **Vaishakha** Krishna Ashtami. Automated tests lock
-**Vaishakha** — not B1 Jyeshtha. Do not reintroduce `(solar+2)%12` to force B1.
+**Resolved (2026-09-26):** Drik B1 shows **Jyeshtha**. The old closing-Purnima map could not
+match B1 and the Tourism Snana/Rath dates at once, so it locked **Vaishakha**. The
+Amanta-by-sankranti + Adhika rule (`src/lunar_calendar.py`) matches both; tests now lock
+**Jyeshtha**. Still never reintroduce `(solar+2)%12`.
 Nakshatra/yoga/karana rows remain Tier B manual until separate goldens land.
 
 **Why this case:** Past bug reported Chaitra instead of a later month on this civil date.
@@ -284,22 +285,22 @@ Optional same-cycle checks (from consistent Puri schedules, cross-check yearly):
 
 | Event | Civil date | Priority |
 |-------|------------|----------|
-| Hera Panchami | 2026-07-20 | Medium |
+| Hera Panchami | 2026-07-20 | Rath + 4 (fifth day) — see E-FEST-REFERENCE |
 | Suna Besha | 2026-07-25 | Medium |
 
 ### E-FEST-MULTIYEAR-RATH
 
 | Year | Rath Yatra date | Source | Product path |
 |------|-----------------|--------|--------------|
-| 2022 | 2022-07-01 | A2 Wikipedia | **civil override** (engine Ashadha S2 = 2022-07-30) |
-| 2023 | 2023-06-20 | A2 Wikipedia | **civil override** (engine Ashadha S2 = 2023-07-19) |
+| 2022 | 2022-07-01 | A2 Wikipedia | tithi rule (old masa heuristic put it on 2022-07-30) |
+| 2023 | 2023-06-20 | A2 Wikipedia | tithi rule (old heuristic: 2023-07-19) |
 | 2024 | 2024-07-07 | A2 | tithi rule (matches engine) |
-| 2025 | 2025-06-27 | **A1 Tourism 2025**, A2 | **civil override** |
+| 2025 | 2025-06-27 | **A1 Tourism 2025**, A2 | tithi rule (old heuristic needed an override) |
 | 2026 | 2026-07-16 | A1, A2 | tithi rule |
 | 2027 | 2027-07-05 | A2 | tithi rule |
 
 **Assert:** Festival list for that year includes Rath on that date (tradition common or jagannath).
-Civil years live in `src/festival_civil.py` (`CIVIL_OVERRIDE_YEARS`).
+Tier A rows live in `tests/fixtures/golden_festivals.json`; no civil overrides remain.
 
 ### E-FEST-2024-SNANA
 | Event | Date | Source |
@@ -335,17 +336,69 @@ Civil years live in `src/festival_civil.py` (`CIVIL_OVERRIDE_YEARS`).
 
 ---
 
+### E-FEST-REFERENCE — festival dates never silently wrong (2026-09-26)
+
+**Why:** an audit against Drik Panchang found 521 of 862 festival dates wrong in the
+2020–2030 DB (whole months off in about half of all months, Diwali missing in three
+years, sankrantis a day late). Causes: the closing-Purnima masa heuristic, one-sunrise
+matching (kshaya/vriddhi tithis), no observance-time (kala) rules, Amanta names in
+Purnimanta rules, and an unsourced Hera Panchami derivation.
+
+**Sources (tiers apply — A outranks B):**
+
+| File | Tier | Maintained by |
+|------|------|---------------|
+| `tests/fixtures/golden_festivals.json` | A1 Odisha Government holiday list / Tourism; A2 Wikipedia; A3 dated temple or news listing | Human, with citation |
+| `tests/fixtures/festival_reference/drik_bhubaneswar.json` | B1 Drik Panchang, Bhubaneswar (Odia + Hindu calendar pages) | `scripts/fetch_festival_reference.py` (deterministic HTML parse) |
+
+**Automated (CI-blocking, `tests/test_festival_dates.py`):**
+1. DB vs reference: every mapped festival, every year, exact (alternates and a documented
+   ±1 tolerance only where Drik follows another convention — Durga Ashtami, Janmashtami).
+2. DB == engine calendar for this year and next (reseed not skipped).
+3. Each Tier A row present on its date and not the day either side.
+4. Month labels vs Drik's own Purnimanta labels, exact wherever the sunrise tithi agrees.
+5. Reviewed corrections (`festival_civil.DATE_CORRECTIONS`) still match the engine.
+6. Look-ahead: reference covers next year from 1 Oct; Tier A Rath row within 120 days of Rath.
+7. Publication gate: contradiction blocks the post; unverified festivals are not announced.
+
+**Scheduled:** `.github/workflows/festival-audit.yml` (weekly) re-runs the suites, re-fetches
+Drik for this year and next and diffs it, and posts the next 60 days (announced vs held back)
+to the run summary; opens a `festival-confirm` issue when a major festival within 45 days lacks
+Tier A confirmation, and a `festival-dates` issue + push alert on any failure.
+
+**At post time:** `festival_audit.prepare_for_publish` runs inside `post_meta_bundle`
+and `scripts/post_daily.py`. A contradiction → no post (workflow red). Unverified → not announced.
+
+**Yearly maintenance (binding):**
+1. January: add the Odisha Government holiday list for the year as A1 rows.
+2. Before Snana Purnima: add Snana / Rath / Hera / Bahuda (and Suna Besha, Niladri Bije)
+   from the temple or Tourism schedule.
+3. By 1 October: `python scripts/fetch_festival_reference.py --start <this year> --end <+4>`,
+   review the fixture diff, reseed (`python seed.py --refresh-festivals`), run the suite.
+4. Any `festival-confirm` issue: confirm from an Odia panjika or the Government list and add
+   the Tier A row. Never add a row without a source you have read.
+
+**Findings recorded here:** Hera Panchami is Rath + 4 (fifth day of the yatra; 2022, 2024,
+2025, 2026 sources) — the old tithi rule and "Rath + 3" were wrong every year. Odisha keeps
+the udaya tithi for Ram Navami, Savitri Amavasya and Kumar Purnima, the midday tithi for the
+Durga Puja days, and Smarta nishita Janmashtami (Government lists 2025–2026). Open items and
+edge cases: `eval/disputes.md`.
+
+---
+
 # Suite 4 — Masa regression battery
 
 These must be **one atomic suite**. Passing only one row is failure.
 
 | Case ID | Date | Expected chandra_masa (Purnimanta) | Notes |
 |---------|------|--------------------------------------|-------|
-| E-MASA-01 | 2026-05-10 | Vaishakha *(engine; Drik B1 often Jyeshtha)* | Open B1 tension — lock engine value; never solar+2 |
+| E-MASA-01 | 2026-05-10 | Jyeshtha | Drik B1; resolved by the sankranti/Adhika rule |
 | E-MASA-02 | 2026-06-29 | Jyeshtha | Snana month |
 | E-MASA-03 | 2026-07-16 | Ashadha | Rath month |
 | E-MASA-04 | 2026-03-11 | *(fill from B1 Purnimanta for Bhubaneswar; do not use engine)* | Krishna Ashtami region |
-| E-MASA-05 | 2025-06-27 | *(engine: Jyeshtha until adhika)* | Civil Rath day (A1); **do not** force Ashadha label — festival via `festival_civil` |
+| E-MASA-05 | 2025-06-27 | Ashadha | Civil Rath day (A1) — now the engine's own label; no override |
+| E-MASA-06 | 2026-05-20…06-14 | Adhika Jyeshtha | Drik B1 Adhika month; no festival fires in it |
+| E-MASA-07 | 2023-07-25, 2023-08-10 | Adhika Shravana | Drik B1 |
 
 **Procedure for E-MASA-04:** Open Drik Odia panji for 2026-03-11, Bhubaneswar, Purnimanta, paste expected masa into fixture with citation date, then lock.
 
@@ -607,6 +660,7 @@ Do not commit Biraja civil rows without `source_edition`.
 | Gate | Requirement |
 |------|-------------|
 | Tier A jagannath festivals | 100% |
+| E-FEST-REFERENCE (all festival dates vs reference + Tier A) | 100% |
 | Suite 4 masa battery | 100% |
 | E-INV-004 DB parity | 100% |
 | E-INV-007 / E-DUAL-001 one engine | 100% |

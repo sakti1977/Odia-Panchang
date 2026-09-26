@@ -11,12 +11,35 @@ via the Facebook photo CDN, duplicate-post fingerprint, no retry on publish.
 
 | Platform | Content |
 |----------|---------|
-| **Facebook Page** | Caption (Odia, ≤2200 chars) + 4:5 JPEG share card |
-| **Instagram** | 9:16 Story by default (`INSTAGRAM_AS_STORY=true`). Set `false` for a feed post with the same caption. |
+| **Facebook Page** | Caption (Odia, ≤2200 chars) + two 4:5 JPEGs: panji card and ଜାଣନ୍ତୁ ଓଡ଼ିଶା heritage card (multi-photo post) |
+| **Instagram** | Two 9:16 Stories by default (`INSTAGRAM_AS_STORY=true`): panji, then heritage. Set `false` for a two-image feed carousel with the same caption. |
 | **X / Twitter** | Optional leftover `/tweet/post` — not the daily path |
 
-Card files: `static/social/cards/panjika_YYYY-MM-DD.jpg` (feed) and
-`panjika_YYYY-MM-DD_story.jpg` (story). Instagram does **not** fetch these from
+Every post also carries **ଜାଣନ୍ତୁ ଓଡ଼ିଶା** (Know Odisha): one curated entry a
+day on Odia culture, history, literature, writers and great Odias
+(`src/odisha_heritage.py`). The caption gets the full story, a comment prompt
+and a teaser for tomorrow's entry; the panji card gets a panel with the title and
+a one-line hook; the heritage card carries the full Odia story. Birth
+anniversaries (and Utkal Divas) take their own day; then festivals in
+`FESTIVAL_HERITAGE` get a complementary entry (Salabega on Rath Yatra,
+Pattachitra/Anasara pati on Snana, …) — never a repeat of the festival's own
+story; otherwise entries rotate with categories spread evenly through the
+cycle. Tomorrow's teaser reads tomorrow's festivals from the local DB.
+
+The heritage image is optional and never blocks the panji: if its Facebook
+upload fails the panji card posts alone; a failed second Story is logged but
+does not turn the run red (a catch-up run would otherwise re-post the panji
+Story). Kill switch: `SOCIAL_HERITAGE_CARD=false` restores single-image posts.
+Entries follow the `festival_stories.py` rules — well-documented facts with
+sources, validated Odia script. Add entries there; no reseed needed.
+
+Cards render with the vendored `assets/fonts/NotoSansOriya-*.ttf` (OFL). The
+older build in Ubuntu's `fonts-noto-core` mis-draws ନ୍ତୁ and reph clusters
+such as କାର୍ତ୍ତିକ.
+
+Card files: `static/social/cards/panjika_YYYY-MM-DD.jpg` (feed),
+`panjika_YYYY-MM-DD_story.jpg` (story), `panjika_YYYY-MM-DD_heritage.jpg` and
+`panjika_YYYY-MM-DD_heritage_story.jpg`. Instagram does **not** fetch these from
 `PUBLIC_API_URL`; the server uploads the JPEG to Facebook and reuses the CDN
 URL (litterbox fallback if Meta's crawler cannot fetch the CDN).
 
@@ -63,7 +86,8 @@ META_IG_USER_ID          # optional; discovered from the Page if omitted
 Local `.env` is fine for `python scripts/extend_meta_token.py` and a laptop dry
 run. Do not commit `.env`.
 
-Optional: `INSTAGRAM_AS_STORY=true` (workflow default).
+Optional: `INSTAGRAM_AS_STORY=true` (workflow default),
+`SOCIAL_HERITAGE_CARD=false` (single-image posts).
 
 ## Local / Actions commands
 

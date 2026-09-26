@@ -1,0 +1,101 @@
+name: Festival Date Audit
+
+# Keeps festival dates from silently going wrong between releases:
+#   1. Re-runs the festival-date suites against the committed DB
+#      (reference audit, Tier A goldens, month labels, look-ahead coverage).
+#   2. Re-fetches the Drik reference for this year and next and diffs it
+#      against the committed fixture — a changed reference date needs review.
+#   3. Publishes the next 60 days of festivals (announced vs held back) to the
+#      run summary, and opens a "needs confirmation" issue when a major
+#      festival within 45 days has no Tier A confirmation yet.
+# CI (ci.yml) runs the same tests on every push; this catches drift in time
+# (a new year, a stale reference, an upcoming unconfirmed festival).
+
+on:
+  schedule:
+    - cron: "43 3 * * 1"   # ~09:13 IST every Monday
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Audit festival dates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx fonttools
+
+      - name: Festival-date suites
+        run: python -m pytest tests/test_festival_dates.py tests/test_chandra_masa.py tests/test_eval_golden.py -q --tb=short
+
+      - name: Full reference audit
+        run: python scripts/audit_festivals.py
+
+      - name: Reference drift (Drik, this year and next)
+        run: |
+          Y=$(date +%Y)
+          python scripts/fetch_festival_reference.py --check --start "$Y" --end "$((Y + 1))"
+
+      - name: Upcoming festivals (next 60 days)
+        id: schedule
+        run: |
+          set +e
+          python scripts/audit_festivals.py --schedule 60 > schedule.md
+          rc=$?
+          set -e
+          cat schedule.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          [ "$rc" = "1" ] && exit 1   # a day would be blocked from posting
+          exit 0
+
+      - name: Ask for confirmation of held-back major festivals
+        if: steps.schedule.outputs.rc == '2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY=$(printf "A major festival in the next 45 days has no Tier A confirmation, so the daily post will not announce it.\n\n%s\n\nConfirm the date from an Odia panjika (Kohinoor / Khadiratna), the Odisha Government holiday list or the temple schedule, then add a row to \`tests/fixtures/golden_festivals.json\` with the source." "$(tail -n 3 schedule.md)")
+          gh label create festival-confirm --color FBCA04 --description "Festival date needs human confirmation" 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label festival-confirm --state open --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body "$BODY"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "🟡 Festival date needs confirmation" --label festival-confirm --body "$BODY"
+          fi
+
+      - name: File/update failure alert issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="Weekly festival-date audit failed — a festival date disagrees with the reference or a Tier A source, the reference changed, or coverage for the coming year is missing. Daily posts on affected days are blocked. See eval.md § E-FEST-REFERENCE. Run log: $RUN_URL"
+          gh label create festival-dates --color B60205 --description "Festival date audit failed" 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label festival-dates --state open --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body "$BODY"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "🔴 Festival date audit failed" --label festival-dates --body "$BODY"
+          fi
+
+      - name: Push alert (ntfy.sh)
+        if: failure() && env.NTFY_TOPIC != ''
+        run: |
+          curl -s -H "Title: Odia Panjika festival audit failed" -H "Priority: high" -H "Tags: calendar" \
+            -d "Festival dates need attention: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            "https://ntfy.sh/$NTFY_TOPIC" || true

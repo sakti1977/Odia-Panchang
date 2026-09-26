@@ -2,7 +2,8 @@
 Automated binding evals from eval.md (Tier A + structural + dual-tradition).
 
 Never generate expected values by snapshotting compute_panchang blindly.
-Civil festival dates for authority years come from festival_civil.py (Tier A).
+Tier A civil dates live in tests/fixtures/golden_festivals.json; the Tier B
+date reference is audited in tests/test_festival_dates.py.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from src.engine import compute_panchang
-from src.festival_civil import CIVIL_OVERRIDE_YEARS, authority_notes, civil_festivals_for_date
+from src.festival_civil import DATE_CORRECTIONS, authority_notes, civil_festivals_for_date, lookup_civil_meta
 from src.festival_stories import (
     FESTIVAL_STORIES,
     coverage_report,
@@ -121,7 +122,7 @@ class TestEInv:
 # ── Suite 3 / 4 — Festival civil + masa battery ───────────────────────────
 
 class TestEFestCivil:
-    """Tier A civil anchors — non-adhika years + 2025 authority override."""
+    """Tier A civil anchors — every year from the tithi rules, no overrides."""
 
     def test_e_fest_2026_puri_schedule(self):
         assert any("Snana" in n for n in _fest_names(date(2026, 6, 29)))
@@ -175,28 +176,28 @@ class TestEFestCivil:
             assert required in names
 
     def test_civil_override_source_notes(self):
+        """No festival is injected any more; Tier A metadata still reaches the wire."""
+        assert civil_festivals_for_date("2025-06-27") == []
+        meta = lookup_civil_meta("2025-06-27", "Rath Yatra")
+        assert meta and meta["tier_a_confirmed"] and "Tourism" in meta["source_note"]
         notes = authority_notes()
-        years = {n["year"] for n in notes}
-        assert "2025" in years and "2022" in years and "2023" in years
-        rows = civil_festivals_for_date("2025-06-27")
-        assert any(r["name_en"] == "Rath Yatra" for r in rows)
-        assert "Tourism" in (rows[0].get("source_note") or "")
+        assert any("2025" in n["year"] for n in notes)
 
 
 class TestEMasaBattery:
     """
-    Suite 4 — atomic festival-aligned masa rows (must pass together).
-
-    E-MASA-01 (2026-05-10 / Drik Jyeshtha): under the closing-Purnima formula
-    that keeps Snana/Rath Tourism dates correct, engine reports Vaishakha Krishna
-    Ashtami. Documented open B1 tension in eval.md — do not reintroduce solar+2.
+    Suite 4 — atomic masa rows (must pass together). Since the
+    Amanta-by-sankranti + Adhika rule, Drik B1 labels and Tourism festival
+    dates agree — the old E-MASA-01 'Vaishakha' lock is retired.
     """
 
     @pytest.mark.parametrize(
         "d,masa,tithi_num,paksha",
         [
+            (date(2026, 5, 10), "Jyeshtha", 8, "Krishna"),  # E-MASA-01 (Drik B1)
             (date(2026, 6, 29), "Jyeshtha", 15, "Shukla"),  # E-MASA-02 Snana
             (date(2026, 7, 16), "Ashadha", 2, "Shukla"),  # E-MASA-03 Rath
+            (date(2025, 6, 27), "Ashadha", 2, "Shukla"),  # E-MASA-05 civil Rath 2025
             (date(2024, 7, 7), "Ashadha", 2, "Shukla"),
             (date(2027, 7, 5), "Ashadha", 2, "Shukla"),
         ],
@@ -207,23 +208,9 @@ class TestEMasaBattery:
         assert p["tithi_num"] == tithi_num
         assert p["paksha_en"] == paksha
 
-    def test_e_masa_01_2026_05_10_documented_engine_value(self):
-        """Honest lock: current engine masa (not Drik Jyeshtha) until reconciled."""
-        p = compute_panchang(date(2026, 5, 10))
-        assert p["paksha_en"] == "Krishna"
-        assert p["tithi_num"] == 8
-        assert p["chandra_masa_en"] == "Vaishakha"
-        assert p["chandra_masa_en"] != "Chaitra"  # old bug
-
-    def test_e_masa_05_2025_06_27_not_forced_ashadha(self):
-        """
-        E-MASA-05 note: civil Rath is 27 Jun, but engine masa is still Jyeshtha
-        until adhika naming is implemented. Do not fake Ashadha on the label.
-        """
-        p = compute_panchang(date(2025, 6, 27))
-        assert p["chandra_masa_en"] != "Ashadha"
-        # Festival still present via civil override
-        assert any("Rath Yatra" in n for n in _fest_names(date(2025, 6, 27)))
+    def test_e_masa_old_bugs_stay_dead(self):
+        assert compute_panchang(date(2026, 5, 10))["chandra_masa_en"] != "Chaitra"
+        assert compute_panchang(date(2026, 6, 29))["chandra_masa_en"] != "Shravana"  # solar+2
 
 
 # ── Suite 5 / 6 / 9 — Location, API, dual tradition ───────────────────────
@@ -368,8 +355,8 @@ class TestStoryQualityAndSafe:
             for phrase in phrases:
                 assert phrase.lower() not in blob, f"{name} contains denylist: {phrase}"
 
-    def test_civil_override_years_only_when_sourced(self):
-        # Only years with human-sourced Tier A/A2 tables
-        assert {2022, 2023, 2025} <= set(CIVIL_OVERRIDE_YEARS)
-        # Do not invent years without sources
-        assert set(CIVIL_OVERRIDE_YEARS.keys()) <= {2020, 2021, 2022, 2023, 2025, 2028, 2029, 2030}
+    def test_date_corrections_are_sourced(self):
+        """Every reviewed correction cites a source and a reason."""
+        for c in DATE_CORRECTIONS:
+            assert c["source"].strip() and c["reason"].strip(), c
+            assert c["date"] != c["engine_date"]

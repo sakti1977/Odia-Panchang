@@ -402,6 +402,13 @@ def generate_social_caption(
         elif name_or:
             blocks.append(f"🎉 {name_or}")
 
+    # Daily "Know Odisha" heritage story. Placed before the optional cultural
+    # extras so, if the caption is too long, those are dropped first.
+    from src.odisha_heritage import festival_names, heritage_caption_block, heritage_hashtags
+
+    fest_names = festival_names(panchang.get("festivals"))
+    blocks.append(heritage_caption_block(panchang["date"], fest_names))
+
     jagannath_or = (cultural.get("jagannath_significance") or {}).get("or", "")
     if jagannath_or:
         blocks.append(f"🛕 {jagannath_or.strip()}")
@@ -414,7 +421,7 @@ def generate_social_caption(
     if proverb_or:
         blocks.append(f"📜 {proverb_or.strip()}")
 
-    tags = _BASE_TAGS
+    tags = f"{_BASE_TAGS} {heritage_hashtags(panchang['date'], fest_names)}"
     fest_tags = _festival_hashtags(panchang.get("festivals") or [])
     if fest_tags:
         tags = f"{tags} {fest_tags}"

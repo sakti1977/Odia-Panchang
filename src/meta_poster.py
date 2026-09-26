@@ -16,6 +16,7 @@ Env (set on the Render web service):
   META_IG_USER_ID           optional — discovered from the Page if omitted
   META_GRAPH_VERSION        default v22.0
   INSTAGRAM_AS_STORY        default true
+  SOCIAL_HERITAGE_CARD      default true — second 'ଜାଣନ୍ତୁ ଓଡ଼ିଶା' image
 """
 
 from __future__ import annotations
@@ -375,8 +376,59 @@ def _resolve_instagram_image_url(image_path: str, token: str, facebook_photo_id:
     return _host_image_temporarily(image_path)
 
 
-def post_to_facebook(text: str, image_path: str | None, page_id: str, token: str) -> dict:
-    """Publish to the Facebook Page. Not retried: a lost response may already be live."""
+def _upload_photo_for_attach(page_id: str, token: str, image_path: str) -> str:
+    """Unpublished Page photo, to be attached to a multi-photo feed post."""
+    data = _read_file_bytes(image_path)
+    filename = os.path.basename(image_path) or "daily_image.jpg"
+    response = _graph_post_multipart(
+        f"/{page_id}/photos",
+        token,
+        fields={"published": "false"},
+        files={"source": (filename, data, "image/jpeg")},
+    )
+    photo_id = response.get("id")
+    if not photo_id:
+        raise GraphAPIError(f"Unpublished photo upload returned no id: {response}")
+    return str(photo_id)
+
+
+def post_to_facebook(
+    text: str,
+    image_path: str | None,
+    page_id: str,
+    token: str,
+    extra_image_paths: list[str] | None = None,
+) -> dict:
+    """Publish to the Facebook Page. Not retried: a lost response may already be live.
+
+    With `extra_image_paths` (the heritage card) this is a multi-photo post:
+    every photo is uploaded unpublished, then one /feed post attaches them.
+    If an extra photo cannot be uploaded, nothing is live yet, so it falls
+    back to the plain single-photo post. The result carries `photo_ids` in
+    image order either way.
+    """
+    extras = [p for p in (extra_image_paths or []) if p and os.path.exists(p)]
+    if image_path and os.path.exists(image_path) and extras:
+        photo_ids: list[str] | None = None
+        try:
+            photo_ids = [_upload_photo_for_attach(page_id, token, image_path)]
+            for path in extras:
+                photo_ids.append(_upload_photo_for_attach(page_id, token, path))
+        except (GraphAPIError, OSError) as exc:
+            logger.warning("Extra photo upload failed (%s); posting the panji card alone", exc)
+            photo_ids = None
+        if photo_ids:
+            logger.info(
+                "Posting %d-photo post to Facebook Page %s (%d chars)",
+                len(photo_ids), page_id, len(text),
+            )
+            params: dict[str, Any] = {"message": text}
+            for i, pid in enumerate(photo_ids):
+                params[f"attached_media[{i}]"] = json.dumps({"media_fbid": pid})
+            response = _graph_post(f"/{page_id}/feed", token, params)
+            logger.info("Facebook post succeeded (id=%s)", response.get("id"))
+            return {**response, "photo_ids": photo_ids}
+
     if image_path and os.path.exists(image_path):
         logger.info("Posting photo to Facebook Page %s (%d chars)", page_id, len(text))
         data = _read_file_bytes(image_path)
@@ -395,6 +447,8 @@ def post_to_facebook(text: str, image_path: str | None, page_id: str, token: str
 
     post_id = response.get("post_id") or response.get("id")
     logger.info("Facebook post succeeded (id=%s)", post_id)
+    if image_path and os.path.exists(image_path) and response.get("id"):
+        return {**response, "photo_ids": [str(response["id"])]}
     return response
 
 
@@ -451,6 +505,48 @@ def post_to_instagram(
     return published
 
 
+def post_instagram_carousel(
+    text: str,
+    image_urls: list[str],
+    ig_user_id: str,
+    token: str,
+) -> dict:
+    """Feed carousel: one child container per image, a CAROUSEL parent with
+    the caption, then media_publish (not retried)."""
+    logger.info("Creating Instagram carousel (%d images) for %s", len(image_urls), ig_user_id)
+    children = []
+    for url in image_urls:
+        child = _graph_post(
+            f"/{ig_user_id}/media", token, {"image_url": url, "is_carousel_item": "true"}
+        )
+        child_id = child.get("id")
+        if not child_id:
+            raise GraphAPIError(f"Instagram carousel item returned no id: {child}")
+        _wait_for_ig_container(str(child_id), token)
+        children.append(str(child_id))
+    parent = _graph_post(
+        f"/{ig_user_id}/media",
+        token,
+        {"media_type": "CAROUSEL", "children": ",".join(children), "caption": text},
+    )
+    parent_id = parent.get("id")
+    if not parent_id:
+        raise GraphAPIError(f"Instagram carousel container returned no id: {parent}")
+    _wait_for_ig_container(str(parent_id), token)
+    logger.info("Publishing Instagram carousel %s", parent_id)
+    published = _graph_post(f"/{ig_user_id}/media_publish", token, {"creation_id": parent_id})
+    logger.info("Instagram carousel succeeded (id=%s)", published.get("id"))
+    return published
+
+
+def _story_image_url(page_id: str, token: str, path: str) -> str:
+    try:
+        return _upload_unpublished_photo(page_id, token, path)
+    except (GraphAPIError, OSError) as exc:
+        logger.warning("Unpublished story photo failed (%s); using a temporary host", exc)
+        return _host_image_temporarily(path)
+
+
 def post_to_meta(
     text: str,
     image_path: str | None = None,
@@ -458,8 +554,17 @@ def post_to_meta(
     story_path: str | None = None,
     *,
     platforms: list[str] | None = None,
+    heritage_path: str | None = None,
+    heritage_story_path: str | None = None,
 ) -> dict:
     """Post the daily panjika to Facebook and, when linked, Instagram.
+
+    The 'ଜାଣନ୍ତୁ ଓଡ଼ିଶା' heritage card is a second image: Facebook gets a
+    two-photo post; Instagram gets a carousel (feed mode) or a second Story
+    (story mode). The heritage card is strictly optional — if it cannot be
+    attached the panji still posts, and a failed second Story is only a
+    warning (it never turns the run red, so a catch-up run cannot re-post
+    the panji Story).
 
     Duplicate-post prevention is layered:
       1. GitHub Actions cache keyed by IST date
@@ -491,6 +596,7 @@ def post_to_meta(
     results: dict = {"facebook": None, "instagram": None}
     errors: list[str] = []
     facebook_photo_id: str | None = None
+    heritage_photo_id: str | None = None
 
     if "facebook" in want:
         if _already_posted(_recent_facebook_captions(creds.page_id, creds.access_token), text):
@@ -498,9 +604,17 @@ def post_to_meta(
             results["facebook"] = {"skipped": True, "reason": "already_posted"}
         else:
             try:
-                fb = post_to_facebook(text, image_path, creds.page_id, creds.access_token)
+                fb = post_to_facebook(
+                    text,
+                    image_path,
+                    creds.page_id,
+                    creds.access_token,
+                    extra_image_paths=[heritage_path] if heritage_path else None,
+                )
                 results["facebook"] = fb
-                facebook_photo_id = fb.get("id") if image_path else None
+                photo_ids = fb.get("photo_ids") or []
+                facebook_photo_id = photo_ids[0] if photo_ids else None
+                heritage_photo_id = photo_ids[1] if len(photo_ids) > 1 else None
             except GraphAPIError as exc:
                 errors.append(f"Facebook: {exc}")
                 logger.error("Facebook post failed: %s", exc)
@@ -524,27 +638,48 @@ def post_to_meta(
         try:
             ig_file = story_path if (as_story and story_path and os.path.exists(story_path)) else image_path
             if as_story:
-                try:
-                    image_url = _upload_unpublished_photo(
-                        creds.page_id, creds.access_token, ig_file
-                    )
-                except (GraphAPIError, OSError) as exc:
-                    logger.warning("Unpublished story photo failed (%s); using a temporary host", exc)
-                    image_url = _host_image_temporarily(ig_file)
+                image_url = _story_image_url(creds.page_id, creds.access_token, ig_file)
+                results["instagram"] = post_to_instagram(
+                    text, image_url, ig_user_id, creds.access_token, as_story=True
+                )
             else:
                 image_url = _resolve_instagram_image_url(ig_file, creds.access_token, facebook_photo_id)
-            results["instagram"] = post_to_instagram(
-                text,
-                image_url,
-                ig_user_id,
-                creds.access_token,
-                alt_text=alt_text,
-                as_story=as_story,
-            )
+                heritage_url = None
+                if heritage_path and os.path.exists(heritage_path):
+                    try:
+                        heritage_url = _resolve_instagram_image_url(
+                            heritage_path, creds.access_token, heritage_photo_id
+                        )
+                    except (GraphAPIError, OSError) as exc:
+                        logger.warning("Heritage image unavailable for carousel (%s); single image", exc)
+                if heritage_url:
+                    results["instagram"] = post_instagram_carousel(
+                        text, [image_url, heritage_url], ig_user_id, creds.access_token
+                    )
+                else:
+                    results["instagram"] = post_to_instagram(
+                        text,
+                        image_url,
+                        ig_user_id,
+                        creds.access_token,
+                        alt_text=alt_text,
+                        as_story=False,
+                    )
         except (GraphAPIError, OSError) as exc:
             errors.append(f"Instagram: {exc}")
             logger.error("Instagram post failed: %s", exc)
             results["instagram"] = {"error": str(exc)}
+
+        # Second Story (heritage) only after the panji Story is live; best-effort.
+        heritage_story = heritage_story_path if heritage_story_path and os.path.exists(heritage_story_path) else None
+        if as_story and heritage_story and isinstance(results["instagram"], dict) and results["instagram"].get("id"):
+            try:
+                url = _story_image_url(creds.page_id, creds.access_token, heritage_story)
+                hs = post_to_instagram(text, url, ig_user_id, creds.access_token, as_story=True)
+                results["instagram"]["heritage_story"] = {"id": hs.get("id")}
+            except (GraphAPIError, OSError) as exc:
+                logger.warning("Heritage Story failed (panji Story is live; not retried): %s", exc)
+                results["instagram"]["heritage_story"] = {"error": str(exc)}
 
     if errors:
         err = RuntimeError("Posting failed: " + "; ".join(errors))
@@ -635,7 +770,26 @@ def post_meta_bundle(
     """
     from src.social_card import generate_daily_card, generate_story_card, public_card_url
 
+    from src.festival_audit import PublishBlocked, prepare_for_publish
+
     platforms = [p.lower().strip() for p in (platforms or ["facebook", "instagram"])]
+    try:
+        panchang, unverified = prepare_for_publish(panchang)
+    except PublishBlocked as exc:
+        # Festival list contradicts the verified reference: never announce it.
+        logger.error("Publish blocked — festival dates failed verification: %s", exc)
+        _log_social("bundle", {"status": "blocked", "reason": str(exc)})
+        return {
+            "date": panchang.get("date"),
+            "status": "error",
+            "message": f"Festival verification failed: {exc}"[:300],
+            "platforms": {
+                name: {"status": "error", "platform": name, "message": "festival verification failed"}
+                for name in platforms
+            },
+        }
+    if unverified:
+        logger.warning("Not announcing unverified festivals: %s", ", ".join(unverified))
     card_path = generate_daily_card(panchang, enrichment)
     story_path = None
     as_story = os.getenv("INSTAGRAM_AS_STORY", "true").lower() != "false"
@@ -645,6 +799,20 @@ def post_meta_bundle(
         except Exception as exc:
             logger.warning("Story card failed (Instagram may skip or use feed card): %s", exc)
 
+    heritage_path = heritage_story_path = None
+    if os.getenv("SOCIAL_HERITAGE_CARD", "true").lower() != "false":
+        from src.social_card import generate_heritage_card, generate_heritage_story_card
+
+        try:
+            heritage_path = generate_heritage_card(panchang)
+            if "instagram" in platforms and as_story:
+                heritage_story_path = generate_heritage_story_card(
+                    panchang, heritage_path=heritage_path
+                )
+        except Exception as exc:  # noqa: BLE001 — optional second image
+            logger.warning("Heritage card failed (posting the panji card alone): %s", exc)
+            heritage_path = heritage_story_path = None
+
     caption = generate_social_caption(panchang, enrichment)
     image_url = public_card_url(card_path, public_base=public_base)
     results: dict[str, Any] = {
@@ -652,6 +820,7 @@ def post_meta_bundle(
         "image_url": image_url,
         "card_path": str(card_path),
         "story_path": str(story_path) if story_path else None,
+        "heritage_path": str(heritage_path) if heritage_path else None,
         "facebook_message": caption,
         "instagram_caption": caption,
         "platforms": {},
@@ -679,6 +848,8 @@ def post_meta_bundle(
             image_path=str(card_path),
             story_path=str(story_path) if story_path else None,
             platforms=platforms,
+            heritage_path=str(heritage_path) if heritage_path else None,
+            heritage_story_path=str(heritage_story_path) if heritage_story_path else None,
         )
     except RuntimeError as exc:
         logger.error("Meta bundle posting failed: %s", exc)
